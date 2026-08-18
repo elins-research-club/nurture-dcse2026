@@ -1,6 +1,6 @@
 # 🌿 G-Connect — Smart Farming IoT Platform
 
-Platform monitoring dan manajemen perangkat IoT untuk pertanian cerdas (*smart farming*). G-Connect menghubungkan sensor lapangan ke dashboard real-time berbasis web, dengan notifikasi otomatis ke Telegram.
+Platform monitoring dan manajemen perangkat IoT untuk pertanian cerdas (*smart farming*). G-Connect menghubungkan sensor di lapangan ke dashboard real-time berbasis web
 
 ---
 
@@ -33,7 +33,7 @@ Platform monitoring dan manajemen perangkat IoT untuk pertanian cerdas (*smart f
 │         └────────────────┴─────────────────────┘                │
 │                          │                                      │
 │  ┌────────────┐          │  ┌──────────────────────────┐        │
-│  │ PostgreSQL │◄─────────┘  │  Telegram Bot API        │        │
+│  │ PostgreSQL │◄─────────┘  │  *Telegram Bot API       │        │
 │  │  Database  │             │  (alert offline/online)  │        │
 │  └────────────┘             └──────────────────────────┘        │
 └──────────────────────┬──────────────────────────────────────────┘
@@ -65,7 +65,7 @@ Poller → last_seen > 15 menit → EventLog (DB) + Telegram Notification
 ## 🗂️ Struktur Proyek
 
 ```
-GGGCONNECT/
+G-CONNECT2026/
 ├── backend/                  # FastAPI application
 │   ├── app/
 │   │   ├── core/             # Config, Database, Security
@@ -128,7 +128,7 @@ Semua komponen (Frontend, Backend, Database) berjalan di dalam Docker.
 **1. Clone repository**
 ```bash
 git clone <url-repo>
-cd GGGCONNECT
+cd G-CONNECT2026
 ```
 
 **2. Buat file environment**
@@ -355,21 +355,6 @@ POST /api/v1/nodes/NODE-01/sensors/
 ```
 
 Setelah itu, poller otomatis akan mulai mengambil data dari ThingSpeak dan menyiarkannya ke dashboard secara real-time.
-
----
-
-## 🔔 Konfigurasi Telegram Alert
-
-1. Buat bot baru via [@BotFather](https://t.me/BotFather) di Telegram, catat **Token**-nya.
-2. Dapatkan **Chat ID** kamu via [@userinfobot](https://t.me/userinfobot).
-3. Tambahkan ke file `.env` backend:
-```env
-TELEGRAM_BOT_TOKEN=1234567890:ABCdef...
-TELEGRAM_CHAT_ID=987654321
-```
-4. Restart backend.
-
-Sistem akan otomatis mengirim notifikasi jika node tidak mengirim data lebih dari `OFFLINE_THRESHOLD_MINUTES` menit (default: 15 menit).
 
 ---
 
