@@ -1,0 +1,88 @@
+<script setup lang="ts">
+import { computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { LayoutDashboard, Network, Settings, LogOut, ChevronLeft, ChevronRight, Leaf, Bell } from 'lucide-vue-next'
+import { useAuthStore } from '@/stores/auth'
+
+const props = defineProps<{ collapsed: boolean }>()
+const emit = defineEmits(['update:collapsed'])
+
+const route = useRoute()
+const router = useRouter()
+const authStore = useAuthStore()
+
+const toggleCollapse = () => {
+  emit('update:collapsed', !props.collapsed)
+}
+
+const navItems = [
+  { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+  { name: 'Nodes', path: '/nodes', icon: Network },
+  { name: 'Alerts', path: '/alerts', icon: Bell },
+  { name: 'Settings', path: '/settings', icon: Settings },
+]
+
+const navigate = (path: string) => {
+  router.push(path)
+}
+
+const handleLogout = () => {
+  authStore.logout()
+}
+
+const isActive = (path: string) => {
+  if (path === '/nodes' && route.path.startsWith('/nodes')) return true
+  return route.path === path
+}
+</script>
+
+<template>
+  <aside :class="[
+    'border-r border-border/50 bg-background/80 backdrop-blur-xl flex flex-col h-screen fixed left-0 top-0 shadow-[4px_0_24px_rgba(0,0,0,0.02)] dark:shadow-[4px_0_24px_rgba(0,0,0,0.2)] z-40 transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]',
+    collapsed ? 'w-20' : 'w-64'
+  ]">
+    <div class="h-20 flex items-center border-b border-border/50 relative px-5 whitespace-nowrap overflow-hidden">
+      <button 
+        @click="toggleCollapse"
+        class="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-emerald-600 flex items-center justify-center shadow-lg shadow-primary/20 shrink-0 cursor-pointer hover:scale-105 transition-transform" 
+        title="Toggle Sidebar"
+      >
+        <Leaf class="w-5 h-5 text-primary-foreground" />
+      </button>
+      <h1 class="text-xl font-extrabold text-foreground tracking-tight ml-3 transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] overflow-hidden" :class="collapsed ? 'opacity-0 max-w-0 scale-90 translate-x-2' : 'opacity-100 max-w-[150px] scale-100 translate-x-0'">
+        G-CONNECT
+      </h1>
+    </div>
+    
+    <nav class="flex-1 px-3 py-6 space-y-2 overflow-y-auto overflow-x-hidden">
+      <button
+        v-for="item in navItems"
+        :key="item.path"
+        @click="navigate(item.path)"
+        class="w-full flex items-center rounded-2xl text-sm font-medium transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] relative group border border-transparent p-2"
+        :class="[
+          isActive(item.path) 
+            ? 'text-primary bg-gradient-to-b from-primary/20 to-primary/5 backdrop-blur-md border-primary/20 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4),0_8px_16px_-4px_rgba(0,230,0,0.2)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.1),0_8px_16px_-4px_rgba(0,230,0,0.15)]' 
+            : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+        ]"
+      >
+        <div class="w-10 h-10 flex shrink-0 items-center justify-center">
+          <component :is="item.icon" class="w-5 h-5 relative z-10" :class="isActive(item.path) ? 'text-primary' : ''" />
+        </div>
+        <span class="relative z-10 whitespace-nowrap transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] overflow-hidden text-left pl-2" :class="collapsed ? 'opacity-0 max-w-0 scale-90 translate-x-2' : 'opacity-100 max-w-[150px] scale-100 translate-x-0'">{{ item.name }}</span>
+      </button>
+    </nav>
+    
+    <div class="p-4 border-t border-border/50 overflow-hidden whitespace-nowrap">
+      <button
+        @click="handleLogout"
+        class="w-full flex items-center rounded-xl text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors group p-2"
+      >
+        <div class="w-8 h-8 flex shrink-0 items-center justify-center">
+          <LogOut class="w-4 h-4 transition-transform group-hover:-translate-x-1" />
+        </div>
+        <span class="overflow-hidden whitespace-nowrap transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] text-left pl-2" :class="collapsed ? 'opacity-0 max-w-0 scale-90 translate-x-2' : 'opacity-100 max-w-[150px] scale-100 translate-x-0'">Logout</span>
+      </button>
+    </div>
+  </aside>
+</template>

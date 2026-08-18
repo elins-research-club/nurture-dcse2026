@@ -1,0 +1,67 @@
+# Environment & Secrets (NEVER COMMIT)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
+
+# Python / FastAPI / Backend
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.venv/
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+.eggs/
+
+# Node.js / React / Vite / Frontend
+node_modules/
+dist/
+dist-ssr/
+*.local
+.vite/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Database & Storage
+*.sqlite
+*.sqlite3
+postgres_data/
+
+# IDE & OS
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+ehthumbs.db
+
+# Scratch & Temporary
+scratch/
+tmp/
+
+# AI Agent / Development Support Docs (tidak perlu di-push)
+agents.md
+planning.md
+prd.md
+design.md
+security.md
+fix_pwd.sql
+fix_pwd2.sql
+.agents/
+
+# Frontend boilerplate README (diganti README.md di root)
+frontend/README.md

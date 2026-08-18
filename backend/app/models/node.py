@@ -1,0 +1,26 @@
+import uuid
+from datetime import datetime
+from typing import Optional, List
+from sqlalchemy import String, Boolean, DateTime
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.dialects.postgresql import UUID
+from app.core.database import Base
+
+class Node(Base):
+    __tablename__ = "nodes"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    node_id: Mapped[str] = mapped_column(String(50), unique=True, index=True, nullable=False)
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    location: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    last_seen: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+    # Relationships
+    channel = relationship("ThingspeakChannel", back_populates="node", uselist=False, cascade="all, delete-orphan")
+    sensors = relationship("Sensor", back_populates="node", cascade="all, delete-orphan")
+    actuators = relationship("Actuator", back_populates="node", cascade="all, delete-orphan")
+    event_logs = relationship("EventLog", back_populates="node", cascade="all, delete-orphan")
