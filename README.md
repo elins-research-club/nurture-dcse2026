@@ -388,7 +388,7 @@ Dokumentasi lengkap tersedia di: **http://localhost:8000/docs**
 ## 👥 Tim
 
 **G-Connect Smart Farming Platform**  
-Universitas Gadjah Mada — Project Kampus 2026
+Universitas Gadjah Mada — Pengabdian Masyarakat Lab ELINS
 
 | Peran | Nama |
 |---|---|
