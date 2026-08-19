@@ -73,7 +73,7 @@ const isActive = (path: string) => {
         class="w-full flex items-center rounded-2xl text-sm font-medium transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] relative group border border-transparent p-2"
         :class="[
           isActive(item.path) 
-            ? 'text-primary bg-gradient-to-b from-primary/20 to-primary/5 backdrop-blur-md border-primary/20 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4),0_8px_16px_-4px_rgba(0,230,0,0.2)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.1),0_8px_16px_-4px_rgba(0,230,0,0.15)]' 
+            ? 'text-primary bg-gradient-to-b from-primary/20 to-primary/5 font-semibold' 
             : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
         ]"
       >

@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import { useAuthStore } from '@/stores/auth'
 import DashboardLayout from '@/components/layout/DashboardLayout.vue'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
@@ -7,10 +8,12 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
-import { Sun, Moon, CheckCircle } from 'lucide-vue-next'
+import { Sun, Moon, CheckCircle, XCircle, Loader2 } from 'lucide-vue-next'
 
 const isDarkMode = ref(document.documentElement.classList.contains('dark'))
-const showSuccessModal = ref(false)
+const showModal = ref(false)
+const modalType = ref<'success' | 'error'>('success')
+const modalMessage = ref('')
 
 const toggleTheme = (dark: boolean) => {
   isDarkMode.value = dark
@@ -21,19 +24,19 @@ const toggleTheme = (dark: boolean) => {
   }
 }
 
-import { onMounted } from 'vue'
-import { useAuthStore } from '@/stores/auth'
-
 const API_BASE_URL = 'http://localhost:8000/api/v1'
 
 const systemConfig = ref({
   polling_interval: 15,
   data_retention_days: 30,
-  offline_threshold_mins: 15
+  offline_threshold_mins: 15,
+  telegram_bot_token: '',
+  telegram_chat_id: ''
 })
 
-const isLoadingConfig = ref(false)
+const isLoadingConfig = ref(true)
 const isSavingConfig = ref(false)
+const isTestingTelegram = ref(false)
 const authStore = useAuthStore()
 
 const loadSystemConfig = async () => {
@@ -43,7 +46,11 @@ const loadSystemConfig = async () => {
       headers: { 'Authorization': `Bearer ${authStore.token}` }
     })
     if (res.ok) {
-      systemConfig.value = await res.json()
+      const data = await res.json()
+      systemConfig.value = {
+        ...systemConfig.value,
+        ...data
+      }
     }
   } catch (error) {
     console.error('Failed to load system config:', error)
@@ -64,18 +71,51 @@ const saveSystemConfig = async () => {
       body: JSON.stringify(systemConfig.value)
     })
     if (res.ok) {
-      showSuccessModal.value = true
+      modalType.value = 'success'
+      modalMessage.value = 'Settings saved successfully'
+      showModal.value = true
       setTimeout(() => {
-        showSuccessModal.value = false
+        showModal.value = false
       }, 2000)
     } else {
-      alert('Failed to save config.')
+      const err = await res.json()
+      modalType.value = 'error'
+      modalMessage.value = `Failed to save config:\n${err.detail || res.statusText}`
+      showModal.value = true
     }
   } catch (error) {
     console.error('Failed to save config:', error)
-    alert('Failed to save config.')
+    alert('Failed to save configuration. Check console.')
   } finally {
     isSavingConfig.value = false
+  }
+}
+
+const testTelegramConnection = async () => {
+  try {
+    isTestingTelegram.value = true
+    const res = await fetch(`${API_BASE_URL}/system/test-telegram`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${authStore.token}` }
+    })
+    
+    if (res.ok) {
+      modalType.value = 'success'
+      modalMessage.value = 'Test message sent successfully'
+      showModal.value = true
+      setTimeout(() => {
+        showModal.value = false
+      }, 2000)
+    } else {
+      const err = await res.json()
+      modalType.value = 'error'
+      modalMessage.value = `Failed to send:\n${err.detail || res.statusText}`
+      showModal.value = true
+    }
+  } catch (error) {
+    alert('Failed to test connection. Make sure to save the configuration first.')
+  } finally {
+    isTestingTelegram.value = false
   }
 }
 
@@ -85,6 +125,83 @@ onMounted(() => {
 
 const currentPassword = ref('')
 const newPassword = ref('')
+const isPasswordValid = ref<boolean | null>(null)
+const isCheckingPassword = ref(false)
+let passwordCheckTimeout: any = null
+
+const verifyPassword = () => {
+  if (passwordCheckTimeout) clearTimeout(passwordCheckTimeout)
+  isPasswordValid.value = null
+  
+  if (!currentPassword.value) {
+    return
+  }
+  
+  isCheckingPassword.value = true
+  passwordCheckTimeout = setTimeout(async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/auth/verify-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authStore.token}`
+        },
+        body: JSON.stringify({ password: currentPassword.value })
+      })
+      if (res.ok) {
+        const data = await res.json()
+        isPasswordValid.value = data.valid
+      }
+    } catch (e) {
+      isPasswordValid.value = false
+    } finally {
+      isCheckingPassword.value = false
+    }
+  }, 500)
+}
+
+const isSavingPassword = ref(false)
+const updatePassword = async () => {
+  if (!currentPassword.value || !newPassword.value || newPassword.value.length < 8) {
+    modalType.value = 'error'
+    modalMessage.value = 'Please provide current password and a new password (min 8 chars).'
+    showModal.value = true
+    return
+  }
+  
+  isSavingPassword.value = true
+  try {
+    const res = await fetch(`${API_BASE_URL}/auth/password`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authStore.token}`
+      },
+      body: JSON.stringify({ current_password: currentPassword.value, new_password: newPassword.value })
+    })
+    
+    if (res.ok) {
+      modalType.value = 'success'
+      modalMessage.value = 'Password updated successfully'
+      showModal.value = true
+      currentPassword.value = ''
+      newPassword.value = ''
+      isPasswordValid.value = null
+      setTimeout(() => showModal.value = false, 2000)
+    } else {
+      const err = await res.json()
+      modalType.value = 'error'
+      modalMessage.value = `Failed to update password:\n${err.detail}`
+      showModal.value = true
+    }
+  } catch (e) {
+    modalType.value = 'error'
+    modalMessage.value = 'Network error'
+    showModal.value = true
+  } finally {
+    isSavingPassword.value = false
+  }
+}
 </script>
 
 <template>
@@ -94,20 +211,29 @@ const newPassword = ref('')
         <h2 class="text-3xl font-bold tracking-tight">Settings</h2>
       </div>
       
-      <Dialog v-model:open="showSuccessModal">
-        <DialogContent class="sm:max-w-sm [&>button]:hidden outline-none">
+      <Dialog v-model:open="showModal">
+        <DialogContent class="sm:max-w-sm outline-none">
           <div class="flex flex-col items-center justify-center py-8">
             <div class="h-24 w-24 flex items-center justify-center mb-6 overflow-visible">
-              <svg class="checkmark-anim" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
-                <!-- Starts at top (26,1), draws counter-clockwise to left, bottom, right -->
-                <path class="checkmark__circle" fill="none" d="M 26 1 A 25 25 0 1 0 26 51 A 25 25 0 1 0 26 1" />
-                <!-- Longer first stroke for better proportion -->
-                <path class="checkmark__check" fill="none" d="M10 24 l11 11 l25 -27"/>
-              </svg>
+              <template v-if="modalType === 'success'">
+                <svg class="checkmark-anim" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+                  <path class="checkmark__circle" fill="none" d="M 26 1 A 25 25 0 1 0 26 51 A 25 25 0 1 0 26 1" />
+                  <path class="checkmark__check" fill="none" d="M10 24 l11 11 l25 -27"/>
+                </svg>
+              </template>
+              <template v-else>
+                <svg class="cross-anim" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+                  <circle class="cross__circle" cx="26" cy="26" r="25" fill="none" />
+                  <path class="cross__path cross__path--right" fill="none" d="M16,16 l20,20" />
+                  <path class="cross__path cross__path--left" fill="none" d="M16,36 l20,-20" />
+                </svg>
+              </template>
             </div>
-            <h3 class="text-2xl font-semibold tracking-tight">Success!</h3>
-            <p class="text-sm text-muted-foreground mt-2 text-center">
-              System configuration has been successfully updated.
+            <h3 :class="['text-2xl font-semibold tracking-tight', modalType === 'success' ? 'text-foreground' : 'text-destructive']">
+              {{ modalType === 'success' ? 'Success!' : 'Error!' }}
+            </h3>
+            <p class="text-sm text-muted-foreground mt-2 text-center whitespace-pre-line">
+              {{ modalMessage }}
             </p>
           </div>
         </DialogContent>
@@ -125,35 +251,39 @@ const newPassword = ref('')
           <Card>
             <CardHeader>
               <CardTitle>Appearance</CardTitle>
-              <CardDescription>
-                Customize how the dashboard looks. 
-              </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent class="space-y-4">
               <div class="border border-muted-foreground/30 rounded-lg divide-y divide-muted-foreground/30 bg-card">
                 <div class="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div class="space-y-0.5">
                     <Label class="text-base font-medium">Theme Preference</Label>
                     <p class="text-sm text-muted-foreground">Select your preferred interface theme.</p>
                   </div>
-                  <div class="flex items-center gap-1 p-1 bg-muted/50 rounded-lg border">
-                    <Button 
-                      @click="toggleTheme(false)" 
-                      :variant="!isDarkMode ? 'default' : 'ghost'" 
-                      size="sm" 
-                      class="w-24 shadow-none"
-                    >
-                      <Sun class="w-4 h-4 mr-2" /> Light
-                    </Button>
-                    <Button 
-                      @click="toggleTheme(true)" 
-                      :variant="isDarkMode ? 'default' : 'ghost'" 
-                      size="sm" 
-                      class="w-24 shadow-none"
-                    >
-                      <Moon class="w-4 h-4 mr-2" /> Dark
-                    </Button>
-                  </div>
+                    <div class="relative flex items-center gap-1 p-1 bg-muted/50 rounded-lg border w-fit">
+                      <div 
+                        class="absolute top-1 bottom-1 w-24 rounded-md bg-primary transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] shadow-sm"
+                        :class="isDarkMode ? 'translate-x-[calc(100%+0.25rem)]' : 'translate-x-0'"
+                      ></div>
+                      
+                      <Button 
+                        @click="toggleTheme(false)" 
+                        variant="ghost" 
+                        size="sm" 
+                        class="relative z-10 w-24 shadow-none transition-colors duration-300 hover:bg-transparent"
+                        :class="!isDarkMode ? 'text-primary-foreground hover:text-primary-foreground' : 'text-muted-foreground hover:text-foreground'"
+                      >
+                        <Sun class="w-4 h-4 mr-2" /> Light
+                      </Button>
+                      <Button 
+                        @click="toggleTheme(true)" 
+                        variant="ghost" 
+                        size="sm" 
+                        class="relative z-10 w-24 shadow-none transition-colors duration-300 hover:bg-transparent"
+                        :class="isDarkMode ? 'text-primary-foreground hover:text-primary-foreground' : 'text-muted-foreground hover:text-foreground'"
+                      >
+                        <Moon class="w-4 h-4 mr-2" /> Dark
+                      </Button>
+                    </div>
                 </div>
               </div>
             </CardContent>
@@ -164,7 +294,6 @@ const newPassword = ref('')
           <Card>
             <CardHeader>
               <CardTitle>System Configuration</CardTitle>
-              <CardDescription>Core settings for data synchronization and storage.</CardDescription>
             </CardHeader>
             <CardContent>
               <div class="border border-muted-foreground/30 rounded-lg divide-y divide-muted-foreground/30 bg-card">
@@ -214,33 +343,31 @@ const newPassword = ref('')
           <Card>
             <CardHeader>
               <CardTitle>Notification Alerts</CardTitle>
-              <CardDescription>
-                Configure when you want to be notified about node statuses.
-              </CardDescription>
             </CardHeader>
             <CardContent>
               <div class="border border-muted-foreground/30 rounded-lg divide-y divide-muted-foreground/30 bg-card">
                 <div class="p-4">
-                  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-2">
-                    <div>
-                      <h4 class="text-base font-medium">Telegram Bot Integration</h4>
-                      <p class="text-sm text-muted-foreground">Send critical alerts (offline node, low battery) to Telegram.</p>
+                      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-2">
+                        <div>
+                          <h4 class="text-base font-medium">Telegram Bot Integration</h4>
+                          <p class="text-sm text-muted-foreground">Notification destination for critical system events.</p>
+                        </div>
+                      </div>
+                      <div class="grid gap-4 sm:grid-cols-2">
+                        <div class="space-y-2">
+                          <Label>Bot Token</Label>
+                          <Input v-model="systemConfig.telegram_bot_token" placeholder="e.g. 123456789:ABCdef..." />
+                        </div>
+                        <div class="space-y-2">
+                          <Label>Chat ID</Label>
+                          <Input v-model="systemConfig.telegram_chat_id" placeholder="e.g. -100123456789" />
+                        </div>
+                      </div>
+                    <div class="mt-4 flex justify-end">
+                      <Button variant="outline" size="sm" @click="testTelegramConnection" :disabled="isTestingTelegram || !systemConfig.telegram_bot_token || !systemConfig.telegram_chat_id">
+                        {{ isTestingTelegram ? 'Testing...' : 'Test Connection' }}
+                      </Button>
                     </div>
-                    <span class="text-xs bg-muted px-2 py-1 rounded text-muted-foreground font-mono"># ponytail: YAGNI</span>
-                  </div>
-                  <div class="grid gap-4 sm:grid-cols-2">
-                    <div class="space-y-2">
-                      <Label>Bot Token</Label>
-                      <Input placeholder="123456789:ABCdefGHIjklMNOpqrSTUvwxYZ" />
-                    </div>
-                    <div class="space-y-2">
-                      <Label>Chat ID</Label>
-                      <Input placeholder="-100123456789" />
-                    </div>
-                  </div>
-                  <div class="mt-4 flex justify-end">
-                    <Button variant="outline" size="sm">Test Connection</Button>
-                  </div>
                 </div>
               </div>
             </CardContent>
@@ -251,21 +378,23 @@ const newPassword = ref('')
           <Card>
             <CardHeader>
               <CardTitle>Security</CardTitle>
-              <CardDescription>
-                Update your password and secure your account.
-              </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent class="space-y-4">
               <div class="border border-muted-foreground/30 rounded-lg divide-y divide-muted-foreground/30 bg-card">
-                <div class="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div class="space-y-0.5">
-                    <Label class="text-base font-medium">Current Password</Label>
-                    <p class="text-sm text-muted-foreground">Verify your identity before making changes.</p>
+                  <div class="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div class="space-y-0.5">
+                      <Label class="text-base font-medium">Current Password</Label>
+                      <p class="text-sm text-muted-foreground">Verify your identity before making changes.</p>
+                    </div>
+                    <div class="w-full sm:w-72 relative">
+                      <Input id="current" type="password" v-model="currentPassword" @input="verifyPassword" class="hide-password-eye pr-10" :class="{'border-destructive focus-visible:ring-destructive': isPasswordValid === false, 'border-emerald-500 focus-visible:ring-emerald-500': isPasswordValid === true}" />
+                      <div class="absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center">
+                        <Loader2 v-if="isCheckingPassword" class="w-4 h-4 animate-spin text-muted-foreground" />
+                        <CheckCircle v-else-if="isPasswordValid === true" class="w-4 h-4 text-emerald-500" />
+                        <XCircle v-else-if="isPasswordValid === false" class="w-4 h-4 text-destructive" />
+                      </div>
+                    </div>
                   </div>
-                  <div class="w-full sm:w-72">
-                    <Input id="current" type="password" v-model="currentPassword" />
-                  </div>
-                </div>
                 <div class="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div class="space-y-0.5">
                     <Label class="text-base font-medium">New Password</Label>
@@ -277,9 +406,11 @@ const newPassword = ref('')
                 </div>
               </div>
             </CardContent>
-            <CardFooter>
-              <Button>Save Password</Button>
-            </CardFooter>
+              <CardFooter>
+                <Button @click="updatePassword" :disabled="isSavingPassword || isPasswordValid === false || !newPassword || newPassword.length < 8">
+                  {{ isSavingPassword ? 'Saving...' : 'Save Password' }}
+                </Button>
+              </CardFooter>
           </Card>
         </TabsContent>
       </Tabs>
@@ -327,5 +458,45 @@ const newPassword = ref('')
   100% {
     stroke-dashoffset: 0;
   }
+}
+
+.cross-anim {
+  width: 80px;
+  height: 80px;
+  display: block;
+  stroke-width: 3.5;
+  stroke: #ef4444;
+  stroke-linecap: round;
+  stroke-miterlimit: 10;
+  overflow: visible;
+}
+
+.cross__circle {
+  stroke-dasharray: 157;
+  stroke-dashoffset: 157;
+  stroke-width: 3.5;
+  stroke: #ef4444;
+  fill: none;
+  animation: stroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+}
+
+.cross__path {
+  stroke-dasharray: 55;
+  stroke-dashoffset: 55;
+  stroke: #ef4444;
+}
+
+.cross__path--right {
+  animation: stroke 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.4s forwards;
+}
+
+.cross__path--left {
+  animation: stroke 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.6s forwards;
+}
+
+/* Hide default edge password eye icon */
+.hide-password-eye::-ms-reveal,
+.hide-password-eye::-ms-clear {
+  display: none;
 }
 </style>

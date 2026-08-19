@@ -78,10 +78,10 @@ const isNodeActive = (lastSeen: string | undefined) => {
 
 <template>
   <DashboardLayout>
-    <div class="flex flex-col space-y-6">
+    <div class="flex flex-col space-y-4">
       <div class="flex items-center justify-between">
         <div>
-          <h2 class="text-3xl font-bold tracking-tight">Dashboard</h2>
+          <h2 class="text-2xl font-bold tracking-tight">Dashboard</h2>
         </div>
         
         <!-- Live Connection Status -->
@@ -108,28 +108,28 @@ const isNodeActive = (lastSeen: string | undefined) => {
       
       <template v-else>
         <!-- Node Selector & Summary -->
-        <div class="flex gap-2 pb-2 overflow-x-auto">
+        <div class="flex gap-2 pb-1 overflow-x-auto">
           <button
             v-for="node in nodes"
             :key="node.id"
             @click="selectedNodeId = node.id"
             :class="[
-              'px-5 py-2.5 rounded-xl border text-sm font-semibold transition-all duration-300 whitespace-nowrap flex items-center gap-2.5',
+              'px-4 py-2 rounded-lg border text-sm font-semibold transition-all duration-300 whitespace-nowrap flex items-center gap-2',
               selectedNodeId === node.id 
-                ? 'bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/30 scale-105' 
+                ? 'bg-primary text-primary-foreground border-primary shadow-md scale-105' 
                 : 'bg-card/50 backdrop-blur-sm text-card-foreground hover:bg-card/80 hover:border-border/80'
             ]"
           >
             {{ node.name }}
             <div 
-              :class="['w-2 h-2 rounded-full', isNodeActive(node.last_seen) ? 'bg-green-500' : 'bg-red-500']" 
+              :class="['w-1.5 h-1.5 rounded-full', isNodeActive(node.last_seen) ? 'bg-green-500' : 'bg-red-500']" 
             />
           </button>
         </div>
         
-        <div v-if="activeNode" class="space-y-6">
-          <div class="flex items-center gap-4">
-            <h3 class="text-xl font-semibold">{{ activeNode.name }}</h3>
+        <div v-if="activeNode" class="space-y-4">
+          <div class="flex items-center gap-3">
+            <h3 class="text-lg font-semibold">{{ activeNode.name }}</h3>
             <StatusBadge 
               :is-active="isNodeActive(activeNode.last_seen)" 
               :last-seen="activeNode.last_seen" 
@@ -137,7 +137,7 @@ const isNodeActive = (lastSeen: string | undefined) => {
           </div>
 
           <!-- Sensors Grid -->
-          <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <div class="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
             <SensorCard
               title="Temperature"
               :value="latestTelemetry?.temperature"
@@ -166,17 +166,17 @@ const isNodeActive = (lastSeen: string | undefined) => {
           
           <!-- Charts & Map -->
           <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-7 animate-slide-up" style="animation-delay: 0.1s">
-            <div class="col-span-4 border border-border/50 rounded-2xl bg-card/90 backdrop-blur-xl p-5 min-h-[400px] shadow-sm relative overflow-hidden">
+            <div class="col-span-4 border border-border/50 rounded-xl bg-card/90 backdrop-blur-xl p-4 min-h-[320px] shadow-sm relative overflow-hidden">
               <div class="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-50 pointer-events-none"></div>
               <SensorLineChart :data="chartData" :title="`Telemetry Trends - ${activeNode.name}`" class="relative z-10" />
             </div>
-            <div class="col-span-3 border border-border/50 rounded-2xl bg-card/90 backdrop-blur-xl p-5 min-h-[400px] shadow-sm relative overflow-hidden">
+            <div class="col-span-3 border border-border/50 rounded-xl bg-card/90 backdrop-blur-xl p-4 min-h-[320px] shadow-sm relative overflow-hidden">
               <div class="flex flex-col h-full relative z-10">
-                <h4 class="text-sm font-medium text-muted-foreground mb-4 text-center">Node Location</h4>
+                <h4 class="text-sm font-medium text-muted-foreground mb-3 text-center">Node Location</h4>
                 <div class="flex-1 bg-muted/30 rounded-lg flex items-center justify-center border border-dashed">
                   <p class="text-muted-foreground text-sm">Map Component Pending</p>
                 </div>
-                <div class="mt-4 text-sm text-center text-muted-foreground" v-if="activeNode.latitude && activeNode.longitude">
+                <div class="mt-3 text-sm text-center text-muted-foreground" v-if="activeNode.latitude && activeNode.longitude">
                   Lat: {{ activeNode.latitude.toFixed(4) }}, Lng: {{ activeNode.longitude.toFixed(4) }}
                 </div>
               </div>

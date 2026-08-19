@@ -38,3 +38,30 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSessi
 @router.get("/me", response_model=UserResponse)
 async def read_users_me(current_user: User = Depends(get_current_user)):
     return current_user
+
+from app.schemas.auth import PasswordVerifyRequest, PasswordVerifyResponse, PasswordChangeRequest
+from app.core.security import hash_password
+
+@router.post("/verify-password", response_model=PasswordVerifyResponse)
+async def verify_current_password(
+    req: PasswordVerifyRequest,
+    current_user: User = Depends(get_current_user)
+):
+    is_valid = verify_password(req.password, current_user.password_hash)
+    return {"valid": is_valid}
+
+@router.put("/password")
+async def change_password(
+    req: PasswordChangeRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    if not verify_password(req.current_password, current_user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current password is incorrect"
+        )
+    
+    current_user.password_hash = hash_password(req.new_password)
+    await db.commit()
+    return {"detail": "Password updated successfully"}

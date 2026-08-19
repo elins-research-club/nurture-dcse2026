@@ -99,7 +99,7 @@ async def poll_node(node_id: str, channels: list, db_session):
         was_online = node_online_state.get(node_id, True)
         if not was_online:
             msg = f"🟢 <b>Node Online</b>\nNode <code>{node.name}</code> ({node_id}) is back online!"
-            await send_telegram_alert(msg)
+            await send_telegram_alert(db_session, msg)
             await event_log_repo.create(db_session, EventLogCreate(level="INFO", message=f"Node {node.name} is back online.", node_id=node.id))
         
         node_online_state[node_id] = True
@@ -116,7 +116,7 @@ async def check_offline_nodes(db_session):
             
             if diff_minutes > settings.OFFLINE_THRESHOLD_MINUTES and is_currently_online:
                 msg = f"🔴 <b>Node Offline Alert</b>\nNode <code>{node.name}</code> ({node.node_id}) has not sent data for {int(diff_minutes)} minutes!"
-                await send_telegram_alert(msg)
+                await send_telegram_alert(db_session, msg)
                 await event_log_repo.create(db_session, EventLogCreate(level="ERROR", message=f"Node {node.name} went offline. No data for >{settings.OFFLINE_THRESHOLD_MINUTES}m.", node_id=node.id))
                 node_online_state[node.node_id] = False
 

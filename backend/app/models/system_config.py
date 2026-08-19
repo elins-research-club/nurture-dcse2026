@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer
+from sqlalchemy import Column, Integer, String
 from app.core.database import Base
 
 class SystemConfig(Base):
@@ -8,3 +8,5 @@ class SystemConfig(Base):
     polling_interval = Column(Integer, default=15, nullable=False)
     data_retention_days = Column(Integer, default=30, nullable=False)
     offline_threshold_mins = Column(Integer, default=15, nullable=False)
+    telegram_bot_token = Column(String, nullable=True)
+    telegram_chat_id = Column(String, nullable=True)

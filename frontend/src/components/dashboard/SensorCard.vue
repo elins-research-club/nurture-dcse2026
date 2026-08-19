@@ -42,24 +42,24 @@ const Icon = computed(() => iconMap[props.type] || Beaker)
     <!-- Subtle gradient background that appears on hover -->
     <div class="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
     
-    <CardContent class="p-6 flex items-center justify-between relative z-10">
+    <CardContent class="p-4 flex items-center justify-between relative z-10">
       <div>
         <p class="text-sm font-medium text-muted-foreground group-hover:text-foreground/80 transition-colors">{{ title }}</p>
-        <div class="flex items-baseline gap-1 mt-2">
-          <h3 class="text-3xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-br from-foreground to-foreground/70">
+        <div class="flex items-baseline gap-1 mt-1">
+          <h3 class="text-2xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-br from-foreground to-foreground/70">
             {{ value !== null && value !== undefined ? value : '--' }}
           </h3>
-          <span class="text-sm text-muted-foreground font-medium ml-1">{{ unit }}</span>
+          <span class="text-xs text-muted-foreground font-medium ml-1">{{ unit }}</span>
         </div>
       </div>
       <div 
         :class="[
-          'w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-500 shadow-inner group-hover:scale-110', 
+          'w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-500 shadow-inner group-hover:scale-110', 
           colorClass,
           'bg-background border border-border/50 group-hover:border-transparent'
         ]"
       >
-        <component :is="Icon" class="w-7 h-7 drop-shadow-md transition-transform group-hover:rotate-6" />
+        <component :is="Icon" class="w-6 h-6 drop-shadow-md transition-transform group-hover:rotate-6" />
       </div>
     </CardContent>
   </Card>
