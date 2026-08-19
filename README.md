@@ -164,6 +164,7 @@ docker exec -it gconnect_backend python create_admin.py
 | 🖥️ Frontend | http://localhost:5173 |
 | ⚙️ Backend API | http://localhost:8000 |
 | 📄 Swagger Docs | http://localhost:8000/docs |
+| 🗄️ Adminer (DB) | http://localhost:8080 |
 
 **Perintah berguna:**
 ```bash
@@ -370,6 +371,8 @@ Dokumentasi lengkap tersedia di: **http://localhost:8000/docs**
 | `GET /api/v1/nodes/{id}/telemetry/latest` | Data sensor terbaru dari ThingSpeak |
 | `GET /api/v1/nodes/{id}/telemetry/history` | Data historis dengan filter waktu |
 | `GET /api/v1/event-logs/` | Riwayat event (online/offline log) |
+| `GET /api/v1/system/config` | Ambil konfigurasi global sistem |
+| `PUT /api/v1/system/config` | Update konfigurasi global sistem |
 | `WS /api/v1/ws/{node_id}` | WebSocket stream data real-time |
 
 ### Query Parameter `/telemetry/history`
