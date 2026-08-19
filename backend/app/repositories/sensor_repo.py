@@ -11,8 +11,8 @@ async def list_by_node(db: AsyncSession, node_id: UUID, skip: int = 0, limit: in
     result = await db.execute(select(Sensor).where(Sensor.node_id == node_id).offset(skip).limit(limit))
     return list(result.scalars().all())
 
-async def create(db: AsyncSession, node_id: UUID, type: str, name: str, unit: str, thingspeak_field: str) -> Sensor:
-    sensor = Sensor(node_id=node_id, type=type, name=name, unit=unit, thingspeak_field=thingspeak_field)
+async def create(db: AsyncSession, node_id: UUID, channel_id: UUID, type: str, name: str, unit: str, thingspeak_field: str) -> Sensor:
+    sensor = Sensor(node_id=node_id, channel_id=channel_id, type=type, name=name, unit=unit, thingspeak_field=thingspeak_field)
     db.add(sensor)
     await db.commit()
     await db.refresh(sensor)

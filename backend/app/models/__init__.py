@@ -5,3 +5,4 @@ from app.models.sensor import Sensor
 from app.models.actuator import Actuator
 from app.models.audit_log import AuditLog
 from app.models.event_log import EventLog
+from app.models.system_config import SystemConfig

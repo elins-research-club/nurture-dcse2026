@@ -64,8 +64,57 @@ export function useNodes() {
     }
   })
 
+  const updateNodeMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Partial<NodeDevice> }) => {
+      if (!authStore.token) throw new Error('Not authenticated')
+      
+      const response = await fetch(`${API_BASE_URL}/nodes/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authStore.token}`
+        },
+        body: JSON.stringify(data)
+      })
+      
+      if (!response.ok) {
+        if (response.status === 401) authStore.logout()
+        throw new Error('Failed to update node')
+      }
+      return response.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['nodes'] })
+    }
+  })
+
+  const deleteNodeMutation = useMutation({
+    mutationFn: async (id: string) => {
+      if (!authStore.token) throw new Error('Not authenticated')
+      
+      const response = await fetch(`${API_BASE_URL}/nodes/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${authStore.token}`
+        }
+      })
+      
+      if (!response.ok) {
+        if (response.status === 401) authStore.logout()
+        throw new Error('Failed to delete node')
+      }
+      return true
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['nodes'] })
+    }
+  })
+
   return {
     nodesQuery,
-    addNodeMutation
+    addNodeMutation,
+    updateNodeMutation,
+    deleteNodeMutation,
+    queryClient
   }
 }

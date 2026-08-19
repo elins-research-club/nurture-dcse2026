@@ -1,7 +1,7 @@
 import asyncio
 import logging
 import httpx
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from app.core.config import settings
 from app.core.database import AsyncSessionLocal
 from app.repositories import node_repo, channel_repo
@@ -44,51 +44,65 @@ async def fetch_latest(channel_id: str, read_api_key: str) -> Optional[Dict[str,
         logger.error(f"Unexpected error fetching from ThingSpeak for channel {channel_id}: {e}")
         return None
 
-async def poll_node(node_id: str, channel_id: str, read_api_key: str, db_session):
-    try:
-        data = await fetch_latest(channel_id, read_api_key)
-        
-        if data is None:
-            payload = {"event": "node_status", "node_id": node_id, "status": "offline"}
-            await manager.broadcast(node_id, payload)
-            return
+async def poll_node(node_id: str, channels: list, db_session):
+    if not channels:
+        return
 
-        extracted_data = {}
+    # Fetch all channels in parallel
+    tasks = [fetch_latest(c.channel_id, c.read_api_key) for c in channels]
+    results = await asyncio.gather(*tasks)
+    
+    # If all channels return None, consider the node offline
+    if all(r is None for r in results):
+        payload = {"event": "node_status", "node_id": node_id, "status": "offline"}
+        await manager.broadcast(node_id, payload)
+        return
+
+    extracted_data = {}
+    latest_ts = None
+    
+    for channel, data in zip(channels, results):
+        if data is None:
+            continue
+            
+        # Parse fields and prefix with the channel's UUID
+        channel_uuid_str = str(channel.id)
         for i in range(1, 9):
             field_name = f"field{i}"
             if field_name in data and data[field_name] is not None:
                 try:
-                    extracted_data[field_name] = float(data[field_name])
+                    extracted_data[f"{channel_uuid_str}_{field_name}"] = float(data[field_name])
                 except ValueError:
-                    extracted_data[field_name] = data[field_name]
+                    extracted_data[f"{channel_uuid_str}_{field_name}"] = data[field_name]
                     
+        # Find the most recent timestamp among all channels
         ts = data.get("created_at")
+        if ts:
+            if latest_ts is None or ts > latest_ts:
+                latest_ts = ts
+                
+    payload = {
+        "event": "sensor_update",
+        "node_id": node_id,
+        "status": "online",
+        "data": extracted_data,
+        "created_at": latest_ts
+    }
+    
+    await manager.broadcast(node_id, payload)
+    
+    node = await node_repo.get_by_node_id(db_session, node_id)
+    if node:
+        await node_repo.update_last_seen(db_session, node)
         
-        payload = {
-            "event": "sensor_update",
-            "node_id": node_id,
-            "status": "online",
-            "data": extracted_data,
-            "created_at": ts
-        }
+        # Check if it was previously offline and just came back online
+        was_online = node_online_state.get(node_id, True)
+        if not was_online:
+            msg = f"🟢 <b>Node Online</b>\nNode <code>{node.name}</code> ({node_id}) is back online!"
+            await send_telegram_alert(msg)
+            await event_log_repo.create(db_session, EventLogCreate(level="INFO", message=f"Node {node.name} is back online.", node_id=node.id))
         
-        await manager.broadcast(node_id, payload)
-        
-        node = await node_repo.get_by_node_id(db_session, node_id)
-        if node:
-            await node_repo.update_last_seen(db_session, node)
-            
-            # Check if it was previously offline and just came back online
-            was_online = node_online_state.get(node_id, True)
-            if not was_online:
-                msg = f"🟢 <b>Node Online</b>\nNode <code>{node.name}</code> ({node_id}) is back online!"
-                await send_telegram_alert(msg)
-                await event_log_repo.create(db_session, EventLogCreate(level="INFO", message=f"Node {node.name} is back online.", node_id=node.id))
-            
-            node_online_state[node_id] = True
-            
-    except Exception as e:
-        logger.error(f"Error in poll_node for {node_id}: {e}")
+        node_online_state[node_id] = True
 
 async def check_offline_nodes(db_session):
     nodes = await node_repo.list_all(db_session)
@@ -115,9 +129,9 @@ async def polling_loop(app):
                 active_nodes = [n for n in nodes if n.is_active]
                 
                 for node in active_nodes:
-                    channel = await channel_repo.get_by_node_id(db_session, node.id)
-                    if channel:
-                        await poll_node(node.node_id, channel.channel_id, channel.read_api_key, db_session)
+                    channels = await channel_repo.get_by_node_id(db_session, node.id)
+                    if channels:
+                        await poll_node(node.node_id, channels, db_session)
                         
                 await check_offline_nodes(db_session)
                         

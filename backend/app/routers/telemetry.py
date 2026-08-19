@@ -4,11 +4,12 @@ from typing import Optional, Literal
 from app.core.database import get_db
 from app.core.config import settings
 from app.repositories import node_repo, channel_repo
-from app.services.thingspeak_poller import fetch_latest
 from app.services.websocket_manager import manager
 from datetime import datetime, timezone
 from pydantic import BaseModel
 import httpx
+import asyncio
+from dateutil.parser import isoparse
 
 class TelemetryInject(BaseModel):
     temperature: float
@@ -35,15 +36,47 @@ async def get_latest_telemetry(
     if not node:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Node not found")
         
-    channel = await channel_repo.get_by_node_id(db, node.id)
-    if not channel:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Channel not configured for node")
+    channels = await channel_repo.get_by_node_id(db, node.id)
+    if not channels:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Channels not configured for node")
         
-    data = await fetch_latest(channel.channel_id, channel.read_api_key)
-    if data is None:
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="ThingSpeak unavailable")
-        
-    return data
+    async def fetch_channel_latest(channel):
+        url = f"{settings.THINGSPEAK_BASE_URL}/channels/{channel.channel_id}/feeds/last.json"
+        params = {"api_key": channel.read_api_key}
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(url, params=params)
+            if resp.status_code == 200:
+                return channel, resp.json()
+            return channel, None
+
+    tasks = [fetch_channel_latest(c) for c in channels]
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+    
+    merged_data = {}
+    latest_ts = None
+    
+    for result in results:
+        if isinstance(result, Exception):
+            continue
+        channel, data = result
+        if data:
+            ch_uuid = str(channel.id)
+            for i in range(1, 9):
+                field_key = f"field{i}"
+                if field_key in data and data[field_key] is not None:
+                    merged_data[f"{ch_uuid}_{field_key}"] = data[field_key]
+            
+            ts = data.get("created_at")
+            if ts:
+                if latest_ts is None or ts > latest_ts:
+                    latest_ts = ts
+                    
+    if not merged_data:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="ThingSpeak unavailable or no data")
+
+    merged_data["created_at"] = latest_ts
+    return merged_data
+
 
 @router.get("/nodes/{node_id}/telemetry/history")
 async def get_history_telemetry(
@@ -59,45 +92,92 @@ async def get_history_telemetry(
     if not node:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Node not found")
 
-    channel = await channel_repo.get_by_node_id(db, node.id)
-    if not channel:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Channel not configured for node")
+    channels = await channel_repo.get_by_node_id(db, node.id)
+    if not channels:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Channels not configured for node")
 
-    # Build ThingSpeak params
-    params: dict = {"api_key": channel.read_api_key}
-
+    # Build ThingSpeak base params
+    base_params = {}
     if range == "1h":
-        params["minutes"] = 60
+        base_params["minutes"] = 60
     elif range == "1d":
-        params["hours"] = 24
+        base_params["hours"] = 24
     elif range == "1w":
-        params["days"] = 7
+        base_params["days"] = 7
     elif start or end:
-        # Custom date range from datepicker
         if start:
-            params["start"] = start
+            base_params["start"] = start
         if end:
-            params["end"] = end
-        params["results"] = results
+            base_params["end"] = end
+        base_params["results"] = results
     else:
-        # Default: last 100 entries
-        params["results"] = results
+        base_params["results"] = results
 
-    url = f"{settings.THINGSPEAK_BASE_URL}/channels/{channel.channel_id}/feeds.json"
-
-    try:
+    async def fetch_channel_history(channel):
+        params = base_params.copy()
+        params["api_key"] = channel.read_api_key
+        url = f"{settings.THINGSPEAK_BASE_URL}/channels/{channel.channel_id}/feeds.json"
+        
         async with httpx.AsyncClient(timeout=15.0) as client:
-            response = await client.get(url, params=params)
-            if response.status_code == 200:
-                return response.json()
-            elif response.status_code == 429:
-                raise HTTPException(status_code=429, detail="ThingSpeak rate limit exceeded, try again later")
+            resp = await client.get(url, params=params)
+            if resp.status_code == 200:
+                return channel, resp.json()
+            elif resp.status_code == 429:
+                raise HTTPException(status_code=429, detail="ThingSpeak rate limit exceeded")
             else:
-                raise HTTPException(status_code=503, detail=f"ThingSpeak error: HTTP {response.status_code}")
-    except httpx.TimeoutException:
-        raise HTTPException(status_code=504, detail="ThingSpeak request timed out")
-    except httpx.RequestError as e:
-        raise HTTPException(status_code=503, detail=f"ThingSpeak unreachable: {str(e)}")
+                return channel, None
+
+    tasks = [fetch_channel_history(c) for c in channels]
+    fetch_results = await asyncio.gather(*tasks, return_exceptions=True)
+    
+    # Merge histories
+    # To merge properly for a time-series chart, we can group by timestamps that are close together,
+    # but the simplest way is to return all data points and let the frontend plot them, 
+    # OR we merge them into a single array of points sorted by time.
+    # Since ThingSpeak channels can be updated at slightly different ms, we will round to nearest 10 seconds.
+    
+    merged_feeds = {}
+    
+    for result in fetch_results:
+        if isinstance(result, Exception):
+            if isinstance(result, HTTPException):
+                raise result
+            continue
+            
+        channel, data = result
+        if not data or "feeds" not in data:
+            continue
+            
+        ch_uuid = str(channel.id)
+        for feed in data["feeds"]:
+            ts_str = feed.get("created_at")
+            if not ts_str:
+                continue
+                
+            # Parse and round timestamp to nearest 15 seconds to merge channels
+            try:
+                dt = isoparse(ts_str)
+                # Round down to nearest 15s window
+                rounded_ts = int(dt.timestamp()) // 15 * 15
+            except:
+                continue
+                
+            if rounded_ts not in merged_feeds:
+                merged_feeds[rounded_ts] = {"created_at": ts_str}
+                
+            # Add fields with channel prefix
+            for i in range(1, 9):
+                field_key = f"field{i}"
+                if field_key in feed and feed[field_key] is not None:
+                    merged_feeds[rounded_ts][f"{ch_uuid}_{field_key}"] = feed[field_key]
+                    
+    # Sort by timestamp
+    sorted_feeds = [merged_feeds[ts] for ts in sorted(merged_feeds.keys())]
+    
+    return {
+        "channel": {"name": node.name, "description": "Merged channels"},
+        "feeds": sorted_feeds
+    }
 
 
 @router.post("/nodes/{node_id}/telemetry/inject")

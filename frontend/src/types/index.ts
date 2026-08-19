@@ -28,6 +28,15 @@ export interface NodeDevice {
   [key: string]: any
 }
 
+export interface ThingspeakChannel {
+  id: string
+  node_id: string
+  channel_id: string
+  label?: string
+  created_at: string
+}
+
 export interface NodeDeviceWithData extends NodeDevice {
   latest_data: SensorData | null
+  channels?: ThingspeakChannel[]
 }

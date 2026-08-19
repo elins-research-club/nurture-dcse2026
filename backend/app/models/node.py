@@ -20,7 +20,7 @@ class Node(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
     # Relationships
-    channel = relationship("ThingspeakChannel", back_populates="node", uselist=False, cascade="all, delete-orphan")
+    channels = relationship("ThingspeakChannel", back_populates="node", cascade="all, delete-orphan")
     sensors = relationship("Sensor", back_populates="node", cascade="all, delete-orphan")
     actuators = relationship("Actuator", back_populates="node", cascade="all, delete-orphan")
     event_logs = relationship("EventLog", back_populates="node", cascade="all, delete-orphan")

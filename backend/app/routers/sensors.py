@@ -5,7 +5,7 @@ from app.core.database import get_db
 from app.dependencies.auth import get_current_user, require_admin
 from app.models.user import User
 from app.schemas.sensor import SensorResponse, SensorCreate, SensorUpdate
-from app.repositories import sensor_repo, node_repo
+from app.repositories import sensor_repo, node_repo, channel_repo
 
 router = APIRouter(prefix="/nodes")
 
@@ -21,9 +21,15 @@ async def create_sensor(node_id: str, sensor_data: SensorCreate, db: AsyncSessio
     node = await node_repo.get_by_node_id(db, node_id)
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
+        
+    channel = await channel_repo.get_by_id(db, sensor_data.channel_id)
+    if not channel or channel.node_id != node.id:
+        raise HTTPException(status_code=400, detail="Invalid channel_id or channel does not belong to this node")
+        
     return await sensor_repo.create(
         db, 
         node_id=node.id, 
+        channel_id=sensor_data.channel_id,
         type=sensor_data.type, 
         name=sensor_data.name, 
         unit=sensor_data.unit, 

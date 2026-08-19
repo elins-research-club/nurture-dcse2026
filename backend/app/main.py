@@ -34,11 +34,13 @@ from app.routers.nodes import router as nodes_router
 from app.routers.sensors import router as sensors_router
 from app.routers.actuators import router as actuators_router
 from app.routers.channels import router as channels_router
+from app.routers.system import router as system_router
 
 app.include_router(nodes_router, prefix=settings.API_V1_STR, tags=["Nodes"])
 app.include_router(sensors_router, prefix=settings.API_V1_STR, tags=["Sensors"])
 app.include_router(actuators_router, prefix=settings.API_V1_STR, tags=["Actuators"])
 app.include_router(channels_router, prefix=settings.API_V1_STR, tags=["Channels"])
+app.include_router(system_router, prefix=settings.API_V1_STR, tags=["System"])
 
 from app.routers.ws import router as ws_router
 from app.routers.telemetry import router as telemetry_router

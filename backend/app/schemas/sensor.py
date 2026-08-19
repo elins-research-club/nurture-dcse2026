@@ -5,16 +5,23 @@ from typing import Optional
 
 class SensorBase(BaseModel):
     node_id: UUID
+    channel_id: UUID
     type: str
     name: str
     unit: str
     thingspeak_field: str
     enabled: bool = True
 
-class SensorCreate(SensorBase):
-    pass
+class SensorCreate(BaseModel):
+    channel_id: UUID
+    type: str
+    name: str
+    unit: str
+    thingspeak_field: str
+    enabled: bool = True
 
 class SensorUpdate(BaseModel):
+    channel_id: Optional[UUID] = None
     type: Optional[str] = None
     name: Optional[str] = None
     unit: Optional[str] = None
