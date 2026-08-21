@@ -8,6 +8,7 @@ import { useNodes } from '@/composables/useNodes'
 import { useAuthStore } from '@/stores/auth'
 import { useWebSocket } from '@/composables/useWebSocket'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import type { NodeDeviceWithData } from '@/types'
 
 const authStore = useAuthStore()
@@ -25,21 +26,41 @@ watch(selectedNodeId, async (newId) => {
   const nodeIndex = nodes.value.findIndex(n => n.id === newId)
   if (nodeIndex !== -1 && !nodes.value[nodeIndex].sensors) {
     try {
-      console.log('[Dashboard] Fetching sensors for:', nodes.value[nodeIndex].node_id)
-      const res = await fetch(`http://localhost:8000/api/v1/nodes/${nodes.value[nodeIndex].node_id}/sensors/`, {
+      console.log('[Dashboard] Fetching data for:', nodes.value[nodeIndex].node_id)
+      
+      // Fetch sensors instantly
+      fetch(`http://localhost:8000/api/v1/nodes/${nodes.value[nodeIndex].node_id}/sensors/`, {
         headers: { 'Authorization': `Bearer ${authStore.token}` }
-      })
-      if (res.ok) {
-        const sensors = await res.json()
-        console.log('[Dashboard] Fetched sensors:', sensors.length)
-        
-        // Deep clone to guarantee Vue reactivity triggers computed properties
-        const newNodes = JSON.parse(JSON.stringify(nodes.value))
-        newNodes[nodeIndex].sensors = sensors
-        nodes.value = newNodes
-      } else {
-        console.error('[Dashboard] Sensors fetch failed with status:', res.status)
-      }
+      }).then(async res => {
+        if (res.ok) {
+          const sensors = await res.json()
+          console.log('[Dashboard] Fetched sensors:', sensors.length)
+          const newNodes = JSON.parse(JSON.stringify(nodes.value))
+          newNodes[nodeIndex].sensors = sensors
+          nodes.value = newNodes
+        }
+      }).catch(console.error)
+      
+      // Fetch history in background
+      fetch(`http://localhost:8000/api/v1/nodes/${nodes.value[nodeIndex].node_id}/telemetry/history?results=50`, {
+        headers: { 'Authorization': `Bearer ${authStore.token}` }
+      }).then(async res => {
+        if (res.ok) {
+          const historyData = await res.json()
+          if (historyData.feeds && Array.isArray(historyData.feeds)) {
+            const newNodes = JSON.parse(JSON.stringify(nodes.value))
+            newNodes[nodeIndex].telemetry = historyData.feeds.reverse()
+            if (newNodes[nodeIndex].telemetry.length > 0) {
+              const latestTimestamp = newNodes[nodeIndex].telemetry[0].created_at
+              if (latestTimestamp) {
+                newNodes[nodeIndex].last_seen = latestTimestamp
+              }
+            }
+            nodes.value = newNodes
+            console.log(`[Dashboard] Loaded ${newNodes[nodeIndex].telemetry.length} historical telemetry points`)
+          }
+        }
+      }).catch(console.error)
     } catch (e) {
       console.error('[Dashboard] Failed to fetch sensors for dashboard:', e)
     }
@@ -76,6 +97,9 @@ watch(lastMessage, (msg) => {
     if (node.telemetry.length > 50) {
       node.telemetry = node.telemetry.slice(0, 50)
     }
+    
+    // Update last seen
+    node.last_seen = msg.created_at || new Date().toISOString()
     
     // Trigger reactivity
     nodes.value[nodeIndex] = { ...node }
@@ -186,11 +210,11 @@ const isNodeActive = (lastSeen: string | undefined) => {
                     <Card v-for="i in 3" :key="i">
                       <CardContent class="p-4 flex items-center justify-between">
                         <span class="font-medium">Actuator {{ i }}</span>
-                        <StatusBadge 
-                          :status="(latestTelemetry && latestTelemetry[`${sensor.channel_id}_${sensor.thingspeak_field}`] != null) 
-                            ? ((latestTelemetry[`${sensor.channel_id}_${sensor.thingspeak_field}`] & Math.pow(2, i-1)) ? 'online' : 'offline')
-                            : 'offline'" 
-                        />
+                        <Badge 
+                          :variant="(latestTelemetry && latestTelemetry[`${sensor.channel_id}_${sensor.thingspeak_field}`] != null && (latestTelemetry[`${sensor.channel_id}_${sensor.thingspeak_field}`] & Math.pow(2, i-1))) ? 'success' : 'destructive'"
+                        >
+                          {{ (latestTelemetry && latestTelemetry[`${sensor.channel_id}_${sensor.thingspeak_field}`] != null && (latestTelemetry[`${sensor.channel_id}_${sensor.thingspeak_field}`] & Math.pow(2, i-1))) ? 'Online' : 'Offline' }}
+                        </Badge>
                       </CardContent>
                     </Card>
                   </div>

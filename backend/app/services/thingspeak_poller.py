@@ -61,6 +61,7 @@ async def poll_node(node_id: str, channels: list, db_session):
     if all(r is None for r in results):
         payload = {"event": "node_status", "node_id": node_id, "status": "offline"}
         await manager.broadcast(node_id, payload)
+        await manager.broadcast("dashboard", payload)
         return
 
     extracted_data = {}
@@ -95,6 +96,7 @@ async def poll_node(node_id: str, channels: list, db_session):
     }
     
     await manager.broadcast(node_id, payload)
+    await manager.broadcast("dashboard", payload)
     
 
     node = await node_repo.get_by_node_id(db_session, node_id)
