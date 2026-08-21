@@ -2,13 +2,10 @@
 import { ref, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import DashboardLayout from '@/components/layout/DashboardLayout.vue'
-import StatusBadge from '@/components/dashboard/StatusBadge.vue'
-import SensorCard from '@/components/dashboard/SensorCard.vue'
-import SensorLineChart from '@/components/charts/SensorLineChart.vue'
+import NodeDashboard from '@/components/dashboard/NodeDashboard.vue'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, Trash2, Edit } from 'lucide-vue-next'
 import { useNodes } from '@/composables/useNodes'
-import { useWebSocket } from '@/composables/useWebSocket'
 import type { NodeDeviceWithData } from '@/types'
 
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
@@ -40,39 +37,14 @@ const nodeStringId = computed(() => activeNode.value?.node_id || '')
 const { nodesQuery, updateNodeMutation, deleteNodeMutation } = useNodes()
 const { channelsQuery, deleteChannelMutation } = useChannels(nodeStringId)
 
-const wsUrl = 'ws://localhost:8000/ws/dashboard'
-const { lastMessage } = useWebSocket(wsUrl)
-
 watch(() => nodesQuery.data.value, (newData) => {
   if (newData) {
     nodes.value = [...newData]
   }
 }, { immediate: true })
 
-watch(lastMessage, (msg) => {
-  if (!msg || msg.type !== 'telemetry') return
-  
-  const index = nodes.value.findIndex(n => n.node_id === msg.node_id)
-  if (index !== -1) {
-    const node = nodes.value[index]
-    if (!node.telemetry) node.telemetry = []
-    node.telemetry.unshift(msg.data)
-    if (node.telemetry.length > 100) node.telemetry = node.telemetry.slice(0, 100)
-    nodes.value[index] = { ...node }
-  }
-})
 
-const latestTelemetry = computed(() => {
-  if (!activeNode.value || !activeNode.value.telemetry || activeNode.value.telemetry.length === 0) {
-    return null
-  }
-  return activeNode.value.telemetry[0]
-})
 
-const chartData = computed(() => {
-  if (!activeNode.value || !activeNode.value.telemetry) return []
-  return [...activeNode.value.telemetry].reverse()
-})
 
 const isNodeActive = (lastSeen: string | undefined) => {
   if (!lastSeen) return false
@@ -250,17 +222,8 @@ const confirmDeleteChannel = async () => {
           <TabsTrigger value="configuration">Configuration</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="dashboard" class="space-y-6">
-          <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <SensorCard title="Temperature" :value="latestTelemetry?.temperature" unit="°C" type="temperature" />
-            <SensorCard title="Humidity" :value="latestTelemetry?.humidity" unit="%" type="humidity" />
-            <SensorCard title="Soil Moisture" :value="latestTelemetry?.soil_moisture" unit="%" type="soil" />
-            <SensorCard title="Battery" :value="latestTelemetry?.battery_level" unit="%" type="battery" />
-          </div>
-          
-          <div class="border rounded-xl bg-card p-6 min-h-[500px]">
-            <SensorLineChart :data="chartData" :title="`Historical Telemetry - ${activeNode.name}`" />
-          </div>
+                <TabsContent value="dashboard" class="space-y-6">
+          <NodeDashboard :node-id="nodeStringId" />
         </TabsContent>
 
         <TabsContent value="configuration" class="space-y-6">
