@@ -6,6 +6,7 @@ import NodeDashboard from '@/components/dashboard/NodeDashboard.vue'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, Trash2, Edit } from 'lucide-vue-next'
 import { useNodes } from '@/composables/useNodes'
+import { useWebSocket } from '@/composables/useWebSocket'
 import type { NodeDeviceWithData } from '@/types'
 
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
@@ -42,6 +43,20 @@ watch(() => nodesQuery.data.value, (newData) => {
     nodes.value = [...newData]
   }
 }, { immediate: true })
+
+const wsUrl = 'ws://localhost:8000/ws/dashboard'
+const { lastMessage } = useWebSocket(wsUrl)
+
+watch(lastMessage, (msg) => {
+  if (!msg || msg.event !== 'sensor_update') return
+  
+  const nodeIndex = nodes.value.findIndex(n => n.node_id === msg.node_id)
+  if (nodeIndex !== -1) {
+    const node = nodes.value[nodeIndex]
+    node.last_seen = msg.created_at || new Date().toISOString()
+    nodes.value[nodeIndex] = { ...node }
+  }
+})
 
 
 
