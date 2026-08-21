@@ -26,7 +26,7 @@ watch(() => nodesQuery.data.value, (newData) => {
 
 // Handle real-time WebSocket updates
 watch(lastMessage, (msg) => {
-  if (!msg || msg.type !== 'telemetry') return
+  if (!msg || msg.event !== 'sensor_update') return
   
   const nodeIndex = nodesList.value.findIndex(n => n.node_id === msg.node_id)
   if (nodeIndex !== -1) {

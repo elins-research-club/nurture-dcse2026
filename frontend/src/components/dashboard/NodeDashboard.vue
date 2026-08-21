@@ -62,7 +62,7 @@ watch(() => props.nodeId, () => {
 })
 
 watch(lastMessage, (msg) => {
-  if (!msg || msg.type !== 'telemetry') return
+  if (!msg || msg.event !== 'sensor_update') return
   if (msg.node_id !== props.nodeId) return
   
   const currentTelemetry = [...telemetry.value]
@@ -118,18 +118,19 @@ const isNodeActive = computed(() => {
 
     <!-- Sensors Grid -->
     <div v-else-if="sensors.length > 0" class="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-      <template v-for="sensor in sensors" :key="sensor.id">
-        <!-- Normal Sensors -->
+      <!-- Normal Sensors -->
+      <template v-for="sensor in sensors.filter(s => s.name !== 'Status aktuator')" :key="sensor.id">
         <SensorCard
-          v-if="sensor.name !== 'Status aktuator'"
           :title="sensor.name"
           :value="latestTelemetry ? latestTelemetry[`${sensor.channel_id}_${sensor.thingspeak_field}`] : null"
           :unit="sensor.unit"
           type="default"
         />
-        
-        <!-- Actuator Status Bitmask Parser -->
-        <div v-else class="col-span-full mt-4">
+      </template>
+      
+      <!-- Actuator Status Bitmask Parser -->
+      <template v-for="sensor in sensors.filter(s => s.name === 'Status aktuator')" :key="sensor.id">
+        <div class="col-span-full mt-4">
           <h3 class="text-sm font-semibold mb-3">Actuators Status</h3>
           <div class="grid gap-3 md:grid-cols-3">
             <Card v-for="i in 3" :key="i">
