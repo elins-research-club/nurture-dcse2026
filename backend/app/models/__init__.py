@@ -1,4 +1,4 @@
-from app.models.user import User, UserRole
+from app.models.user import User
 from app.models.node import Node
 from app.models.thingspeak_channel import ThingspeakChannel
 from app.models.sensor import Sensor

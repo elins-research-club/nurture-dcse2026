@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, String, Boolean, DateTime, ForeignKey
+from sqlalchemy import Column, String, Boolean, DateTime, ForeignKey, Float
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from app.core.database import Base
@@ -15,6 +15,8 @@ class Sensor(Base):
     name = Column(String(100), nullable=False)
     unit = Column(String(20), nullable=False)
     thingspeak_field = Column(String(10), nullable=False)
+    min_threshold = Column(Float, nullable=True)
+    max_threshold = Column(Float, nullable=True)
     enabled = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 

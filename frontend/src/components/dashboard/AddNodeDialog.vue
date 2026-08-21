@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useNodes } from '@/composables/useNodes'
 import { useAuthStore } from '@/stores/auth'
-import { Trash2 } from 'lucide-vue-next'
+import { Trash2, Loader2, Plus } from 'lucide-vue-next'
 
 const isOpen = ref(false)
 const step = ref(1)
@@ -59,27 +59,43 @@ watch(isOpen, (newVal) => {
     errorMsg.value = ''
     step.value = 1
     channels.value = []
-    newChannel.value = { label: '', channel_id: '', read_api_key: '' }
+    newChannel.value = { label: `Channel 1`, channel_id: '', read_api_key: '' }
   }
 })
 
 const nextStep = () => {
-  errorMsg.value = ''
   if (!nodeId.value || !name.value) {
     errorMsg.value = 'Node ID and Name are required.'
     return
   }
+  errorMsg.value = ''
   step.value = 2
 }
 
-const addTempChannel = () => {
+const addTempChannel = async () => {
   if (!newChannel.value.channel_id || !newChannel.value.read_api_key) {
     errorMsg.value = 'Channel ID and Read API Key are required.'
     return
   }
-  channels.value.push({ ...newChannel.value })
-  newChannel.value = { label: '', channel_id: '', read_api_key: '' }
+  
+  isVerifying.value = true
   errorMsg.value = ''
+  try {
+    const res = await fetch(`https://api.thingspeak.com/channels/${newChannel.value.channel_id}/feeds.json?api_key=${newChannel.value.read_api_key}&results=0`)
+    if (!res.ok) {
+      errorMsg.value = 'Invalid ThingSpeak Channel ID or Read API Key.'
+      isVerifying.value = false
+      return
+    }
+  } catch (err) {
+    errorMsg.value = 'Failed to connect to ThingSpeak. Check your internet.'
+    isVerifying.value = false
+    return
+  }
+  isVerifying.value = false
+
+  channels.value.push({ ...newChannel.value })
+  newChannel.value = { label: `Channel ${channels.value.length + 1}`, channel_id: '', read_api_key: '' }
 }
 
 const removeTempChannel = (index: number) => {
@@ -87,6 +103,10 @@ const removeTempChannel = (index: number) => {
 }
 
 const isSubmitting = ref(false)
+
+import { computed } from 'vue'
+const canFinish = computed(() => !isSubmitting.value && !newChannel.value.channel_id && !newChannel.value.read_api_key && channels.value.length > 0)
+const isVerifying = ref(false)
 
 const handleSubmit = async () => {
   errorMsg.value = ''
@@ -195,7 +215,7 @@ const handleSubmit = async () => {
           <div class="grid grid-cols-12 gap-2 items-end">
             <div class="col-span-3 space-y-1">
               <Label class="text-xs text-muted-foreground">Label</Label>
-              <Input v-model="newChannel.label" placeholder="e.g. Top Sensor" class="h-9 text-sm bg-background" />
+              <Input v-model="newChannel.label" class="h-9 text-sm bg-muted text-muted-foreground" readonly />
             </div>
             <div class="col-span-4 space-y-1">
               <Label class="text-xs text-muted-foreground">Channel ID</Label>
@@ -206,7 +226,10 @@ const handleSubmit = async () => {
               <Input v-model="newChannel.read_api_key" placeholder="API Key" class="h-9 text-sm bg-background" />
             </div>
             <div class="col-span-1">
-              <Button @click="addTempChannel" size="sm" class="h-9 w-full px-0 bg-primary/20 text-primary hover:bg-primary/30 border-transparent shadow-none">+</Button>
+              <Button @click="addTempChannel" :disabled="isVerifying" size="sm" class="h-9 w-full px-0 bg-primary/20 text-primary hover:bg-primary/30 border-transparent shadow-none flex items-center justify-center">
+                <Loader2 v-if="isVerifying" class="w-4 h-4 animate-spin" />
+                <Plus v-else class="w-4 h-4" />
+              </Button>
             </div>
           </div>
         </div>
@@ -245,7 +268,7 @@ const handleSubmit = async () => {
           <!-- Step 2 Buttons -->
           <template v-if="step === 2">
             <Button variant="outline" @click="step = 1" :disabled="isSubmitting">&larr; Back</Button>
-            <Button @click="handleSubmit" :disabled="isSubmitting" class="min-w-[120px]">
+            <Button @click="handleSubmit" :disabled="!canFinish" class="min-w-[120px]">
               {{ isSubmitting ? 'Saving...' : 'Finish & Save' }}
             </Button>
           </template>

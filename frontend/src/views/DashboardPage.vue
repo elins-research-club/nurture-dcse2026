@@ -5,16 +5,46 @@ import SensorCard from '@/components/dashboard/SensorCard.vue'
 import StatusBadge from '@/components/dashboard/StatusBadge.vue'
 import SensorLineChart from '@/components/charts/SensorLineChart.vue'
 import { useNodes } from '@/composables/useNodes'
+import { useAuthStore } from '@/stores/auth'
 import { useWebSocket } from '@/composables/useWebSocket'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import type { NodeDeviceWithData } from '@/types'
 
+const authStore = useAuthStore()
 const { nodesQuery } = useNodes()
 const wsUrl = 'ws://localhost:8000/ws/dashboard'
 const { lastMessage, isConnected } = useWebSocket(wsUrl)
 
 const nodes = ref<NodeDeviceWithData[]>([])
 const selectedNodeId = ref<number | null>(null)
+
+
+watch(selectedNodeId, async (newId) => {
+  console.log('[Dashboard] selectedNodeId changed:', newId)
+  if (!newId) return
+  const nodeIndex = nodes.value.findIndex(n => n.id === newId)
+  if (nodeIndex !== -1 && !nodes.value[nodeIndex].sensors) {
+    try {
+      console.log('[Dashboard] Fetching sensors for:', nodes.value[nodeIndex].node_id)
+      const res = await fetch(`http://localhost:8000/api/v1/nodes/${nodes.value[nodeIndex].node_id}/sensors/`, {
+        headers: { 'Authorization': `Bearer ${authStore.token}` }
+      })
+      if (res.ok) {
+        const sensors = await res.json()
+        console.log('[Dashboard] Fetched sensors:', sensors.length)
+        
+        // Deep clone to guarantee Vue reactivity triggers computed properties
+        const newNodes = JSON.parse(JSON.stringify(nodes.value))
+        newNodes[nodeIndex].sensors = sensors
+        nodes.value = newNodes
+      } else {
+        console.error('[Dashboard] Sensors fetch failed with status:', res.status)
+      }
+    } catch (e) {
+      console.error('[Dashboard] Failed to fetch sensors for dashboard:', e)
+    }
+  }
+}, { immediate: true })
 
 // When API data loads, update local state
 watch(() => nodesQuery.data.value, (newData) => {
@@ -28,7 +58,7 @@ watch(() => nodesQuery.data.value, (newData) => {
 
 // Handle real-time WebSocket updates
 watch(lastMessage, (msg) => {
-  if (!msg || msg.type !== 'telemetry') return
+  if (!msg || msg.event !== 'sensor_update') return
   
   const nodeIndex = nodes.value.findIndex(n => n.node_id === msg.node_id)
   if (nodeIndex !== -1) {
@@ -138,30 +168,40 @@ const isNodeActive = (lastSeen: string | undefined) => {
 
           <!-- Sensors Grid -->
           <div class="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-            <SensorCard
-              title="Temperature"
-              :value="latestTelemetry?.temperature"
-              unit="°C"
-              type="temperature"
-            />
-            <SensorCard
-              title="Humidity"
-              :value="latestTelemetry?.humidity"
-              unit="%"
-              type="humidity"
-            />
-            <SensorCard
-              title="Soil Moisture"
-              :value="latestTelemetry?.soil_moisture"
-              unit="%"
-              type="soil"
-            />
-            <SensorCard
-              title="Battery"
-              :value="latestTelemetry?.battery_level"
-              unit="%"
-              type="battery"
-            />
+            <template v-if="activeNode?.sensors?.length > 0">
+              <template v-for="sensor in activeNode.sensors" :key="sensor.id">
+                <!-- Normal Sensors -->
+                <SensorCard
+                  v-if="sensor.name !== 'Status aktuator'"
+                  :title="sensor.name"
+                  :value="latestTelemetry ? latestTelemetry[`${sensor.channel_id}_${sensor.thingspeak_field}`] : null"
+                  :unit="sensor.unit"
+                  type="default"
+                />
+                
+                <!-- Actuator Status Bitmask Parser -->
+                <div v-else class="col-span-full mt-4">
+                  <h3 class="text-sm font-semibold mb-3">Actuators Status</h3>
+                  <div class="grid gap-3 md:grid-cols-3">
+                    <Card v-for="i in 3" :key="i">
+                      <CardContent class="p-4 flex items-center justify-between">
+                        <span class="font-medium">Actuator {{ i }}</span>
+                        <StatusBadge 
+                          :status="(latestTelemetry && latestTelemetry[`${sensor.channel_id}_${sensor.thingspeak_field}`] != null) 
+                            ? ((latestTelemetry[`${sensor.channel_id}_${sensor.thingspeak_field}`] & Math.pow(2, i-1)) ? 'online' : 'offline')
+                            : 'offline'" 
+                        />
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+              </template>
+            </template>
+            <template v-else>
+              <div class="col-span-full text-muted-foreground text-sm p-4 text-center border rounded-lg bg-muted/50">
+                No sensors configured. Add sensors in Settings.
+              </div>
+            </template>
           </div>
           
           <!-- Charts & Map -->

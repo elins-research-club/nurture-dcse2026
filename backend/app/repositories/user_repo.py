@@ -1,7 +1,7 @@
 from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.models.user import User, UserRole
+from app.models.user import User
 
 async def get_by_id(db: AsyncSession, user_id: UUID | str) -> User | None:
     if isinstance(user_id, str):
@@ -18,8 +18,8 @@ async def get_by_email(db: AsyncSession, email: str) -> User | None:
     result = await db.execute(select(User).where(User.email == email))
     return result.scalars().first()
 
-async def create(db: AsyncSession, username: str, email: str, password_hash: str, role: UserRole = UserRole.USER) -> User:
-    db_user = User(username=username, email=email, password_hash=password_hash, role=role)
+async def create(db: AsyncSession, username: str, email: str, password_hash: str) -> User:
+    db_user = User(username=username, email=email, password_hash=password_hash)
     db.add(db_user)
     await db.commit()
     await db.refresh(db_user)

@@ -17,8 +17,7 @@ const router = createRouter({
     {
       path: '/dashboard',
       name: 'dashboard',
-      component: () => import('@/views/DashboardPage.vue'),
-      meta: { requiresAuth: true }
+      component: () => import('@/views/DashboardPage.vue')
     },
     {
       path: '/nodes',
@@ -60,3 +59,9 @@ router.beforeEach((to, from, next) => {
 })
 
 export default router
+
+router.onError((error, to) => {
+  if (error.message.includes('Failed to fetch dynamically imported module')) {
+    window.location.href = to.fullPath
+  }
+})

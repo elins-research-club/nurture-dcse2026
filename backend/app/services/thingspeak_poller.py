@@ -4,7 +4,7 @@ import httpx
 from typing import Optional, Dict, Any, List
 from app.core.config import settings
 from app.core.database import AsyncSessionLocal
-from app.repositories import node_repo, channel_repo
+from app.repositories import node_repo, channel_repo, sensor_repo
 from app.services.websocket_manager import manager
 from app.services.telegram_service import send_telegram_alert
 from app.repositories.event_log_repo import event_log_repo
@@ -16,6 +16,11 @@ logger = logging.getLogger(__name__)
 # Track online state in memory to prevent spamming alerts
 # {node_id: is_online_bool}
 node_online_state = {}
+
+# Track sensor alert state
+# {sensor_id: is_alerting_bool}
+sensor_alert_state = {}
+
 
 async def fetch_latest(channel_id: str, read_api_key: str) -> Optional[Dict[str, Any]]:
     url = f"{settings.THINGSPEAK_BASE_URL}/channels/{channel_id}/feeds/last.json"
@@ -91,9 +96,42 @@ async def poll_node(node_id: str, channels: list, db_session):
     
     await manager.broadcast(node_id, payload)
     
+
     node = await node_repo.get_by_node_id(db_session, node_id)
     if node:
+        # Check thresholds
+        sensors = await sensor_repo.list_by_node(db_session, node.id)
+        for s in sensors:
+            if not s.enabled:
+                continue
+                
+            key = f"{str(s.channel_id)}_{s.thingspeak_field}"
+            val = extracted_data.get(key)
+            if val is not None and isinstance(val, (int, float)):
+                sensor_id_str = str(s.id)
+                currently_alerting = sensor_alert_state.get(sensor_id_str, False)
+                
+                is_high = s.max_threshold is not None and val > s.max_threshold
+                is_low = s.min_threshold is not None and val < s.min_threshold
+                
+                if (is_high or is_low) and not currently_alerting:
+                    # Trigger alert
+                    alert_type = 'High' if is_high else 'Low'
+                    limit = s.max_threshold if is_high else s.min_threshold
+                    msg = f"⚠️ <b>Threshold Alert</b>\nNode <code>{node.name}</code>\nSensor <b>{s.name}</b> is {alert_type}: {val}{s.unit} (Limit: {limit}{s.unit})"
+                    await send_telegram_alert(db_session, msg)
+                    await event_log_repo.create(db_session, EventLogCreate(level="WARNING", message=f"{s.name} is {alert_type}: {val}{s.unit}", node_id=node.id))
+                    sensor_alert_state[sensor_id_str] = True
+                
+                elif not (is_high or is_low) and currently_alerting:
+                    # Recovered
+                    msg = f"✅ <b>Threshold Recovered</b>\nNode <code>{node.name}</code>\nSensor <b>{s.name}</b> returned to normal: {val}{s.unit}"
+                    await send_telegram_alert(db_session, msg)
+                    await event_log_repo.create(db_session, EventLogCreate(level="INFO", message=f"{s.name} returned to normal: {val}{s.unit}", node_id=node.id))
+                    sensor_alert_state[sensor_id_str] = False
+
         await node_repo.update_last_seen(db_session, node)
+
         
         # Check if it was previously offline and just came back online
         was_online = node_online_state.get(node_id, True)

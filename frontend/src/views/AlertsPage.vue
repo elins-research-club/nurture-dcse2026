@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import DashboardLayout from '@/components/layout/DashboardLayout.vue'
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { useEventLogs } from '@/composables/useEventLogs'
 import { Info, AlertTriangle, XCircle, Clock } from 'lucide-vue-next'
 
@@ -23,13 +23,11 @@ const formatDate = (dateString: string) => {
     <div class="flex flex-col space-y-6">
       <div>
         <h2 class="text-3xl font-bold tracking-tight">Alerts & Event Logs</h2>
-        <p class="text-muted-foreground mt-1">System events, node statuses, and threshold alerts.</p>
       </div>
       
       <Card>
         <CardHeader>
           <CardTitle>Recent Events</CardTitle>
-          <CardDescription>Chronological history of system events.</CardDescription>
         </CardHeader>
         <CardContent>
           <div v-if="logsQuery.isLoading.value" class="py-8 text-center text-muted-foreground">

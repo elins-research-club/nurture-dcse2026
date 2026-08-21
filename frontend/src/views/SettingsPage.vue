@@ -119,6 +119,76 @@ const testTelegramConnection = async () => {
   }
 }
 
+
+const nodesWithSensors = ref([])
+const isSavingThresholds = ref(false)
+const isLoadingSensors = ref(true)
+const selectedNodeId = ref('')
+
+const fetchSensors = async () => {
+  isLoadingSensors.value = true
+  try {
+    const resNodes = await fetch(`${API_BASE_URL}/nodes/`, {
+      headers: { 'Authorization': `Bearer ${authStore.token}` }
+    })
+    if (!resNodes.ok) return
+    const nodes = await resNodes.json()
+    
+    const enrichedNodes = []
+    for (const node of nodes) {
+      const resSensors = await fetch(`${API_BASE_URL}/nodes/${node.node_id}/sensors/`, {
+        headers: { 'Authorization': `Bearer ${authStore.token}` }
+      })
+      if (resSensors.ok) {
+        node.sensors = await resSensors.json()
+        if (node.sensors.length > 0) {
+          enrichedNodes.push(node)
+        }
+      }
+    }
+
+    nodesWithSensors.value = enrichedNodes
+    if (enrichedNodes.length > 0 && !selectedNodeId.value) {
+      selectedNodeId.value = enrichedNodes[0].id
+    }
+  } catch (err) {
+
+    console.error(err)
+  } finally {
+    isLoadingSensors.value = false
+  }
+}
+
+const saveThresholds = async (node, sensor) => {
+  try {
+    sensor.isSaving = true
+    const payload = {
+      min_threshold: sensor.min_threshold === '' || sensor.min_threshold === null ? null : Number(sensor.min_threshold),
+      max_threshold: sensor.max_threshold === '' || sensor.max_threshold === null ? null : Number(sensor.max_threshold)
+    }
+    await fetch(`${API_BASE_URL}/nodes/${node.node_id}/sensors/${sensor.id}`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${authStore.token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    })
+    sensor.saved = true
+    setTimeout(() => { sensor.saved = false }, 2000)
+  } catch(e) {
+    console.error(e)
+  } finally {
+    sensor.isSaving = false
+  }
+}
+
+onMounted(() => {
+  if (true) {
+    fetchSensors()
+  }
+})
+
 onMounted(() => {
   loadSystemConfig()
 })
@@ -240,10 +310,11 @@ const updatePassword = async () => {
       </Dialog>
       
       <Tabs defaultValue="appearance" class="w-full">
-        <TabsList class="grid w-full grid-cols-4">
+        <TabsList class="grid w-full grid-cols-5">
           <TabsTrigger value="appearance">Appearance</TabsTrigger>
           <TabsTrigger value="system">System</TabsTrigger>
           <TabsTrigger value="alerts">Alerts</TabsTrigger>
+          <TabsTrigger value="thresholds">Thresholds</TabsTrigger>
           <TabsTrigger value="security">Security</TabsTrigger>
         </TabsList>
         
@@ -368,6 +439,45 @@ const updatePassword = async () => {
                         {{ isTestingTelegram ? 'Testing...' : 'Test Connection' }}
                       </Button>
                     </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="thresholds">
+          <Card>
+            <CardHeader>
+              <CardTitle>Sensor Thresholds</CardTitle>
+              <CardDescription>Trigger Telegram alerts when sensor values go outside these safe limits.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div class="border border-muted-foreground/30 rounded-lg bg-card">
+                <div class="p-4 space-y-6">
+                  <div v-if="isLoadingSensors" class="text-sm text-muted-foreground">Loading sensors...</div>
+                  <div v-else-if="nodesWithSensors.length === 0" class="text-sm text-muted-foreground">No sensors found. Add sensors to your nodes first.</div>
+                  <div v-else v-for="node in nodesWithSensors" :key="node.id" class="space-y-4">
+                    <h5 class="font-medium flex items-center gap-2"><div class="w-2 h-2 rounded-full bg-primary"></div>{{ node.name }}</h5>
+                    <div class="grid gap-4 pl-4 border-l-2 border-muted">
+                      <div v-for="sensor in node.sensors" :key="sensor.id" class="flex flex-col sm:flex-row gap-4 items-end">
+                        <div class="w-full sm:w-1/3">
+                          <Label class="text-xs text-muted-foreground">{{ sensor.name }} ({{ sensor.unit }})</Label>
+                          <div class="font-medium text-sm pt-1">{{ sensor.thingspeak_field }}</div>
+                        </div>
+                        <div class="w-full sm:w-1/3">
+                          <Label class="text-xs">Min Threshold</Label>
+                          <Input type="number" step="any" v-model="sensor.min_threshold" placeholder="No Limit" class="h-8 text-sm" />
+                        </div>
+                        <div class="w-full sm:w-1/3">
+                          <Label class="text-xs">Max Threshold</Label>
+                          <Input type="number" step="any" v-model="sensor.max_threshold" placeholder="No Limit" class="h-8 text-sm" />
+                        </div>
+                        <Button variant="outline" size="sm" class="h-8 w-20 whitespace-nowrap" :disabled="sensor.isSaving" @click="saveThresholds(node, sensor)">
+                          {{ sensor.saved ? 'Saved!' : (sensor.isSaving ? '...' : 'Save') }}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </CardContent>

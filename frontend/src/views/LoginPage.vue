@@ -28,7 +28,10 @@ const loginMutation = useMutation({
       body: params
     })
 
-    if (!response.ok) throw new Error('Invalid credentials')
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}))
+      throw new Error(errData.detail || 'Invalid credentials')
+    }
     return response.json()
   },
   onSuccess: (data) => {
@@ -188,4 +191,5 @@ const handleLogin = () => {
   display: none;
 }
 </style>
+
 

@@ -10,6 +10,8 @@ class SensorBase(BaseModel):
     name: str
     unit: str
     thingspeak_field: str
+    min_threshold: Optional[float] = None
+    max_threshold: Optional[float] = None
     enabled: bool = True
 
 class SensorCreate(BaseModel):
@@ -21,11 +23,11 @@ class SensorCreate(BaseModel):
     enabled: bool = True
 
 class SensorUpdate(BaseModel):
-    channel_id: Optional[UUID] = None
-    type: Optional[str] = None
     name: Optional[str] = None
     unit: Optional[str] = None
     thingspeak_field: Optional[str] = None
+    min_threshold: Optional[float] = None
+    max_threshold: Optional[float] = None
     enabled: Optional[bool] = None
 
 class SensorResponse(SensorBase):
