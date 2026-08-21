@@ -276,7 +276,7 @@ cp .env.example .env
 Edit `frontend/.env`:
 ```env
 VITE_API_BASE_URL=http://localhost:8000
-VITE_WS_URL=ws://localhost:8000/api/v1/ws
+VITE_WS_URL=ws://localhost:8000/ws
 ```
 
 **Jalankan frontend:**
@@ -359,6 +359,19 @@ Setelah itu, poller otomatis akan mulai mengambil data dari ThingSpeak dan menyi
 
 ---
 
+## ⚙️ Cara Kerja Status Aktuator (Bitmask)
+
+Sistem menggunakan teknik **Bitmask** untuk menghemat penggunaan *field* di ThingSpeak saat mengirimkan status hidup/mati dari beberapa aktuator sekaligus (Pompa, Kipas, dsb) dalam 1 angka (Integer). 
+
+1. Di database, buat satu sensor dengan nama **"Status aktuator"**.
+2. Angka dari *field* ThingSpeak tersebut akan diubah ke biner di frontend.
+3. Misalnya, nilai `5` (Biner: `101`) berarti:
+   - Aktuator 1 (Bit 1 = $2^0$) -> **ON**
+   - Aktuator 2 (Bit 2 = $2^1$) -> **OFF**
+   - Aktuator 3 (Bit 3 = $2^2$) -> **ON**
+
+---
+
 ## 📡 API Reference
 
 Dokumentasi lengkap tersedia di: **http://localhost:8000/docs**
@@ -373,7 +386,7 @@ Dokumentasi lengkap tersedia di: **http://localhost:8000/docs**
 | `GET /api/v1/event-logs/` | Riwayat event (online/offline log) |
 | `GET /api/v1/system/config` | Ambil konfigurasi global sistem |
 | `PUT /api/v1/system/config` | Update konfigurasi global sistem |
-| `WS /api/v1/ws/{node_id}` | WebSocket stream data real-time |
+| `WS /ws/{channel}` | WebSocket stream data real-time (contoh: /ws/dashboard) |
 
 ### Query Parameter `/telemetry/history`
 | Parameter | Contoh | Keterangan |
