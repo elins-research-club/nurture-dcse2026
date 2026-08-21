@@ -136,48 +136,55 @@ async def get_history_telemetry(
     # OR we merge them into a single array of points sorted by time.
     # Since ThingSpeak channels can be updated at slightly different ms, we will round to nearest 10 seconds.
     
-    merged_feeds = {}
-    
-    for result in fetch_results:
-        if isinstance(result, Exception):
-            if isinstance(result, HTTPException):
-                raise result
-            continue
-            
-        channel, data = result
-        if not data or "feeds" not in data:
-            continue
-            
-        ch_uuid = str(channel.id)
-        for feed in data["feeds"]:
-            ts_str = feed.get("created_at")
-            if not ts_str:
+    try:
+        merged_feeds = {}
+        
+        for result in fetch_results:
+            if isinstance(result, Exception):
+                if isinstance(result, HTTPException):
+                    raise result
                 continue
                 
-            # Parse and round timestamp to nearest 15 seconds to merge channels
-            try:
-                dt = isoparse(ts_str)
-                # Round down to nearest 15s window
-                rounded_ts = int(dt.timestamp()) // 15 * 15
-            except:
+            channel, data = result
+            if not data or "feeds" not in data:
                 continue
                 
-            if rounded_ts not in merged_feeds:
-                merged_feeds[rounded_ts] = {"created_at": ts_str}
-                
-            # Add fields with channel prefix
-            for i in range(1, 9):
-                field_key = f"field{i}"
-                if field_key in feed and feed[field_key] is not None:
-                    merged_feeds[rounded_ts][f"{ch_uuid}_{field_key}"] = feed[field_key]
+            ch_uuid = str(channel.id)
+            for feed in data["feeds"]:
+                ts_str = feed.get("created_at")
+                if not ts_str:
+                    continue
                     
-    # Sort by timestamp
-    sorted_feeds = [merged_feeds[ts] for ts in sorted(merged_feeds.keys())]
-    
-    return {
-        "channel": {"name": node.name, "description": "Merged channels"},
-        "feeds": sorted_feeds
-    }
+                # Parse and round timestamp to nearest 15 seconds to merge channels
+                try:
+                    dt = isoparse(ts_str)
+                    # Round down to nearest 15s window
+                    rounded_ts = int(dt.timestamp()) // 15 * 15
+                except Exception:
+                    continue
+                    
+                if rounded_ts not in merged_feeds:
+                    merged_feeds[rounded_ts] = {"created_at": ts_str}
+                    
+                # Add fields with channel prefix
+                for i in range(1, 9):
+                    field_key = f"field{i}"
+                    if field_key in feed and feed[field_key] is not None:
+                        merged_feeds[rounded_ts][f"{ch_uuid}_{field_key}"] = feed[field_key]
+                        
+        # Sort by timestamp
+        sorted_feeds = [merged_feeds[ts] for ts in sorted(merged_feeds.keys())]
+        
+        return {
+            "channel": {"name": node.name, "description": "Merged channels"},
+            "feeds": sorted_feeds
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/nodes/{node_id}/telemetry/inject")
