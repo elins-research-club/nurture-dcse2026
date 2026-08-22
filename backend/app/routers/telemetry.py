@@ -24,6 +24,9 @@ except ImportError:
     async def get_current_user():
         return None
 
+import time
+
+HISTORY_CACHE = {}
 router = APIRouter()
 
 @router.get("/nodes/{node_id}/telemetry/latest")
@@ -36,6 +39,13 @@ async def get_latest_telemetry(
     if not node:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Node not found")
         
+    
+    cache_key = f"{node_id}_{time_range}_{start}_{end}_{results}"
+    now = time.time()
+    if cache_key in HISTORY_CACHE:
+        cached_time, cached_data = HISTORY_CACHE[cache_key]
+        if now - cached_time < 30:
+            return cached_data
     channels = await channel_repo.get_by_node_id(db, node.id)
     if not channels:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Channels not configured for node")
@@ -92,6 +102,13 @@ async def get_history_telemetry(
     if not node:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Node not found")
 
+    
+    cache_key = f"{node_id}_{time_range}_{start}_{end}_{results}"
+    now = time.time()
+    if cache_key in HISTORY_CACHE:
+        cached_time, cached_data = HISTORY_CACHE[cache_key]
+        if now - cached_time < 30:
+            return cached_data
     channels = await channel_repo.get_by_node_id(db, node.id)
     if not channels:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Channels not configured for node")
@@ -175,10 +192,10 @@ async def get_history_telemetry(
         # Sort by timestamp
         sorted_feeds = [merged_feeds[ts] for ts in sorted(merged_feeds.keys())]
         
-        return {
-            "channel": {"name": node.name, "description": "Merged channels"},
-            "feeds": sorted_feeds
-        }
+        
+    HISTORY_CACHE[cache_key] = (now, {"channel": {"name": node.name, "description": "Merged channels"}, "feeds": sorted_feeds})
+    return HISTORY_CACHE[cache_key][1]
+
     except HTTPException:
         raise
     except Exception as e:
