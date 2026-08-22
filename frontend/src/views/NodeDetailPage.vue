@@ -2,6 +2,7 @@
 import { ref, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import DashboardLayout from '@/components/layout/DashboardLayout.vue'
+import StatusBadge from '@/components/dashboard/StatusBadge.vue'
 import NodeDashboard from '@/components/dashboard/NodeDashboard.vue'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, Trash2, Edit } from 'lucide-vue-next'
@@ -52,9 +53,9 @@ watch(lastMessage, (msg) => {
   
   const nodeIndex = nodes.value.findIndex(n => n.node_id === msg.node_id)
   if (nodeIndex !== -1) {
-    const node = nodes.value[nodeIndex]
+    const node = { ...nodes.value[nodeIndex] }
     node.last_seen = msg.created_at || new Date().toISOString()
-    nodes.value[nodeIndex] = { ...node }
+    nodes.value[nodeIndex] = node
   }
 })
 
@@ -63,7 +64,8 @@ watch(lastMessage, (msg) => {
 
 const isNodeActive = (lastSeen: string | undefined) => {
   if (!lastSeen) return false
-  const diffMinutes = (new Date().getTime() - new Date(lastSeen).getTime()) / (1000 * 60)
+  const dateStr = lastSeen.endsWith('Z') ? lastSeen : lastSeen + 'Z';
+    const diffMinutes = (new Date().getTime() - new Date(dateStr).getTime()) / (1000 * 60)
   return diffMinutes < 15
 }
 

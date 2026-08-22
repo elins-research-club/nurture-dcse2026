@@ -11,7 +11,7 @@ const status = computed(() => {
   if (!props.isActive) return 'offline'
   if (!props.lastSeen) return 'unknown'
   
-  const lastSeenDate = new Date(props.lastSeen)
+  const lastSeenDate = new Date(props.lastSeen.endsWith('Z') ? props.lastSeen : props.lastSeen + 'Z')
   const now = new Date()
   const diffMinutes = (now.getTime() - lastSeenDate.getTime()) / (1000 * 60)
   

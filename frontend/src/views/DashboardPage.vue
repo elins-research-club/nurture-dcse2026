@@ -29,15 +29,16 @@ watch(lastMessage, (msg) => {
   
   const nodeIndex = nodes.value.findIndex(n => n.node_id === msg.node_id)
   if (nodeIndex !== -1) {
-    const node = nodes.value[nodeIndex]
+    const node = { ...nodes.value[nodeIndex] }
     node.last_seen = msg.created_at || new Date().toISOString()
-    nodes.value[nodeIndex] = { ...node }
+    nodes.value[nodeIndex] = node
   }
 })
 
 const isNodeActive = (lastSeen: string | undefined) => {
   if (!lastSeen) return false
-  const diffMinutes = (new Date().getTime() - new Date(lastSeen).getTime()) / (1000 * 60)
+  const dateStr = lastSeen.endsWith('Z') ? lastSeen : lastSeen + 'Z';
+  const diffMinutes = (new Date().getTime() - new Date(dateStr).getTime()) / (1000 * 60)
   return diffMinutes < 15
 }
 
