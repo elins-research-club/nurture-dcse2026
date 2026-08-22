@@ -83,7 +83,7 @@ async def get_history_telemetry(
     node_id: str,
     db: AsyncSession = Depends(get_db),
     current_user = Depends(get_current_user),
-    range: Optional[Literal["1h", "1d", "1w"]] = Query(None, description="Preset range shortcut: 1h, 1d, 1w"),
+    time_range: Optional[Literal["1h", "1d", "1w"]] = Query(None, alias="range", description="Preset range shortcut: 1h, 1d, 1w"),
     start: Optional[str] = Query(None, description="Start datetime in ISO 8601, e.g. 2026-08-01T00:00:00"),
     end: Optional[str] = Query(None, description="End datetime in ISO 8601, e.g. 2026-08-18T23:59:59"),
     results: int = Query(100, ge=1, le=8000, description="Max number of results (ThingSpeak cap: 8000)")
@@ -98,11 +98,11 @@ async def get_history_telemetry(
 
     # Build ThingSpeak base params
     base_params = {}
-    if range == "1h":
+    if time_range == "1h":
         base_params["minutes"] = 60
-    elif range == "1d":
+    elif time_range == "1d":
         base_params["hours"] = 24
-    elif range == "1w":
+    elif time_range == "1w":
         base_params["days"] = 7
     elif start or end:
         if start:
