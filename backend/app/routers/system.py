@@ -11,7 +11,8 @@ import httpx
 router = APIRouter(prefix="/system")
 
 class SystemConfigSchema(BaseModel):
-    polling_interval: int
+    node_status_check_interval: int
+    telemetry_cache_interval: int = 30
     data_retention_days: int
     offline_threshold_mins: int
     telegram_bot_token: Optional[str] = None
@@ -36,7 +37,8 @@ async def update_config(data: SystemConfigSchema, db: AsyncSession = Depends(get
         config = SystemConfig(id=1)
         db.add(config)
     
-    config.polling_interval = data.polling_interval
+    config.node_status_check_interval = data.node_status_check_interval
+    config.telemetry_cache_interval = data.telemetry_cache_interval
     config.data_retention_days = data.data_retention_days
     config.offline_threshold_mins = data.offline_threshold_mins
     config.telegram_bot_token = data.telegram_bot_token

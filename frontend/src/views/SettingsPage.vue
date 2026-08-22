@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
-import { Sun, Moon, CheckCircle, XCircle, Loader2 } from 'lucide-vue-next'
+import { Sun, Moon, CheckCircle, XCircle, Loader2, ChevronDown, ChevronRight } from 'lucide-vue-next'
 
 const isDarkMode = ref(document.documentElement.classList.contains('dark'))
 const showModal = ref(false)
@@ -27,7 +27,8 @@ const toggleTheme = (dark: boolean) => {
 const API_BASE_URL = 'http://localhost:8000/api/v1'
 
 const systemConfig = ref({
-  polling_interval: 15,
+  node_status_check_interval: 15,
+  telemetry_cache_interval: 30,
   data_retention_days: 30,
   offline_threshold_mins: 15,
   telegram_bot_token: '',
@@ -121,6 +122,10 @@ const testTelegramConnection = async () => {
 
 
 const nodesWithSensors = ref([])
+const expandedNodes = ref({})
+const toggleNode = (nodeId) => {
+  expandedNodes.value[nodeId] = !expandedNodes.value[nodeId]
+}
 const isSavingThresholds = ref(false)
 const isLoadingSensors = ref(true)
 const selectedNodeId = ref('')
@@ -310,8 +315,9 @@ const updatePassword = async () => {
       </Dialog>
       
       <Tabs defaultValue="appearance" class="w-full">
-        <TabsList class="grid w-full grid-cols-5">
+        <TabsList class="grid w-full grid-cols-6">
           <TabsTrigger value="appearance">Appearance</TabsTrigger>
+          <TabsTrigger value="performance">Performance</TabsTrigger>
           <TabsTrigger value="system">System</TabsTrigger>
           <TabsTrigger value="alerts">Alerts</TabsTrigger>
           <TabsTrigger value="thresholds">Thresholds</TabsTrigger>
@@ -370,11 +376,11 @@ const updatePassword = async () => {
               <div class="border border-muted-foreground/30 rounded-lg divide-y divide-muted-foreground/30 bg-card">
                 <div class="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div class="space-y-0.5">
-                    <Label class="text-base font-medium">Polling Interval</Label>
-                    <p class="text-sm text-muted-foreground">Data fetch frequency. Example: 15 (seconds).</p>
+                    <Label class="text-base font-medium">Node Status Check Interval</Label>
+                    <p class="text-sm text-muted-foreground">How often the background worker checks node status. Example: 15 (seconds).</p>
                   </div>
                   <div class="w-full sm:w-40 flex items-center gap-2">
-                    <Input type="number" v-model="systemConfig.polling_interval" placeholder="15" min="15" />
+                    <Input type="number" v-model="systemConfig.node_status_check_interval" placeholder="15" min="15" />
                     <span class="text-sm text-muted-foreground">Secs</span>
                   </div>
                 </div>
@@ -456,27 +462,46 @@ const updatePassword = async () => {
                 <div class="p-4 space-y-6">
                   <div v-if="isLoadingSensors" class="text-sm text-muted-foreground">Loading sensors...</div>
                   <div v-else-if="nodesWithSensors.length === 0" class="text-sm text-muted-foreground">No sensors found. Add sensors to your nodes first.</div>
-                  <div v-else v-for="node in nodesWithSensors" :key="node.id" class="space-y-4">
-                    <h5 class="font-medium flex items-center gap-2"><div class="w-2 h-2 rounded-full bg-primary"></div>{{ node.name }}</h5>
-                    <div class="grid gap-4 pl-4 border-l-2 border-muted">
-                      <div v-for="sensor in node.sensors" :key="sensor.id" class="flex flex-col sm:flex-row gap-4 items-end">
-                        <div class="w-full sm:w-1/3">
-                          <Label class="text-xs text-muted-foreground">{{ sensor.name }} ({{ sensor.unit }})</Label>
-                          <div class="font-medium text-sm pt-1">{{ sensor.thingspeak_field }}</div>
-                        </div>
-                        <div class="w-full sm:w-1/3">
-                          <Label class="text-xs">Min Threshold</Label>
-                          <Input type="number" step="any" v-model="sensor.min_threshold" placeholder="No Limit" class="h-8 text-sm" />
-                        </div>
-                        <div class="w-full sm:w-1/3">
-                          <Label class="text-xs">Max Threshold</Label>
-                          <Input type="number" step="any" v-model="sensor.max_threshold" placeholder="No Limit" class="h-8 text-sm" />
-                        </div>
-                        <Button variant="outline" size="sm" class="h-8 w-20 whitespace-nowrap" :disabled="sensor.isSaving" @click="saveThresholds(node, sensor)">
-                          {{ sensor.saved ? 'Saved!' : (sensor.isSaving ? '...' : 'Save') }}
-                        </Button>
-                      </div>
+                  <div v-else v-for="node in nodesWithSensors" :key="node.id" class="space-y-2">
+                    <div 
+                      class="flex items-center gap-2 cursor-pointer hover:bg-accent/50 p-2 rounded-md transition-colors" 
+                      @click="toggleNode(node.id)"
+                    >
+                      <ChevronRight class="w-4 h-4 text-muted-foreground transition-transform duration-200" :class="{'rotate-90': expandedNodes[node.id]}" />
+                      <h5 class="font-medium flex items-center gap-2">
+                        <div class="w-2 h-2 rounded-full bg-primary"></div>
+                        {{ node.name }}
+                      </h5>
+                      <span class="ml-auto text-xs text-muted-foreground">{{ node.sensors.length }} sensors</span>
                     </div>
+                    <Transition
+                      enter-active-class="transition-all duration-300 ease-in-out overflow-hidden"
+                      enter-from-class="opacity-0 max-h-0"
+                      enter-to-class="opacity-100 max-h-[2000px]"
+                      leave-active-class="transition-all duration-300 ease-in-out overflow-hidden"
+                      leave-from-class="opacity-100 max-h-[2000px]"
+                      leave-to-class="opacity-0 max-h-0"
+                    >
+                      <div v-show="expandedNodes[node.id]" class="grid gap-4 pl-8 border-l-2 border-muted ml-3 pb-2 mt-2">
+                        <div v-for="sensor in node.sensors" :key="sensor.id" class="flex flex-col sm:flex-row gap-4 items-end">
+                          <div class="w-full sm:w-1/3">
+                            <Label class="text-xs text-muted-foreground">{{ sensor.name }} ({{ sensor.unit }})</Label>
+                            <div class="font-medium text-sm pt-1">{{ sensor.thingspeak_field }}</div>
+                          </div>
+                          <div class="w-full sm:w-1/3">
+                            <Label class="text-xs">Min Threshold</Label>
+                            <Input type="number" step="any" v-model="sensor.min_threshold" placeholder="No Limit" class="h-8 text-sm" />
+                          </div>
+                          <div class="w-full sm:w-1/3">
+                            <Label class="text-xs">Max Threshold</Label>
+                            <Input type="number" step="any" v-model="sensor.max_threshold" placeholder="No Limit" class="h-8 text-sm" />
+                          </div>
+                          <Button variant="outline" size="sm" class="h-8 w-20 whitespace-nowrap" :disabled="sensor.isSaving" @click="saveThresholds(node, sensor)">
+                            {{ sensor.saved ? 'Saved!' : (sensor.isSaving ? '...' : 'Save') }}
+                          </Button>
+                        </div>
+                      </div>
+                    </Transition>
                   </div>
                 </div>
               </div>
@@ -521,6 +546,33 @@ const updatePassword = async () => {
                   {{ isSavingPassword ? 'Saving...' : 'Save Password' }}
                 </Button>
               </CardFooter>
+          </Card>
+        </TabsContent>
+
+        <!-- Performance Tab -->
+        <TabsContent value="performance">
+          <Card>
+            <CardHeader>
+              <CardTitle>Performance Settings</CardTitle>
+              <CardDescription>
+                Configure caching and performance parameters to optimize dashboard loading times and API usage.
+              </CardDescription>
+            </CardHeader>
+            <CardContent class="space-y-4">
+              <div class="space-y-2">
+                <Label for="cacheInterval">Dashboard Telemetry Cache (Seconds)</Label>
+                <Input id="cacheInterval" type="number" v-model="systemConfig.telemetry_cache_interval" min="1" max="3600" />
+                <p class="text-sm text-gray-500">
+                  How long the dashboard caches ThingSpeak telemetry data before fetching again. A higher value speeds up dashboard navigation but delays new data.
+                </p>
+              </div>
+            </CardContent>
+            <CardFooter>
+              <Button @click="saveSystemConfig" :disabled="isSavingConfig">
+                <Loader2 v-if="isSavingConfig" class="mr-2 h-4 w-4 animate-spin" />
+                Save Performance Settings
+              </Button>
+            </CardFooter>
           </Card>
         </TabsContent>
       </Tabs>

@@ -3,6 +3,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional, Literal
 from app.core.database import get_db
 from app.core.config import settings
+from app.models.system_config import SystemConfig
+from sqlalchemy import select
 from app.repositories import node_repo, channel_repo
 from app.services.websocket_manager import manager
 from datetime import datetime, timezone
@@ -40,11 +42,15 @@ async def get_latest_telemetry(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Node not found")
         
     
+    sys_conf_result = await db.execute(select(SystemConfig).filter_by(id=1))
+    sys_conf = sys_conf_result.scalars().first()
+    cache_ttl = sys_conf.telemetry_cache_interval if sys_conf else 30
+
     cache_key = f"{node_id}_{time_range}_{start}_{end}_{results}"
     now = time.time()
     if cache_key in HISTORY_CACHE:
         cached_time, cached_data = HISTORY_CACHE[cache_key]
-        if now - cached_time < 30:
+        if now - cached_time < cache_ttl:
             return cached_data
     channels = await channel_repo.get_by_node_id(db, node.id)
     if not channels:
@@ -103,11 +109,15 @@ async def get_history_telemetry(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Node not found")
 
     
+    sys_conf_result = await db.execute(select(SystemConfig).filter_by(id=1))
+    sys_conf = sys_conf_result.scalars().first()
+    cache_ttl = sys_conf.telemetry_cache_interval if sys_conf else 30
+
     cache_key = f"{node_id}_{time_range}_{start}_{end}_{results}"
     now = time.time()
     if cache_key in HISTORY_CACHE:
         cached_time, cached_data = HISTORY_CACHE[cache_key]
-        if now - cached_time < 30:
+        if now - cached_time < cache_ttl:
             return cached_data
     channels = await channel_repo.get_by_node_id(db, node.id)
     if not channels:
@@ -192,12 +202,23 @@ async def get_history_telemetry(
         # Sort by timestamp
         sorted_feeds = [merged_feeds[ts] for ts in sorted(merged_feeds.keys())]
         
+        # Forward fill missing fields so that sensors from different channels
+        # that are slightly desynced will always carry over their last known value.
+        last_known = {}
+        for feed in sorted_feeds:
+            for key, value in feed.items():
+                if key != "created_at":
+                    last_known[key] = value
+            for key, value in last_known.items():
+                if key not in feed:
+                    feed[key] = value
         
-    HISTORY_CACHE[cache_key] = (now, {"channel": {"name": node.name, "description": "Merged channels"}, "feeds": sorted_feeds})
-    return HISTORY_CACHE[cache_key][1]
+        HISTORY_CACHE[cache_key] = (now, {"channel": {"name": node.name, "description": "Merged channels"}, "feeds": sorted_feeds})
+        return HISTORY_CACHE[cache_key][1]
 
     except HTTPException:
         raise
+
     except Exception as e:
         import traceback
         traceback.print_exc()
