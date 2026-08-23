@@ -52,6 +52,8 @@ const makeIcon = (online: boolean) =>
     popupAnchor: [0, -34],
   })
 
+const nodeSensorsCache = ref<Record<string, any[]>>({})
+
 const fetchNodeTelemetry = async (nodeId: string) => {
   try {
     const res = await fetch(`${API_BASE_URL}/nodes/${nodeId}/telemetry/history?results=1`, {
@@ -81,8 +83,8 @@ const getSensorValue = (feed: any, nameQuery: string, sensors: any[]) => {
   return val != null ? `${parseFloat(val).toFixed(1)} ${sensor.unit}` : '&#8212;'
 }
 
-const buildPopupHtml = (node: any, online: boolean, feed: any) => {
-  const sensors = node.sensors ?? []
+const buildPopupHtml = (node: any, online: boolean, feed: any, sensorsList?: any[]) => {
+  const sensors = sensorsList ?? nodeSensorsCache.value[node.node_id] ?? []
   const n = getSensorValue(feed, 'Nitrogen', sensors)
   const p = getSensorValue(feed, 'Phosphorus', sensors)
   const k = getSensorValue(feed, 'Potassium', sensors)
@@ -120,12 +122,11 @@ const addOrUpdateMarker = async (node: any) => {
       
       const [feed, sensors] = await Promise.all([
         fetchNodeTelemetry(node.node_id),
-        fullNode.sensors ? Promise.resolve(fullNode.sensors) : fetchNodeSensors(node.node_id)
+        nodeSensorsCache.value[node.node_id] ? Promise.resolve(nodeSensorsCache.value[node.node_id]) : fetchNodeSensors(node.node_id)
       ])
       
-      fullNode.sensors = sensors // Cache it so we don't fetch again next time
-      
-      marker.getPopup()?.setContent(buildPopupHtml(fullNode, online, feed))
+      nodeSensorsCache.value[node.node_id] = sensors
+      marker.getPopup()?.setContent(buildPopupHtml(fullNode, online, feed, sensors))
     })
     marker.bindPopup('', { maxWidth: 260 })
     marker.addTo(map!)
@@ -149,7 +150,7 @@ watch(lastMessage, (msg) => {
   if (marker && marker.isPopupOpen()) {
     const fullNode = nodes.value.find((n: any) => n.node_id === nodeId)
     if (fullNode) {
-      marker.getPopup()?.setContent(buildPopupHtml(fullNode, true, msg.data))
+      marker.getPopup()?.setContent(buildPopupHtml(fullNode, true, msg.data, nodeSensorsCache.value[nodeId]))
     }
   }
 })
@@ -157,7 +158,8 @@ watch(lastMessage, (msg) => {
 const enableDrag = (node: any) => {
   const marker = markers[node.node_id]
   if (!marker) return
-  marker.setDraggable(true)
+  marker.dragging?.enable()
+  marker.off('dragend')
   marker.on('dragend', () => {
     const pos = marker.getLatLng()
     updateNodeMutation.mutate({ id: node.node_id, data: { latitude: pos.lat, longitude: pos.lng } })
@@ -167,7 +169,7 @@ const enableDrag = (node: any) => {
 const disableDrag = (nodeId: string) => {
   const marker = markers[nodeId]
   if (!marker) return
-  marker.setDraggable(false)
+  marker.dragging?.disable()
   marker.off('dragend')
 }
 
@@ -212,12 +214,23 @@ const saveCoords = (node: any) => {
 }
 
 onMounted(() => {
-  map = L.map(mapContainer.value!, { zoomControl: true }).setView(ELINS_CENTER, 18)
+  // World bounds to prevent panning into grey empty areas
+  const worldBounds = L.latLngBounds(L.latLng(-85.06, -180), L.latLng(85.06, 180))
+
+  map = L.map(mapContainer.value!, { 
+    zoomControl: true,
+    minZoom: 3,
+    maxZoom: 21,
+    maxBounds: worldBounds,
+    maxBoundsViscosity: 1.0, // 1.0 = hard boundary, map won't bounce outside valid world
+  }).setView(ELINS_CENTER, 18)
   
   // Google Maps Hybrid (Satellite + Labels)
   L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
     attribution: '&copy; Google Maps', 
+    minZoom: 3,
     maxZoom: 21,
+    bounds: worldBounds,
     subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
   }).addTo(map)
 

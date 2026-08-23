@@ -52,6 +52,7 @@ ehthumbs.db
 # Scratch & Temporary
 scratch/
 tmp/
+dummy.py
 
 # AI Agent / Development Support Docs (tidak perlu di-push)
 agents.md

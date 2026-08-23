@@ -42,16 +42,17 @@ Platform monitoring dan manajemen perangkat IoT untuk pertanian cerdas (*smart f
 ┌─────────────────────────────────────────────────────────────────┐
 │                 FRONTEND — Vue 3 + TypeScript                   │
 │                                                                 │
-│  📊 Dashboard   🖥️ Nodes   🔔 Alerts   ⚙️ Settings            │
+│  📊 Dashboard   🖥️ Nodes   🗺️ Map   🔔 Alerts   ⚙️ Settings     │
 │                                                                 │
-│  Data real-time via WebSocket, grafik historis via REST API     │
+│  Data real-time via WebSocket, GIS Satellite via Leaflet,       │
+│  grafik historis via REST API                                   │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
 ### Alur Data Real-time
 
 ```
-Sensor → ThingSpeak → [Poller setiap 15s] → WebSocket Broadcast → Dashboard
+Sensor → ThingSpeak → [Poller setiap 15s] → WebSocket Broadcast → Dashboard & Map
 ```
 
 ### Alur Alert Offline
@@ -82,9 +83,9 @@ G-CONNECT2026/
 │   └── requirements.txt
 ├── frontend/                 # Vue 3 + TypeScript + Vite
 │   ├── src/
-│   │   ├── views/            # Halaman (Dashboard, Nodes, Alerts, Settings)
-│   │   ├── components/       # Komponen UI (Sidebar, Chart, dll)
-│   │   ├── composables/      # TanStack Query hooks
+│   │   ├── views/            # Halaman (Dashboard, Nodes, Map, Alerts, Settings)
+│   │   ├── components/       # Komponen UI (Sidebar, Chart, Map, dll)
+│   │   ├── composables/      # TanStack Query & WebSocket hooks
 │   │   ├── stores/           # Pinia state management
 │   │   └── router/           # Vue Router
 │   ├── .env.example
@@ -101,10 +102,11 @@ G-CONNECT2026/
 
 | Layer | Teknologi |
 |---|---|
-| **Frontend** | Vue 3, TypeScript, Vite, TailwindCSS v4, Pinia, TanStack Query, Lucide Icons |
+| **Frontend** | Vue 3, TypeScript, Vite, TailwindCSS v4, Leaflet, Pinia, TanStack Query, Lucide Icons |
 | **Backend** | FastAPI, Python 3.11, SQLAlchemy (async), Pydantic v2, Uvicorn |
 | **Database** | PostgreSQL 15 |
-| **IoT Data Source** | ThingSpeak API |
+| **IoT Data Source** | ThingSpeak API (Dual-Channel Merging + Forward-Fill) |
+| **Peta Satelit** | Leaflet + Google Maps Satellite Hybrid |
 | **Notifikasi** | Telegram Bot API |
 | **Containerization** | Docker, Docker Compose |
 
@@ -288,49 +290,19 @@ Frontend siap di: http://localhost:5173
 
 ---
 
-## Metode 3: Full Lokal Tanpa Docker 🖥️
-
-Untuk metode ini kamu membutuhkan **PostgreSQL terinstall langsung** di laptop.
-
-### Prasyarat Tambahan
-- [PostgreSQL 15+](https://www.postgresql.org/download/) terinstall dan berjalan
-
-### Langkah 1 — Siapkan Database PostgreSQL
-
-Buka `psql` atau pgAdmin, lalu jalankan:
-```sql
-CREATE DATABASE gconnect;
-CREATE USER postgres WITH PASSWORD 'postgres';
-GRANT ALL PRIVILEGES ON DATABASE gconnect TO postgres;
-```
-
-### Langkah 2 — Setup Backend
-
-Sama seperti **Metode 2 Langkah 2**, tapi gunakan port standar `5432`:
-
-```env
-DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/gconnect
-```
-
-Lanjutkan install dan jalankan backend seperti Metode 2.
-
-### Langkah 3 — Setup Frontend
-
-Sama persis dengan **Metode 2 Langkah 3**.
-
----
-
 ## 🔌 Menghubungkan Node ke ThingSpeak
 
-Setelah aplikasi berjalan, tambahkan node baru melalui Swagger (`/docs`) atau UI:
+Setelah aplikasi berjalan, daftarkan node dan sensor melalui UI atau Swagger (`/docs`):
 
-**1. Daftarkan Node**
+**1. Daftarkan Node (Beserta Koordinat GPS)**
 ```http
 POST /api/v1/nodes/
 {
   "node_id": "NODE-01",
   "name": "Kebun Blok A",
-  "location": "Sawah Utara"
+  "location": "Sawah Utara",
+  "latitude": -7.7679423,
+  "longitude": 110.3765989
 }
 ```
 
@@ -355,56 +327,63 @@ POST /api/v1/nodes/NODE-01/sensors/
 }
 ```
 
-Setelah itu, poller otomatis akan mulai mengambil data dari ThingSpeak dan menyiarkannya ke dashboard secara real-time.
-
 ---
 
-## ⚙️ Cara Kerja Status Aktuator (Bitmask)
+## 🌟 Fitur Unggulan Sistem
 
-Sistem menggunakan teknik **Bitmask** untuk menghemat penggunaan *field* di ThingSpeak saat mengirimkan status hidup/mati dari beberapa aktuator sekaligus (Pompa, Kipas, dsb) dalam 1 angka (Integer). 
+### 🗺️ Peta Satelit Interaktif GIS (`/map`)
+* **Google Maps Hybrid Tiles:** Citra satelit resolusi tinggi lengkap dengan label jalan & tempat.
+* **Pinpoint & Drag-and-Drop:** Atur lokasi node via input manual koordinat atau geser marker langsung di peta.
+* **Live Teleport:** Klik nama node pada floating sidebar untuk terbang langsung (*flyTo*) ke titik perangkat.
+* **Real-time NPK Pop-up:** Klik marker untuk melihat data **Nitrogen (N), Fosfor (P), Kalium (K)** dan status online/offline yang ter-update instan via WebSocket.
 
-1. Di database, buat satu sensor dengan nama **"Status aktuator"**.
-2. Angka dari *field* ThingSpeak tersebut akan diubah ke biner di frontend.
-3. Misalnya, nilai `5` (Biner: `101`) berarti:
-   - Aktuator 1 (Bit 1 = $2^0$) -> **ON**
-   - Aktuator 2 (Bit 2 = $2^1$) -> **OFF**
-   - Aktuator 3 (Bit 3 = $2^2$) -> **ON**
+### ⚙️ Multi-Channel Merge & Forward-Fill Telemetri
+* **Dual-Channel ThingSpeak Sync:** Menggabungkan data dari 2 channel ThingSpeak berbeda dalam 1 node dengan pembulatan waktu (15 detik).
+* **Forward-Fill Algoritma:** Mengisi kekosongan field akibat keterlambatan request antar-channel dengan nilai valid terakhir (*last known value*).
+* **In-Memory Caching (Backend):** Cache telemetri historis dengan TTL dinamis (`telemetry_cache_interval`) untuk efisiensi kuota API ThingSpeak.
+
+### 🔌 Status Aktuator (Bitmask)
+Sistem menggunakan teknik **Bitmask** untuk menghemat field ThingSpeak (1 angka integer untuk multi-aktuator):
+* Nilai `5` (Biner: `101`):
+  * Aktuator 1 ($2^0$) $\rightarrow$ **ON**
+  * Aktuator 2 ($2^1$) $\rightarrow$ **OFF**
+  * Aktuator 3 ($2^2$) $\rightarrow$ **ON**
 
 ---
 
 ## 📡 API Reference
 
-Dokumentasi lengkap tersedia di: **http://localhost:8000/docs**
+Dokumentasi interaktif lengkap: **http://localhost:8000/docs**
 
-| Endpoint | Deskripsi |
-|---|---|
-| `POST /api/v1/auth/login` | Login dan dapatkan JWT token |
-| `GET /api/v1/nodes/` | Daftar semua node |
-| `POST /api/v1/nodes/` | Tambah node baru |
-| `GET /api/v1/nodes/{id}/telemetry/latest` | Data sensor terbaru dari ThingSpeak |
-| `GET /api/v1/nodes/{id}/telemetry/history` | Data historis dengan filter waktu |
-| `GET /api/v1/event-logs/` | Riwayat event (online/offline log) |
-| `GET /api/v1/system/config` | Ambil konfigurasi global sistem |
-| `PUT /api/v1/system/config` | Update konfigurasi global sistem |
-| `WS /ws/{channel}` | WebSocket stream data real-time (contoh: /ws/dashboard) |
+| Endpoint | Method | Deskripsi |
+|---|---|---|
+| `/api/v1/auth/login` | `POST` | Autentikasi & perolehan JWT token |
+| `/api/v1/nodes/` | `GET`, `POST` | List semua node & tambah node baru |
+| `/api/v1/nodes/{id}` | `GET`, `PUT`, `DELETE` | Detail node, update koordinat/nama, hapus node |
+| `/api/v1/nodes/{id}/sensors/` | `GET`, `POST` | Mapping daftar sensor pada node |
+| `/api/v1/nodes/{id}/telemetry/latest` | `GET` | Data sensor terbaru |
+| `/api/v1/nodes/{id}/telemetry/history` | `GET` | Data historis dengan filter rentang waktu |
+| `/api/v1/event-logs/` | `GET` | Riwayat log event (online/offline) |
+| `/api/v1/system/config` | `GET`, `PUT` | Baca & perbarui konfigurasi sistem/cache |
+| `/ws/{channel}` | `WS` | WebSocket stream data real-time (`/ws/dashboard`) |
 
 ### Query Parameter `/telemetry/history`
 | Parameter | Contoh | Keterangan |
 |---|---|---|
-| `range` | `1h`, `1d`, `1w` | Shortcut preset rentang waktu |
-| `start` | `2026-08-01T00:00:00` | Awal rentang (ISO 8601) |
-| `end` | `2026-08-18T23:59:59` | Akhir rentang (ISO 8601) |
-| `results` | `500` | Jumlah data (max 8000) |
+| `range` | `1h`, `1d`, `1w` | Preset cepat rentang waktu |
+| `start` / `end` | `2026-08-01T00:00:00` | Rentang waktu kustom (ISO 8601) |
+| `results` | `500` | Batas jumlah feed (max 8000) |
 
 ---
 
-## 👥 Tim
+## 👥 Tim Pengembang
 
 **G-Connect Smart Farming Platform**  
 Universitas Gadjah Mada — Pengabdian Masyarakat Lab ELINS
 
 | Peran | Nama |
 |---|---|
-| 💻 Software Developer | Hanif |
-| 👥 Anggota Tim | Donny |
-| 👥 Anggota Tim | Sulthon |
+| 💻 Software Developer | Hanif Elins 23 |
+| 👥 Anggota Tim | Donny Elins 25 |
+| 👥 Anggota Tim | Sulthon Elins 25 |
+
