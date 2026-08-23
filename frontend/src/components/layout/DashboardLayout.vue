@@ -4,6 +4,10 @@ import Sidebar from './Sidebar.vue'
 import { useAuthStore } from '@/stores/auth'
 import { Button } from '@/components/ui/button'
 
+const props = defineProps<{
+  noPadding?: boolean
+}>()
+
 const isCollapsed = useLocalStorage('sidebar-collapsed', false)
 const authStore = useAuthStore()
 </script>
@@ -17,7 +21,11 @@ const authStore = useAuthStore()
 
     <div class="flex flex-1">
       <Sidebar v-if="authStore.isAuthenticated()" v-model:collapsed="isCollapsed" />
-      <main :class="['flex-1 p-6 overflow-y-auto transition-all duration-300', authStore.isAuthenticated() ? (isCollapsed ? 'ml-20' : 'ml-64') : 'ml-0']">
+      <main :class="[
+        'flex-1 transition-all duration-300',
+        !props.noPadding ? 'p-6 overflow-y-auto' : 'overflow-hidden flex flex-col',
+        authStore.isAuthenticated() ? (isCollapsed ? 'ml-20' : 'ml-64') : 'ml-0'
+      ]">
         <slot />
       </main>
     </div>

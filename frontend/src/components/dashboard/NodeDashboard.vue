@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useWebSocket } from '@/composables/useWebSocket'
 import SensorCard from '@/components/dashboard/SensorCard.vue'
@@ -7,6 +7,7 @@ import StatusBadge from '@/components/dashboard/StatusBadge.vue'
 import SensorLineChart from '@/components/charts/SensorLineChart.vue'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import L from 'leaflet'
 
 const props = defineProps<{
   nodeId: string
@@ -59,6 +60,12 @@ watch(() => props.nodeId, () => {
   sensors.value = []
   telemetry.value = []
   fetchNodeData()
+  // Reset mini-map if node changes
+  if (miniMap) {
+    miniMap.remove()
+    miniMap = null
+    miniMapReady.value = false
+  }
 })
 
 watch(lastMessage, (msg) => {
@@ -93,6 +100,46 @@ const isNodeActive = computed(() => {
   const diffMinutes = (new Date().getTime() - new Date(lastSeen.value).getTime()) / (1000 * 60)
   return diffMinutes < 15
 })
+
+// Mini-map
+const miniMapContainer = ref<HTMLElement | null>(null)
+const miniMapReady = ref(false)
+let miniMap: L.Map | null = null
+
+const initMiniMap = (lat: number, lng: number) => {
+  if (!miniMapContainer.value || miniMap) return
+  miniMap = L.map(miniMapContainer.value, { zoomControl: false, dragging: false, scrollWheelZoom: false, attributionControl: false })
+    .setView([lat, lng], 18)
+  L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', { 
+    maxZoom: 21,
+    subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+  }).addTo(miniMap)
+  const icon = L.divIcon({
+    html: `<div style="width:16px;height:22px"><svg width="16" height="22" viewBox="0 0 24 32" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 0C5.373 0 0 5.373 0 12c0 9 12 20 12 20s12-11 12-20C24 5.373 18.627 0 12 0z" fill="#2563eb"/><circle cx="12" cy="12" r="5" fill="white"/></svg></div>`,
+    className: '', iconSize: [16, 22], iconAnchor: [8, 22],
+  })
+  L.marker([lat, lng], { icon }).addTo(miniMap)
+  miniMapReady.value = true
+}
+
+// Fetch node coords and init mini-map
+const API_BASE_URL = 'http://localhost:8000/api/v1'
+const fetchNodeCoords = async () => {
+  try {
+    const res = await fetch(`${API_BASE_URL}/nodes/${props.nodeId}`, {
+      headers: { Authorization: `Bearer ${authStore.token}` },
+    })
+    if (!res.ok) return
+    const node = await res.json()
+    if (node.latitude != null && node.longitude != null) {
+      // Wait for DOM
+      setTimeout(() => initMiniMap(node.latitude, node.longitude), 100)
+    }
+  } catch { /* no coords, skip */ }
+}
+
+onMounted(() => fetchNodeCoords())
+onUnmounted(() => { miniMap?.remove(); miniMap = null })
 </script>
 
 <template>
@@ -157,12 +204,12 @@ const isNodeActive = computed(() => {
         <div class="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-50 pointer-events-none"></div>
         <SensorLineChart :data="chartData" :title="`Telemetry Trends - ${nodeName || nodeId}`" :sensors="sensors" class="relative z-10" />
       </div>
-      <div class="col-span-3 border border-border/50 rounded-xl bg-card/90 backdrop-blur-xl p-4 min-h-[320px] shadow-sm relative overflow-hidden">
-        <div class="flex flex-col h-full relative z-10">
-          <h4 class="text-sm font-medium text-muted-foreground mb-3 text-center">Node Map Component Pending</h4>
-          <div class="flex-1 bg-muted/30 rounded-lg flex items-center justify-center border border-dashed">
-            <p class="text-muted-foreground text-sm">Map rendering here</p>
-          </div>
+      <div class="col-span-3 border border-border/50 rounded-xl bg-card/90 backdrop-blur-xl shadow-sm relative overflow-hidden" style="min-height:320px">
+        <div ref="miniMapContainer" class="w-full h-full" style="min-height:320px" />
+        <div v-if="!miniMapReady" class="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="opacity-30"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+          <p class="text-xs opacity-50">No location set for this node</p>
+          <a href="/map" class="text-xs text-primary hover:underline opacity-70">Set in Maps page →</a>
         </div>
       </div>
     </div>

@@ -6,6 +6,8 @@ from typing import Optional
 class NodeBase(BaseModel):
     name: str
     location: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
     is_active: bool = True
 
 class NodeCreate(NodeBase):
@@ -14,6 +16,8 @@ class NodeCreate(NodeBase):
 class NodeUpdate(BaseModel):
     name: Optional[str] = None
     location: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
     is_active: Optional[bool] = None
 
 class NodeResponse(NodeBase):

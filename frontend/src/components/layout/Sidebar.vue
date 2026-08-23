@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { LayoutDashboard, Network, Settings, LogOut, ChevronLeft, ChevronRight, Leaf, Bell } from 'lucide-vue-next'
+import { LayoutDashboard, Network, Settings, LogOut, ChevronLeft, ChevronRight, Leaf, Bell, MapPin } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import {
   Dialog,
@@ -29,6 +29,7 @@ const toggleCollapse = () => {
 const navItems = [
   { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
   { name: 'Nodes', path: '/nodes', icon: Network },
+  { name: 'Map', path: '/map', icon: MapPin },
   { name: 'Alerts', path: '/alerts', icon: Bell },
   { name: 'Settings', path: '/settings', icon: Settings },
 ]
