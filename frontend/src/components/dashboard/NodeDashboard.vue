@@ -7,6 +7,9 @@ import StatusBadge from '@/components/dashboard/StatusBadge.vue'
 import SensorLineChart from '@/components/charts/SensorLineChart.vue'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Calendar, Clock, Activity, Check, Layers, Sprout, CloudSun, Leaf } from 'lucide-vue-next'
 import L from 'leaflet'
 
 const props = defineProps<{
@@ -18,17 +21,22 @@ const authStore = useAuthStore()
 const telemetryStore = useTelemetryStore()
 
 const isLoading = ref(false)
+const selectedCategory = ref<'all' | 'npk' | 'soil' | 'environment'>('npk')
+const selectedRange = ref<'1d' | '1w' | '1M' | 'custom'>('1d')
+const customStartDate = ref('')
+const customEndDate = ref('')
 
-const sensors = computed(() => telemetryStore.sensorsCache[props.nodeId] || [])
+const sensors = ref<any[]>([])
 const telemetry = computed(() => telemetryStore.telemetryHistory[props.nodeId] || [])
 
 const loadNodeData = async () => {
   if (!props.nodeId) return
   if (!telemetry.value.length) isLoading.value = true
-  await Promise.all([
+  const [sensorsData] = await Promise.all([
     telemetryStore.fetchSensors(props.nodeId),
-    telemetryStore.fetchHistory(props.nodeId)
+    telemetryStore.fetchHistory(props.nodeId, { range: '1d' })
   ])
+  sensors.value = sensorsData
   isLoading.value = false
 }
 
@@ -37,6 +45,7 @@ onMounted(() => {
 })
 
 watch(() => props.nodeId, () => {
+  selectedRange.value = '1d'
   loadNodeData()
   if (miniMap) {
     miniMap.remove()
@@ -45,12 +54,76 @@ watch(() => props.nodeId, () => {
   }
 })
 
+// Categorize sensors intelligently
+const getSensorCategory = (sensor: any): 'npk' | 'soil' | 'environment' | 'other' => {
+  const name = (sensor.name || '').toLowerCase()
+  const type = (sensor.type || '').toLowerCase()
+  
+  if (name.includes('nitrogen') || name.includes('phosphorus') || name.includes('potassium') || 
+      name.includes('kalium') || name.includes('fosfor') || type.includes('npk')) {
+    return 'npk'
+  }
+  if (name.includes('soil') || name.includes('tanah') || name.includes('ph') || 
+      name.includes('ec') || name.includes('analog') || name.includes('probe') || type.includes('soil')) {
+    return 'soil'
+  }
+  if (name.includes('suhu') || name.includes('temp') || name.includes('kelembaban') || 
+      name.includes('humidity') || name.includes('enclosure') || name.includes('udara') || 
+      name.includes('cahaya') || name.includes('light') || type.includes('env') || type.includes('temp')) {
+    return 'environment'
+  }
+  return 'other'
+}
+
+const activeCategorySensors = computed(() => {
+  const nonActuators = sensors.value.filter(s => s.name !== 'Status aktuator')
+  if (selectedCategory.value === 'all') {
+    return nonActuators
+  }
+  const filtered = nonActuators.filter(s => getSensorCategory(s) === selectedCategory.value)
+  // Fallback to all if category has no sensors
+  return filtered.length > 0 ? filtered : nonActuators
+})
+
+const changeRange = async (range: '1d' | '1w' | '1M' | 'custom') => {
+  selectedRange.value = range
+  if (range === '1d') {
+    await telemetryStore.fetchHistory(props.nodeId, { range: '1d' })
+  } else if (range === '1w') {
+    await telemetryStore.fetchHistory(props.nodeId, { range: '1w', average: 15 })
+  } else if (range === '1M') {
+    await telemetryStore.fetchHistory(props.nodeId, { range: '1M', average: 60 })
+  }
+}
+
+const applyCustomDate = async () => {
+  if (!customStartDate.value) return
+  selectedRange.value = 'custom'
+  const startIso = `${customStartDate.value}T00:00:00`
+  const endIso = customEndDate.value ? `${customEndDate.value}T23:59:59` : undefined
+
+  let avg: number | undefined = undefined
+  if (customEndDate.value) {
+    const diffDays = (new Date(customEndDate.value).getTime() - new Date(customStartDate.value).getTime()) / (1000 * 3600 * 24)
+    if (diffDays > 14) avg = 60
+    else if (diffDays > 3) avg = 15
+  }
+
+  await telemetryStore.fetchHistory(props.nodeId, { start: startIso, end: endIso, average: avg })
+}
+
 const latestTelemetry = computed(() => {
   return telemetryStore.getLatest(props.nodeId)
 })
 
+const isArchive = computed(() => selectedRange.value !== '1d')
+
 const chartData = computed(() => {
-  return telemetryStore.getChartData(props.nodeId)
+  return telemetryStore.getChartData(props.nodeId, isArchive.value)
+})
+
+const isArchiveLoading = computed(() => {
+  return telemetryStore.isArchiveLoading[props.nodeId] || false
 })
 
 const lastSeen = computed(() => {
@@ -98,7 +171,6 @@ const fetchNodeCoords = async () => {
     if (!res.ok) return
     const node = await res.json()
     if (node.latitude != null && node.longitude != null) {
-      // Wait for DOM
       setTimeout(() => initMiniMap(node.latitude, node.longitude), 100)
     }
   } catch { /* no coords, skip */ }
@@ -129,7 +201,7 @@ onUnmounted(() => { miniMap?.remove(); miniMap = null })
       Loading sensors...
     </div>
 
-    <!-- Sensors Grid -->
+    <!-- Sensors Grid (Always Real-Time) -->
     <div v-else-if="sensors.length > 0" class="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
       <!-- Normal Sensors -->
       <template v-for="sensor in sensors.filter(s => s.name !== 'Status aktuator')" :key="sensor.id">
@@ -164,14 +236,111 @@ onUnmounted(() => { miniMap?.remove(); miniMap = null })
       No sensors configured. Add sensors in Settings.
     </div>
     
-    <!-- Charts & Map -->
+    <!-- Charts & Map Section -->
     <div v-if="sensors.length > 0" class="grid gap-4 md:grid-cols-2 lg:grid-cols-7 animate-slide-up" style="animation-delay: 0.1s">
-      <div class="col-span-4 border border-border/50 rounded-xl bg-card/90 backdrop-blur-xl p-4 min-h-[320px] shadow-sm relative overflow-hidden">
+      <!-- Chart Column (4 cols) -->
+      <div class="col-span-4 border border-border/50 rounded-xl bg-card/90 backdrop-blur-xl p-4 shadow-sm relative overflow-hidden flex flex-col gap-3">
         <div class="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-50 pointer-events-none"></div>
-        <SensorLineChart :data="chartData" :title="`Telemetry Trends - ${nodeName || nodeId}`" :sensors="sensors" class="relative z-10" />
+        
+        <!-- Header: Category Pills (Left) & Time Range (Right) -->
+        <div class="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-2.5 pb-2.5 border-b border-border/40">
+          
+          <!-- Category Pills -->
+          <div class="flex items-center gap-1 overflow-x-auto pb-1 lg:pb-0 scrollbar-none">
+            <button
+              @click="selectedCategory = 'npk'"
+              :class="['px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all', selectedCategory === 'npk' ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 shadow-xs' : 'bg-muted/40 text-muted-foreground hover:text-foreground border border-transparent']"
+            >
+              <Leaf class="w-3.5 h-3.5 text-emerald-500" />
+              <span>Unsur Hara (NPK)</span>
+            </button>
+            <button
+              @click="selectedCategory = 'soil'"
+              :class="['px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all', selectedCategory === 'soil' ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 shadow-xs' : 'bg-muted/40 text-muted-foreground hover:text-foreground border border-transparent']"
+            >
+              <Sprout class="w-3.5 h-3.5 text-amber-500" />
+              <span>Kondisi Tanah</span>
+            </button>
+            <button
+              @click="selectedCategory = 'environment'"
+              :class="['px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all', selectedCategory === 'environment' ? 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30 shadow-xs' : 'bg-muted/40 text-muted-foreground hover:text-foreground border border-transparent']"
+            >
+              <CloudSun class="w-3.5 h-3.5 text-blue-500" />
+              <span>Lingkungan</span>
+            </button>
+            <button
+              @click="selectedCategory = 'all'"
+              :class="['px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all', selectedCategory === 'all' ? 'bg-primary/15 text-primary border border-primary/30 shadow-xs' : 'bg-muted/40 text-muted-foreground hover:text-foreground border border-transparent']"
+            >
+              <Layers class="w-3.5 h-3.5" />
+              <span>Semua</span>
+            </button>
+          </div>
+
+          <!-- Time Range Selector -->
+          <div class="flex items-center self-end lg:self-auto bg-muted/60 p-0.5 rounded-lg border border-border/40 text-xs">
+            <button
+              @click="changeRange('1d')"
+              :class="['px-2 py-0.5 rounded-md font-medium transition-all flex items-center gap-1', selectedRange === '1d' ? 'bg-background text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground']"
+              title="Live stream 24 jam terakhir"
+            >
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              24J
+            </button>
+            <button
+              @click="changeRange('1w')"
+              :class="['px-2 py-0.5 rounded-md font-medium transition-all', selectedRange === '1w' ? 'bg-background text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground']"
+              title="Arsip 7 hari terakhir"
+            >
+              7H
+            </button>
+            <button
+              @click="changeRange('1M')"
+              :class="['px-2 py-0.5 rounded-md font-medium transition-all', selectedRange === '1M' ? 'bg-background text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground']"
+              title="Arsip 30 hari terakhir (agregasi 1 jam)"
+            >
+              30H
+            </button>
+            <button
+              @click="selectedRange = 'custom'"
+              :class="['px-2 py-0.5 rounded-md font-medium transition-all flex items-center gap-1', selectedRange === 'custom' ? 'bg-background text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground']"
+              title="Pilih tanggal khusus"
+            >
+              <Calendar class="w-3 h-3" />
+            </button>
+          </div>
+        </div>
+
+        <!-- Custom Date Picker Dropdown/Bar (Shown only when 'custom' is active) -->
+        <div v-if="selectedRange === 'custom'" class="relative z-10 flex flex-wrap items-center gap-2 p-2 bg-muted/30 border border-border/40 rounded-lg text-xs animate-slide-up">
+          <div class="flex items-center gap-1.5">
+            <span class="text-muted-foreground">Dari:</span>
+            <Input type="date" v-model="customStartDate" class="h-7 text-xs w-32 px-2 py-0 bg-background" />
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span class="text-muted-foreground">Sampai:</span>
+            <Input type="date" v-model="customEndDate" class="h-7 text-xs w-32 px-2 py-0 bg-background" />
+          </div>
+          <Button size="sm" variant="default" class="h-7 text-xs px-2.5" @click="applyCustomDate" :disabled="!customStartDate">
+            <Check class="w-3 h-3 mr-1" />
+            Terapkan
+          </Button>
+        </div>
+
+        <!-- The Line Chart -->
+        <div class="relative z-10 flex-1 min-h-[300px]">
+          <SensorLineChart 
+            :data="chartData" 
+            :title="`Tren ${selectedCategory === 'npk' ? 'Unsur Hara NPK' : (selectedCategory === 'soil' ? 'Kondisi Tanah' : (selectedCategory === 'environment' ? 'Lingkungan & Iklim' : 'Sensor'))}`" 
+            :sensors="activeCategorySensors" 
+            :is-loading="isArchiveLoading"
+          />
+        </div>
       </div>
-      <div class="col-span-3 border border-border/50 rounded-xl bg-card/90 backdrop-blur-xl shadow-sm relative overflow-hidden" style="min-height:320px">
-        <div ref="miniMapContainer" class="w-full h-full" style="min-height:320px" />
+
+      <!-- Mini Map Column (3 cols) -->
+      <div class="col-span-3 border border-border/50 rounded-xl bg-card/90 backdrop-blur-xl shadow-sm relative overflow-hidden flex flex-col" style="min-height:360px">
+        <div ref="miniMapContainer" class="w-full flex-1" style="min-height:360px" />
         <div v-if="!miniMapReady" class="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground gap-2">
           <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="opacity-30"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
           <p class="text-xs opacity-50">No location set for this node</p>
