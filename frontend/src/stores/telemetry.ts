@@ -5,12 +5,23 @@ import { useAuthStore } from './auth'
 const API_BASE_URL = 'http://localhost:8000/api/v1'
 const WS_URL = 'ws://localhost:8000/ws/dashboard'
 
+export interface HistoryOptions {
+  range?: '1h' | '1d' | '1w' | '1M'
+  start?: string
+  end?: string
+  results?: number
+  average?: number
+  force?: boolean
+}
+
 export const useTelemetryStore = defineStore('telemetry', () => {
   const authStore = useAuthStore()
 
-  // State: NodeId -> 50 latest telemetry feeds (index 0 is newest)
+  // State: NodeId -> Live telemetry feeds (index 0 is newest, updated by WS)
   const telemetryHistory = ref<Record<string, any[]>>({})
-  const sensorsCache = ref<Record<string, any[]>>({})
+  // State: NodeId -> Static Archive telemetry feeds (oldest first, for historical ranges 1w, 1M, custom)
+  const archiveHistory = ref<Record<string, any[]>>({})
+  const isArchiveLoading = ref<Record<string, boolean>>({})
   const isConnected = ref(false)
 
   let ws: WebSocket | null = null
@@ -46,7 +57,8 @@ export const useTelemetryStore = defineStore('telemetry', () => {
             }
             
             current.unshift(newFeed)
-            telemetryHistory.value[nodeId] = current.slice(0, 50)
+            // Retain live window stream (up to 500 recent points)
+            telemetryHistory.value[nodeId] = current.slice(0, 500)
           }
         } catch (e) {
           console.error('[TelemetryStore] Failed to parse message', e)
@@ -79,56 +91,84 @@ export const useTelemetryStore = defineStore('telemetry', () => {
   }
 
   const fetchSensors = async (nodeId: string) => {
-    if (sensorsCache.value[nodeId]) return sensorsCache.value[nodeId]
     try {
       const res = await fetch(`${API_BASE_URL}/nodes/${nodeId}/sensors/`, {
         headers: { Authorization: `Bearer ${authStore.token}` }
       })
       if (res.ok) {
-        const data = await res.json()
-        sensorsCache.value[nodeId] = data
-        return data
+        return await res.json()
       }
     } catch (e) {
-      console.error('[TelemetryStore] Failed to fetch sensors', e)
+      console.error('[TelemetryStore] Failed to fetch sensors from PostgreSQL', e)
     }
     return []
   }
 
-  const fetchHistory = async (nodeId: string, force = false) => {
-    // If already in store and not forced, return cached instantly
-    if (!force && telemetryHistory.value[nodeId]?.length > 0) {
+  const fetchHistory = async (nodeId: string, options?: HistoryOptions) => {
+    const isLiveWindow = !options?.range || options.range === '1d' || options.range === '1h'
+    const isCustom = !!(options?.start || options?.end)
+    const force = options?.force ?? false
+
+    // If live window and not forced and already in store, return cached live data
+    if (isLiveWindow && !isCustom && !force && telemetryHistory.value[nodeId]?.length > 0) {
       return telemetryHistory.value[nodeId]
     }
 
+    const params = new URLSearchParams()
+    if (options?.range) params.append('range', options.range)
+    else if (!isCustom) params.append('range', '1d')
+
+    if (options?.start) params.append('start', options.start)
+    if (options?.end) params.append('end', options.end)
+    if (options?.results) params.append('results', String(options.results))
+    if (options?.average) params.append('average', String(options.average))
+
+    if (!isLiveWindow || isCustom) {
+      isArchiveLoading.value[nodeId] = true
+    }
+
     try {
-      const res = await fetch(`${API_BASE_URL}/nodes/${nodeId}/telemetry/history?results=50`, {
+      const res = await fetch(`${API_BASE_URL}/nodes/${nodeId}/telemetry/history?${params.toString()}`, {
         headers: { Authorization: `Bearer ${authStore.token}` }
       })
       if (res.ok) {
         const data = await res.json()
         if (data.feeds && Array.isArray(data.feeds)) {
-          telemetryHistory.value[nodeId] = data.feeds.reverse()
-          return telemetryHistory.value[nodeId]
+          if (isLiveWindow && !isCustom) {
+            telemetryHistory.value[nodeId] = [...data.feeds].reverse()
+            return telemetryHistory.value[nodeId]
+          } else {
+            archiveHistory.value[nodeId] = data.feeds
+            return archiveHistory.value[nodeId]
+          }
         }
       }
     } catch (e) {
       console.error('[TelemetryStore] Failed to fetch history', e)
+    } finally {
+      if (!isLiveWindow || isCustom) {
+        isArchiveLoading.value[nodeId] = false
+      }
     }
-    return telemetryHistory.value[nodeId] || []
+
+    return (isLiveWindow && !isCustom) ? (telemetryHistory.value[nodeId] || []) : (archiveHistory.value[nodeId] || [])
   }
 
   const getLatest = (nodeId: string) => {
     return telemetryHistory.value[nodeId]?.[0] ?? null
   }
 
-  const getChartData = (nodeId: string) => {
+  const getChartData = (nodeId: string, isArchive = false) => {
+    if (isArchive) {
+      return archiveHistory.value[nodeId] || []
+    }
     return [...(telemetryHistory.value[nodeId] || [])].reverse()
   }
 
   return {
     telemetryHistory,
-    sensorsCache,
+    archiveHistory,
+    isArchiveLoading,
     isConnected,
     connectWebSocket,
     disconnectWebSocket,
