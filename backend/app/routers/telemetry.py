@@ -99,10 +99,11 @@ async def get_history_telemetry(
     node_id: str,
     db: AsyncSession = Depends(get_db),
     current_user = Depends(get_current_user),
-    time_range: Optional[Literal["1h", "1d", "1w"]] = Query(None, alias="range", description="Preset range shortcut: 1h, 1d, 1w"),
+    time_range: Optional[Literal["1h", "1d", "1w", "1M"]] = Query(None, alias="range", description="Preset range shortcut: 1h, 1d, 1w, 1M"),
     start: Optional[str] = Query(None, description="Start datetime in ISO 8601, e.g. 2026-08-01T00:00:00"),
     end: Optional[str] = Query(None, description="End datetime in ISO 8601, e.g. 2026-08-18T23:59:59"),
-    results: int = Query(100, ge=1, le=8000, description="Max number of results (ThingSpeak cap: 8000)")
+    results: Optional[int] = Query(None, ge=1, le=8000, description="Max number of results (ThingSpeak cap: 8000)"),
+    average: Optional[int] = Query(None, ge=1, le=1440, description="Aggregate: average per N minutes (e.g. 10, 60)")
 ):
     node = await node_repo.get_by_node_id(db, node_id)
     if not node:
@@ -113,7 +114,7 @@ async def get_history_telemetry(
     sys_conf = sys_conf_result.scalars().first()
     cache_ttl = sys_conf.telemetry_cache_interval if sys_conf else 30
 
-    cache_key = f"{node_id}_{time_range}_{start}_{end}_{results}"
+    cache_key = f"{node_id}_{time_range}_{start}_{end}_{results}_{average}"
     now = time.time()
     if cache_key in HISTORY_CACHE:
         cached_time, cached_data = HISTORY_CACHE[cache_key]
@@ -131,14 +132,20 @@ async def get_history_telemetry(
         base_params["hours"] = 24
     elif time_range == "1w":
         base_params["days"] = 7
+    elif time_range == "1M":
+        base_params["days"] = 30
     elif start or end:
         if start:
             base_params["start"] = start
         if end:
             base_params["end"] = end
-        base_params["results"] = results
+        if results:
+            base_params["results"] = results
     else:
-        base_params["results"] = results
+        base_params["results"] = results or 100
+
+    if average:
+        base_params["average"] = average
 
     async def fetch_channel_history(channel):
         params = base_params.copy()
