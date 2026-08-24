@@ -30,9 +30,16 @@ const editingNode = ref<string | null>(null)
 const editLat = ref('')
 const editLng = ref('')
 
+const getNodeLastSeen = (node: any) => {
+  return telemetryStore.telemetryHistory[node.node_id]?.[0]?.created_at || node.last_seen
+}
+
 const isNodeOnline = (node: any) => {
-  if (!node.last_seen) return false
-  return (Date.now() - new Date(node.last_seen).getTime()) < 15 * 60 * 1000
+  const lastSeen = getNodeLastSeen(node)
+  if (!lastSeen) return false
+  const dateStr = String(lastSeen).endsWith('Z') ? String(lastSeen) : String(lastSeen) + 'Z'
+  const diffMinutes = (Date.now() - new Date(dateStr).getTime()) / (1000 * 60)
+  return diffMinutes < 15
 }
 
 const makeIcon = (online: boolean) =>
@@ -92,13 +99,15 @@ const buildPopupHtml = (node: any, online: boolean, feed: any, sensors: any[]) =
   </div>`
 }
 
+const nodeSensorsMap = ref<Record<string, any[]>>({})
+
 const addOrUpdateMarker = async (node: any) => {
   if (node.latitude == null || node.longitude == null) return
   const online = isNodeOnline(node)
   const latLng: [number, number] = [node.latitude, node.longitude]
   
   const cachedFeed = telemetryStore.telemetryHistory[node.node_id]?.[0] ?? null
-  const cachedSensors = telemetryStore.sensorsCache[node.node_id] || []
+  const cachedSensors = nodeSensorsMap.value[node.node_id] || []
   const initialHtml = buildPopupHtml(node, online, cachedFeed, cachedSensors)
 
   if (markers[node.node_id]) {
@@ -117,8 +126,11 @@ const addOrUpdateMarker = async (node: any) => {
         telemetryStore.fetchSensors(node.node_id),
         telemetryStore.fetchHistory(node.node_id)
       ])
+      nodeSensorsMap.value[node.node_id] = sensors
       const feed = history?.[0] ?? null
-      marker.getPopup()?.setContent(buildPopupHtml(fullNode, isNodeOnline(fullNode), feed, sensors))
+      const onlineNow = isNodeOnline(fullNode)
+      marker.setIcon(makeIcon(onlineNow))
+      marker.getPopup()?.setContent(buildPopupHtml(fullNode, onlineNow, feed, sensors))
     }
 
     marker.on('click', updatePopup)
@@ -133,15 +145,14 @@ const addOrUpdateMarker = async (node: any) => {
 watch(() => telemetryStore.telemetryHistory, (historyMap) => {
   Object.keys(historyMap).forEach((nodeId) => {
     const marker = markers[nodeId]
-    if (marker) {
-      marker.setIcon(makeIcon(true))
+    const fullNode = nodes.value.find((n: any) => n.node_id === nodeId)
+    if (marker && fullNode) {
+      const onlineNow = isNodeOnline(fullNode)
+      marker.setIcon(makeIcon(onlineNow))
       if (marker.isPopupOpen()) {
-        const fullNode = nodes.value.find((n: any) => n.node_id === nodeId)
-        const sensors = telemetryStore.sensorsCache[nodeId] || []
+        const sensors = nodeSensorsMap.value[nodeId] || []
         const feed = historyMap[nodeId]?.[0] ?? null
-        if (fullNode) {
-          marker.getPopup()?.setContent(buildPopupHtml(fullNode, true, feed, sensors))
-        }
+        marker.getPopup()?.setContent(buildPopupHtml(fullNode, onlineNow, feed, sensors))
       }
     }
   })

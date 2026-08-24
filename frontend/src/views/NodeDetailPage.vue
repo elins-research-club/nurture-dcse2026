@@ -7,7 +7,7 @@ import NodeDashboard from '@/components/dashboard/NodeDashboard.vue'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, Trash2, Edit } from 'lucide-vue-next'
 import { useNodes } from '@/composables/useNodes'
-import { useWebSocket } from '@/composables/useWebSocket'
+import { useTelemetryStore } from '@/stores/telemetry'
 import type { NodeDeviceWithData } from '@/types'
 
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
@@ -28,6 +28,7 @@ const route = useRoute()
 const router = useRouter()
 const nodeId = route.params.id as string
 
+const telemetryStore = useTelemetryStore()
 const nodes = ref<NodeDeviceWithData[]>([])
 
 const activeNode = computed(() => {
@@ -45,27 +46,16 @@ watch(() => nodesQuery.data.value, (newData) => {
   }
 }, { immediate: true })
 
-const wsUrl = 'ws://localhost:8000/ws/dashboard'
-const { lastMessage } = useWebSocket(wsUrl)
+const getNodeLastSeen = (node: any) => {
+  if (!node) return undefined
+  return telemetryStore.telemetryHistory[node.node_id]?.[0]?.created_at || node.last_seen
+}
 
-watch(lastMessage, (msg) => {
-  if (!msg || msg.event !== 'sensor_update') return
-  
-  const nodeIndex = nodes.value.findIndex(n => n.node_id === msg.node_id)
-  if (nodeIndex !== -1) {
-    const node = { ...nodes.value[nodeIndex] }
-    node.last_seen = msg.created_at || new Date().toISOString()
-    nodes.value[nodeIndex] = node
-  }
-})
-
-
-
-
-const isNodeActive = (lastSeen: string | undefined) => {
+const isNodeActive = (node: any) => {
+  const lastSeen = getNodeLastSeen(node)
   if (!lastSeen) return false
-  const dateStr = lastSeen.endsWith('Z') ? lastSeen : lastSeen + 'Z';
-    const diffMinutes = (new Date().getTime() - new Date(dateStr).getTime()) / (1000 * 60)
+  const dateStr = String(lastSeen).endsWith('Z') ? String(lastSeen) : String(lastSeen) + 'Z'
+  const diffMinutes = (Date.now() - new Date(dateStr).getTime()) / (1000 * 60)
   return diffMinutes < 15
 }
 
@@ -142,8 +132,8 @@ const confirmDeleteChannel = async () => {
             {{ activeNode?.name || 'Loading Node...' }}
             <StatusBadge 
               v-if="activeNode"
-              :is-active="isNodeActive(activeNode.last_seen)" 
-              :last-seen="activeNode.last_seen" 
+              :is-active="isNodeActive(activeNode)" 
+              :last-seen="getNodeLastSeen(activeNode)" 
             />
           </h2>
           <p class="text-muted-foreground font-mono text-sm mt-1">ID: {{ activeNode?.node_id }}</p>
