@@ -102,10 +102,10 @@ G-CONNECT2026/
 
 | Layer | Teknologi |
 |---|---|
-| **Frontend** | Vue 3, TypeScript, Vite, TailwindCSS v4, Leaflet, Pinia, TanStack Query, Lucide Icons |
+| **Frontend** | Vue 3, TypeScript, Vite, TailwindCSS v4, Apache ECharts (`vue-echarts`), Leaflet, Pinia, TanStack Query, Lucide Icons |
 | **Backend** | FastAPI, Python 3.11, SQLAlchemy (async), Pydantic v2, Uvicorn |
 | **Database** | PostgreSQL 15 |
-| **IoT Data Source** | ThingSpeak API (Dual-Channel Merging + Forward-Fill) |
+| **IoT Data Source** | ThingSpeak API (Dual-Channel Merging + Forward-Fill + Aggregation) |
 | **Peta Satelit** | Leaflet + Google Maps Satellite Hybrid |
 | **Notifikasi** | Telegram Bot API |
 | **Containerization** | Docker, Docker Compose |
@@ -331,6 +331,13 @@ POST /api/v1/nodes/NODE-01/sensors/
 
 ## 🌟 Fitur Unggulan Sistem
 
+### 📈 Sistem Grafik Telemetri Cerdas & Agregasi
+* **Category Pills Navigation:** Pemisahan visualisasi ke dalam 4 kategori parameter (**Unsur Hara NPK**, **Kondisi Tanah**, **Lingkungan & Iklim**, dan **Semua Sensor**) agar skala sumbu Y presisi dan grafik tidak saling tumpuk.
+* **Live Window Stream (24 Jam):** Mode real-time streaming di mana data terbaru dari WebSocket secara dinamis ditambahkan di ujung kanan grafik.
+* **Historical Archive Mode:** Menampilkan data historis rentang panjang (1 Minggu, 1 Bulan, atau Tanggal Kustom) secara statis tanpa terganggu oleh WebSocket.
+* **Agregasi Otomatis ThingSpeak (`&average=60`):** Meringkas data 30 hari menjadi resolusi rata-rata per jam (~720 titik alih-alih 86.000 titik mentah) sehingga rendering grafik tetap sangat cepat dan ringan.
+* **Interactive DataZoom & Slider:** Pengguna dapat melakukan zoom in / out dan menggeser timeline grafik dengan mulus.
+
 ### 🗺️ Peta Satelit Interaktif GIS (`/map`)
 * **Google Maps Hybrid Tiles:** Citra satelit resolusi tinggi lengkap dengan label jalan & tempat.
 * **Pinpoint & Drag-and-Drop:** Atur lokasi node via input manual koordinat atau geser marker langsung di peta.
@@ -370,9 +377,10 @@ Dokumentasi interaktif lengkap: **http://localhost:8000/docs**
 ### Query Parameter `/telemetry/history`
 | Parameter | Contoh | Keterangan |
 |---|---|---|
-| `range` | `1h`, `1d`, `1w` | Preset cepat rentang waktu |
+| `range` | `1h`, `1d`, `1w`, `1M` | Preset cepat rentang waktu (1M = 30 hari) |
 | `start` / `end` | `2026-08-01T00:00:00` | Rentang waktu kustom (ISO 8601) |
 | `results` | `500` | Batas jumlah feed (max 8000) |
+| `average` | `10`, `15`, `60` | Agregasi rata-rata per N menit (ThingSpeak) |
 
 ---
 

@@ -1,5 +1,31 @@
-# Vue 3 + TypeScript + Vite
+# 🌿 G-Connect — Frontend Application
 
-This template should help get you started developing with Vue 3 and TypeScript in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+Aplikasi web dashboard real-time untuk platform IoT Smart Farming G-Connect, dibangun menggunakan **Vue 3**, **TypeScript**, **Vite**, dan **TailwindCSS v4**.
 
-Learn more about the recommended Project Setup and IDE Support in the [Vue Docs TypeScript Guide](https://vuejs.org/guide/typescript/overview.html#project-setup).
+---
+
+## 🛠️ Fitur & Teknologi Frontend
+
+- **Vue 3 + Composition API (`<script setup>`)**
+- **TailwindCSS v4 + Radix UI / shadcn components**
+- **Pinia Store:** Manajemen state global terpusat (`telemetryStore`, `authStore`)
+- **Apache ECharts (`vue-echarts`):** Grafik telemetri dinamis dengan pills kategori dan agregasi waktu
+- **Leaflet GIS:** Peta satelit interaktif Google Maps Hybrid Tiles dengan draggable marker
+- **TanStack Query (Vue Query):** Cache & data fetching asinkron
+- **WebSocket Streaming:** Sinkronisasi status node dan stream sensor real-time
+
+---
+
+## 🚀 Menjalankan Frontend
+
+```bash
+# Install dependencies
+npm install
+
+# Jalankan development server
+npm run dev
+
+# Build untuk production
+npm run build
+```
+
