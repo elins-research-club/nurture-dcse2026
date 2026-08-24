@@ -6,12 +6,19 @@ class Settings(BaseSettings):
     VERSION: str = "1.0.0"
     API_V1_STR: str = "/api/v1"
     
-    # ThingSpeak Polling
+    # ThingSpeak Polling & MQTT
     THINGSPEAK_POLL_INTERVAL: int = 15
     OFFLINE_THRESHOLD_MINUTES: int = 15
     TELEGRAM_BOT_TOKEN: Optional[str] = None
     TELEGRAM_CHAT_ID: Optional[str] = None
     THINGSPEAK_BASE_URL: str = "https://api.thingspeak.com"
+    
+    # ThingSpeak MQTT
+    THINGSPEAK_MQTT_BROKER: str = "mqtt3.thingspeak.com"
+    THINGSPEAK_MQTT_PORT: int = 1883
+    THINGSPEAK_MQTT_CLIENT_ID: Optional[str] = None
+    THINGSPEAK_MQTT_USERNAME: Optional[str] = None
+    THINGSPEAK_MQTT_PASSWORD: Optional[str] = None
     
     # Security
     SECRET_KEY: str = "change-this-in-production-long-secret-key-32-chars"

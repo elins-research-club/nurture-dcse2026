@@ -7,14 +7,12 @@ import StatusBadge from '@/components/dashboard/StatusBadge.vue'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useNodes } from '@/composables/useNodes'
-import { useWebSocket } from '@/composables/useWebSocket'
+import { useTelemetryStore } from '@/stores/telemetry'
 import type { NodeDeviceWithData } from '@/types'
 
 const router = useRouter()
 const { nodesQuery } = useNodes()
-
-const wsUrl = 'ws://localhost:8000/ws/dashboard'
-const { lastMessage } = useWebSocket(wsUrl)
+const telemetryStore = useTelemetryStore()
 
 const nodesList = ref<NodeDeviceWithData[]>([])
 
@@ -24,21 +22,13 @@ watch(() => nodesQuery.data.value, (newData) => {
   }
 }, { immediate: true })
 
-// Handle real-time WebSocket updates
-watch(lastMessage, (msg) => {
-  if (!msg || msg.event !== 'sensor_update') return
-  
-  const nodeIndex = nodesList.value.findIndex(n => n.node_id === msg.node_id)
-  if (nodeIndex !== -1) {
-    const node = { ...nodesList.value[nodeIndex] }
-    node.last_seen = msg.created_at || new Date().toISOString()
-    nodesList.value[nodeIndex] = node
-  }
-})
+const getNodeLastSeen = (node: NodeDeviceWithData) => {
+  return telemetryStore.telemetryHistory[node.node_id]?.[0]?.created_at || node.last_seen
+}
 
 const isNodeActive = (lastSeen: string | undefined) => {
   if (!lastSeen) return false
-  const dateStr = lastSeen.endsWith('Z') ? lastSeen : lastSeen + 'Z';
+  const dateStr = String(lastSeen).endsWith('Z') ? String(lastSeen) : String(lastSeen) + 'Z'
   const diffMinutes = (new Date().getTime() - new Date(dateStr).getTime()) / (1000 * 60)
   return diffMinutes < 15
 }
@@ -101,13 +91,13 @@ const goToNodeDetail = (id: number) => {
                 <CardTitle class="text-lg">{{ node.name }}</CardTitle>
                 <CardDescription class="mt-1 font-mono text-xs">{{ node.node_id }}</CardDescription>
               </div>
-              <StatusBadge :is-active="isNodeActive(node.last_seen)" :last-seen="node.last_seen" />
+              <StatusBadge :is-active="isNodeActive(getNodeLastSeen(node))" :last-seen="getNodeLastSeen(node)" />
             </div>
           </CardHeader>
           <CardContent>
             <div class="text-sm text-muted-foreground mt-4">
               <p><strong>Location:</strong> {{ node.location || 'Not specified' }}</p>
-              <p><strong>Last Seen:</strong> {{ node.last_seen ? new Date(node.last_seen).toLocaleString() : 'Never' }}</p>
+              <p><strong>Last Seen:</strong> {{ getNodeLastSeen(node) ? new Date(getNodeLastSeen(node)!).toLocaleString() : 'Never' }}</p>
             </div>
           </CardContent>
         </Card>

@@ -161,21 +161,31 @@ async def check_offline_nodes(db_session):
                 node_online_state[node.node_id] = False
 
 async def polling_loop(app):
-    logger.info("Starting ThingSpeak polling loop...")
-    while True:
-        try:
-            async with AsyncSessionLocal() as db_session:
-                nodes = await node_repo.list_all(db_session)
-                active_nodes = [n for n in nodes if n.is_active]
+    if settings.THINGSPEAK_MQTT_CLIENT_ID and settings.THINGSPEAK_MQTT_USERNAME:
+        logger.info("[Poller] MQTT enabled. Poller will run as watchdog for offline nodes every 60s.")
+        while True:
+            try:
+                async with AsyncSessionLocal() as db_session:
+                    await check_offline_nodes(db_session)
+            except Exception as e:
+                logger.error(f"[Poller Watchdog] Error checking offline nodes: {e}")
+            await asyncio.sleep(60)
+    else:
+        logger.info("[Poller] Starting ThingSpeak HTTP polling fallback loop...")
+        while True:
+            try:
+                async with AsyncSessionLocal() as db_session:
+                    nodes = await node_repo.list_all(db_session)
+                    active_nodes = [n for n in nodes if n.is_active]
+                    
+                    for node in active_nodes:
+                        channels = await channel_repo.get_by_node_id(db_session, node.id)
+                        if channels:
+                            await poll_node(node.node_id, channels, db_session)
+                            
+                    await check_offline_nodes(db_session)
+                            
+            except Exception as e:
+                logger.error(f"Error in polling loop iteration: {e}")
                 
-                for node in active_nodes:
-                    channels = await channel_repo.get_by_node_id(db_session, node.id)
-                    if channels:
-                        await poll_node(node.node_id, channels, db_session)
-                        
-                await check_offline_nodes(db_session)
-                        
-        except Exception as e:
-            logger.error(f"Error in polling loop iteration: {e}")
-            
-        await asyncio.sleep(settings.THINGSPEAK_POLL_INTERVAL)
+            await asyncio.sleep(settings.THINGSPEAK_POLL_INTERVAL)

@@ -20,14 +20,14 @@ Platform monitoring dan manajemen perangkat IoT untuk pertanian cerdas (smart fa
 │              Penerima & penyimpan data sensor                   │
 │         api.thingspeak.com/channels/{id}/feeds.json             │
 └──────────────────────┬──────────────────────────────────────────┘
-                       │ polling setiap 15 detik
+                       │ MQTT Push (mqtt3.thingspeak.com:1883)
                        ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │                  BACKEND — FastAPI (Python)                     │
 │                                                                 │
 │  ┌─────────────┐  ┌──────────────┐  ┌─────────────────────┐     │
-│  │ REST API    │  │  WebSocket   │  │  Background Poller  │     │
-│  │ /api/v1/..  │  │  /api/v1/ws  │  │  thingspeak_poller  │     │
+│  │ REST API    │  │  WebSocket   │  │  MQTT Subscriber    │     │
+│  │ /api/v1/..  │  │  /ws/..      │  │  thingspeak_mqtt    │     │
 │  └──────┬──────┘  └──────┬───────┘  └──────────┬──────────┘     │
 │         │                │                     │                │
 │         └────────────────┴─────────────────────┘                │
@@ -37,7 +37,7 @@ Platform monitoring dan manajemen perangkat IoT untuk pertanian cerdas (smart fa
 │  │  Database  │             │  (alert offline/online)  │        │
 │  └────────────┘             └──────────────────────────┘        │
 └──────────────────────┬──────────────────────────────────────────┘
-                       │ HTTP + WebSocket
+                       │ HTTP + WebSocket (Real-Time)
                        ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │                 FRONTEND — Vue 3 + TypeScript                   │
@@ -45,14 +45,14 @@ Platform monitoring dan manajemen perangkat IoT untuk pertanian cerdas (smart fa
 │  📊 Dashboard   🖥️ Nodes   🗺️ Map   🔔 Alerts   ⚙️ Settings     │
 │                                                                 │
 │  Data real-time via WebSocket, GIS Satellite via Leaflet,       │
-│  grafik historis via REST API                                   │
+│  grafik historis via REST API & Pinia Global Store              │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### Alur Data Real-time
+### Alur Data Real-time (Event-Driven / Push)
 
 ```
-Sensor → ThingSpeak → [Poller setiap 15s] → WebSocket Broadcast → Dashboard & Map
+Sensor → ThingSpeak → [MQTT Push <1s] → Backend Subscriber → WebSocket Broadcast → Frontend (Pinia Store)
 ```
 
 ### Alur Alert Offline

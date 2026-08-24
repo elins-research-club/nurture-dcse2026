@@ -1,6 +1,9 @@
+import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -21,11 +24,13 @@ from app.core.database import create_tables
 
 import asyncio
 from app.services.thingspeak_poller import polling_loop
+from app.services.thingspeak_mqtt import mqtt_listener_loop
 
 @app.on_event('startup')
 async def startup():
     await create_tables()
     asyncio.create_task(polling_loop(app))
+    asyncio.create_task(mqtt_listener_loop())
 
 from app.routers.auth import router as auth_router
 app.include_router(auth_router, prefix=f"{settings.API_V1_STR}/auth", tags=["Auth"])

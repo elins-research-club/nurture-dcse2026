@@ -7,6 +7,14 @@ async def get_by_id(db: AsyncSession, channel_id: UUID) -> ThingspeakChannel | N
     result = await db.execute(select(ThingspeakChannel).where(ThingspeakChannel.id == channel_id))
     return result.scalar_one_or_none()
 
+async def get_by_channel_id(db: AsyncSession, channel_id_str: str) -> ThingspeakChannel | None:
+    result = await db.execute(select(ThingspeakChannel).where(ThingspeakChannel.channel_id == channel_id_str))
+    return result.scalar_one_or_none()
+
+async def list_all(db: AsyncSession) -> list[ThingspeakChannel]:
+    result = await db.execute(select(ThingspeakChannel))
+    return list(result.scalars().all())
+
 async def get_by_node_id(db: AsyncSession, node_id: UUID) -> list[ThingspeakChannel]:
     result = await db.execute(select(ThingspeakChannel).where(ThingspeakChannel.node_id == node_id))
     return list(result.scalars().all())

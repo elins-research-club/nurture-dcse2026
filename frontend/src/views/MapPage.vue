@@ -51,30 +51,44 @@ const makeIcon = (online: boolean) =>
 
 const getSensorValue = (feed: any, nameQuery: string, sensors: any[]) => {
   const sensor = sensors.find(s => s.name.toLowerCase().includes(nameQuery.toLowerCase()))
-  if (!sensor || !feed) return '&#8212;'
+  if (!sensor || !feed) return '—'
   const key = `${sensor.channel_id}_${sensor.thingspeak_field}`
   const val = feed[key]
-  return val != null ? `${parseFloat(val).toFixed(1)} ${sensor.unit}` : '&#8212;'
+  return val != null ? `${parseFloat(val).toFixed(1)} ${sensor.unit}` : '—'
 }
 
 const buildPopupHtml = (node: any, online: boolean, feed: any, sensors: any[]) => {
   const n = getSensorValue(feed, 'Nitrogen', sensors)
   const p = getSensorValue(feed, 'Phosphorus', sensors)
   const k = getSensorValue(feed, 'Potassium', sensors)
-  return `<div style="min-width:200px;font-family:sans-serif;padding:4px">
-    <div style="font-weight:700;font-size:14px;margin-bottom:6px">${node.name}</div>
+  const hasData = feed != null
+
+  return `<div style="min-width:210px;font-family:system-ui,-apple-system,sans-serif;padding:6px 4px">
+    <div style="font-weight:700;font-size:15px;color:#0f172a;margin-bottom:4px;display:flex;align-items:center;justify-content:space-between">
+      <span>${node.name || 'IoT Node'}</span>
+    </div>
     <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
       <span style="width:8px;height:8px;border-radius:50%;background:${online ? '#22c55e' : '#ef4444'};display:inline-block"></span>
-      <span style="font-size:12px;color:${online ? '#16a34a' : '#dc2626'}">${online ? 'Online' : 'Offline'}</span>
+      <span style="font-size:12px;font-weight:600;color:${online ? '#16a34a' : '#dc2626'}">${online ? 'Online' : 'Offline'}</span>
+      ${!hasData ? '<span style="font-size:11px;color:#94a3b8;margin-left:auto">(Sinkronisasi...)</span>' : ''}
     </div>
-    <table style="width:100%;font-size:12px;border-collapse:collapse">
-      <tr><td style="padding:3px 4px;color:#6b7280">N</td><td style="padding:3px 4px;font-weight:600">${n}</td></tr>
-      <tr><td style="padding:3px 4px;color:#6b7280">P</td><td style="padding:3px 4px;font-weight:600">${p}</td></tr>
-      <tr><td style="padding:3px 4px;color:#6b7280">K</td><td style="padding:3px 4px;font-weight:600">${k}</td></tr>
-    </table>
-    <div style="margin-top:10px">
-      <a href="/nodes/${node.node_id}" style="display:block;padding:5px 8px;background:#2563eb;color:white;border-radius:6px;text-decoration:none;font-size:12px;text-align:center">View Detail &rarr;</a>
+    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:8px 10px;margin-bottom:12px">
+      <table style="width:100%;font-size:13px;border-collapse:collapse">
+        <tr style="border-bottom:1px solid #f1f5f9">
+          <td style="padding:4px 0;color:#64748b;font-weight:500">🌿 Nitrogen</td>
+          <td style="padding:4px 0;font-weight:700;text-align:right;color:#0f172a">${n}</td>
+        </tr>
+        <tr style="border-bottom:1px solid #f1f5f9">
+          <td style="padding:4px 0;color:#64748b;font-weight:500">🧪 Phosphorus</td>
+          <td style="padding:4px 0;font-weight:700;text-align:right;color:#0f172a">${p}</td>
+        </tr>
+        <tr>
+          <td style="padding:4px 0;color:#64748b;font-weight:500">⚡ Potassium</td>
+          <td style="padding:4px 0;font-weight:700;text-align:right;color:#0f172a">${k}</td>
+        </tr>
+      </table>
     </div>
+    <a href="/nodes/${node.id || node.node_id}" style="display:block;padding:8px 10px;background:#16a34a;color:white;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;text-align:center;box-shadow:0 1px 2px rgba(0,0,0,0.05)">Buka Dashboard Node &rarr;</a>
   </div>`
 }
 
@@ -82,26 +96,34 @@ const addOrUpdateMarker = async (node: any) => {
   if (node.latitude == null || node.longitude == null) return
   const online = isNodeOnline(node)
   const latLng: [number, number] = [node.latitude, node.longitude]
+  
+  const cachedFeed = telemetryStore.telemetryHistory[node.node_id]?.[0] ?? null
+  const cachedSensors = telemetryStore.sensorsCache[node.node_id] || []
+  const initialHtml = buildPopupHtml(node, online, cachedFeed, cachedSensors)
+
   if (markers[node.node_id]) {
     markers[node.node_id].setLatLng(latLng)
     markers[node.node_id].setIcon(makeIcon(online))
+    if (!markers[node.node_id].getPopup()) {
+      markers[node.node_id].bindPopup(initialHtml, { maxWidth: 280 })
+    }
   } else {
     const marker = L.marker(latLng, { icon: makeIcon(online), draggable: false })
-    marker.on('click', async () => {
-      marker.getPopup()?.setContent('<div style="padding:10px;color:#888;font-size:12px">Loading...</div>')
-      marker.openPopup()
-      
+    marker.bindPopup(initialHtml, { maxWidth: 280 })
+
+    const updatePopup = async () => {
       const fullNode = nodes.value.find((n: any) => n.node_id === node.node_id) || node
-      
       const [sensors, history] = await Promise.all([
         telemetryStore.fetchSensors(node.node_id),
         telemetryStore.fetchHistory(node.node_id)
       ])
-      
       const feed = history?.[0] ?? null
-      marker.getPopup()?.setContent(buildPopupHtml(fullNode, online, feed, sensors))
-    })
-    marker.bindPopup('', { maxWidth: 260 })
+      marker.getPopup()?.setContent(buildPopupHtml(fullNode, isNodeOnline(fullNode), feed, sensors))
+    }
+
+    marker.on('click', updatePopup)
+    marker.on('popupopen', updatePopup)
+
     marker.addTo(map!)
     markers[node.node_id] = marker
   }

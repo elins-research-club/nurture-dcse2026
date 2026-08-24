@@ -1,4 +1,4 @@
-﻿import { defineStore } from 'pinia'
+import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { useAuthStore } from './auth'
 
@@ -36,7 +36,16 @@ export const useTelemetryStore = defineStore('telemetry', () => {
           if (msg?.event === 'sensor_update' && msg.node_id) {
             const nodeId = msg.node_id
             const current = telemetryHistory.value[nodeId] ? [...telemetryHistory.value[nodeId]] : []
-            current.unshift(msg.data)
+            const previousFeed = current[0] || {}
+            
+            // Merge multi-channel fields so fields from channel 1 and channel 2 never erase each other
+            const newFeed = {
+              ...previousFeed,
+              ...msg.data,
+              created_at: msg.created_at || new Date().toISOString()
+            }
+            
+            current.unshift(newFeed)
             telemetryHistory.value[nodeId] = current.slice(0, 50)
           }
         } catch (e) {

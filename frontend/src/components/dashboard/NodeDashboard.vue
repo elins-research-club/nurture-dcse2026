@@ -58,9 +58,12 @@ const lastSeen = computed(() => {
   return telemetry.value[0].created_at
 })
 
+const isConnected = computed(() => telemetryStore.isConnected)
+
 const isNodeActive = computed(() => {
   if (!lastSeen.value) return false
-  const diffMinutes = (new Date().getTime() - new Date(lastSeen.value).getTime()) / (1000 * 60)
+  const dateStr = String(lastSeen.value).endsWith('Z') ? String(lastSeen.value) : String(lastSeen.value) + 'Z'
+  const diffMinutes = (new Date().getTime() - new Date(dateStr).getTime()) / (1000 * 60)
   return diffMinutes < 15
 })
 
