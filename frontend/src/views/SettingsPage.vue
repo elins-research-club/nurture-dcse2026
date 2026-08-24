@@ -315,9 +315,8 @@ const updatePassword = async () => {
       </Dialog>
       
       <Tabs defaultValue="appearance" class="w-full">
-        <TabsList class="grid w-full grid-cols-6">
+        <TabsList class="grid w-full grid-cols-5">
           <TabsTrigger value="appearance">Appearance</TabsTrigger>
-          <TabsTrigger value="performance">Performance</TabsTrigger>
           <TabsTrigger value="system">System</TabsTrigger>
           <TabsTrigger value="alerts">Alerts</TabsTrigger>
           <TabsTrigger value="thresholds">Thresholds</TabsTrigger>
@@ -376,8 +375,19 @@ const updatePassword = async () => {
               <div class="border border-muted-foreground/30 rounded-lg divide-y divide-muted-foreground/30 bg-card">
                 <div class="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div class="space-y-0.5">
+                    <Label class="text-base font-medium">History Telemetry Cache</Label>
+                    <p class="text-sm text-muted-foreground">RAM cache duration for historical chart data from ThingSpeak. Example: 30 (seconds).</p>
+                  </div>
+                  <div class="w-full sm:w-40 flex items-center gap-2">
+                    <Input type="number" v-model="systemConfig.telemetry_cache_interval" placeholder="30" min="1" max="3600" />
+                    <span class="text-sm text-muted-foreground">Secs</span>
+                  </div>
+                </div>
+
+                <div class="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div class="space-y-0.5">
                     <Label class="text-base font-medium">Node Status Check Interval</Label>
-                    <p class="text-sm text-muted-foreground">How often the background worker checks node status. Example: 15 (seconds).</p>
+                    <p class="text-sm text-muted-foreground">How often the background watchdog checks node status. Example: 15 (seconds).</p>
                   </div>
                   <div class="w-full sm:w-40 flex items-center gap-2">
                     <Input type="number" v-model="systemConfig.node_status_check_interval" placeholder="15" min="15" />
@@ -546,33 +556,6 @@ const updatePassword = async () => {
                   {{ isSavingPassword ? 'Saving...' : 'Save Password' }}
                 </Button>
               </CardFooter>
-          </Card>
-        </TabsContent>
-
-        <!-- Performance Tab -->
-        <TabsContent value="performance">
-          <Card>
-            <CardHeader>
-              <CardTitle>Performance Settings</CardTitle>
-              <CardDescription>
-                Configure caching and performance parameters to optimize dashboard loading times and API usage.
-              </CardDescription>
-            </CardHeader>
-            <CardContent class="space-y-4">
-              <div class="space-y-2">
-                <Label for="cacheInterval">Dashboard Telemetry Cache (Seconds)</Label>
-                <Input id="cacheInterval" type="number" v-model="systemConfig.telemetry_cache_interval" min="1" max="3600" />
-                <p class="text-sm text-gray-500">
-                  How long the dashboard caches ThingSpeak telemetry data before fetching again. A higher value speeds up dashboard navigation but delays new data.
-                </p>
-              </div>
-            </CardContent>
-            <CardFooter>
-              <Button @click="saveSystemConfig" :disabled="isSavingConfig">
-                <Loader2 v-if="isSavingConfig" class="mr-2 h-4 w-4 animate-spin" />
-                Save Performance Settings
-              </Button>
-            </CardFooter>
           </Card>
         </TabsContent>
       </Tabs>
