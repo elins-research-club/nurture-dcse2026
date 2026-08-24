@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 import L from 'leaflet'
 import { useNodes } from '@/composables/useNodes'
 import { useAuthStore } from '@/stores/auth'
-import { useWebSocket } from '@/composables/useWebSocket'
+import { useTelemetryStore } from '@/stores/telemetry'
 import DashboardLayout from '@/components/layout/DashboardLayout.vue'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -12,15 +12,12 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { MapPin, Edit2, Save, X } from 'lucide-vue-next'
 
-const API_BASE_URL = 'http://localhost:8000/api/v1'
 const ELINS_CENTER: [number, number] = [-7.7679423, 110.3765989]
 
 const router = useRouter()
 const authStore = useAuthStore()
+const telemetryStore = useTelemetryStore()
 const { nodesQuery, updateNodeMutation } = useNodes()
-
-const wsUrl = 'ws://localhost:8000/ws/dashboard'
-const { lastMessage } = useWebSocket(wsUrl)
 
 const nodes = computed(() => nodesQuery.data.value ?? [])
 
@@ -52,29 +49,6 @@ const makeIcon = (online: boolean) =>
     popupAnchor: [0, -34],
   })
 
-const nodeSensorsCache = ref<Record<string, any[]>>({})
-
-const fetchNodeTelemetry = async (nodeId: string) => {
-  try {
-    const res = await fetch(`${API_BASE_URL}/nodes/${nodeId}/telemetry/history?results=1`, {
-      headers: { Authorization: `Bearer ${authStore.token}` },
-    })
-    if (!res.ok) return null
-    const data = await res.json()
-    return data.feeds?.[0] ?? null
-  } catch { return null }
-}
-
-const fetchNodeSensors = async (nodeId: string) => {
-  try {
-    const res = await fetch(`${API_BASE_URL}/nodes/${nodeId}/sensors/`, {
-      headers: { Authorization: `Bearer ${authStore.token}` },
-    })
-    if (!res.ok) return []
-    return await res.json()
-  } catch { return [] }
-}
-
 const getSensorValue = (feed: any, nameQuery: string, sensors: any[]) => {
   const sensor = sensors.find(s => s.name.toLowerCase().includes(nameQuery.toLowerCase()))
   if (!sensor || !feed) return '&#8212;'
@@ -83,8 +57,7 @@ const getSensorValue = (feed: any, nameQuery: string, sensors: any[]) => {
   return val != null ? `${parseFloat(val).toFixed(1)} ${sensor.unit}` : '&#8212;'
 }
 
-const buildPopupHtml = (node: any, online: boolean, feed: any, sensorsList?: any[]) => {
-  const sensors = sensorsList ?? nodeSensorsCache.value[node.node_id] ?? []
+const buildPopupHtml = (node: any, online: boolean, feed: any, sensors: any[]) => {
   const n = getSensorValue(feed, 'Nitrogen', sensors)
   const p = getSensorValue(feed, 'Phosphorus', sensors)
   const k = getSensorValue(feed, 'Potassium', sensors)
@@ -120,12 +93,12 @@ const addOrUpdateMarker = async (node: any) => {
       
       const fullNode = nodes.value.find((n: any) => n.node_id === node.node_id) || node
       
-      const [feed, sensors] = await Promise.all([
-        fetchNodeTelemetry(node.node_id),
-        nodeSensorsCache.value[node.node_id] ? Promise.resolve(nodeSensorsCache.value[node.node_id]) : fetchNodeSensors(node.node_id)
+      const [sensors, history] = await Promise.all([
+        telemetryStore.fetchSensors(node.node_id),
+        telemetryStore.fetchHistory(node.node_id)
       ])
       
-      nodeSensorsCache.value[node.node_id] = sensors
+      const feed = history?.[0] ?? null
       marker.getPopup()?.setContent(buildPopupHtml(fullNode, online, feed, sensors))
     })
     marker.bindPopup('', { maxWidth: 260 })
@@ -134,26 +107,23 @@ const addOrUpdateMarker = async (node: any) => {
   }
 }
 
-// WebSocket listener for realtime popup updates
-watch(lastMessage, (msg) => {
-  if (!msg || msg.event !== 'sensor_update') return
-  
-  const nodeId = msg.node_id
-  const marker = markers[nodeId]
-  
-  // If we receive data, the node is definitely online
-  if (marker) {
-    marker.setIcon(makeIcon(true))
-  }
-
-  // Update popup HTML instantly if it's currently open
-  if (marker && marker.isPopupOpen()) {
-    const fullNode = nodes.value.find((n: any) => n.node_id === nodeId)
-    if (fullNode) {
-      marker.getPopup()?.setContent(buildPopupHtml(fullNode, true, msg.data, nodeSensorsCache.value[nodeId]))
+// React to global telemetry updates
+watch(() => telemetryStore.telemetryHistory, (historyMap) => {
+  Object.keys(historyMap).forEach((nodeId) => {
+    const marker = markers[nodeId]
+    if (marker) {
+      marker.setIcon(makeIcon(true))
+      if (marker.isPopupOpen()) {
+        const fullNode = nodes.value.find((n: any) => n.node_id === nodeId)
+        const sensors = telemetryStore.sensorsCache[nodeId] || []
+        const feed = historyMap[nodeId]?.[0] ?? null
+        if (fullNode) {
+          marker.getPopup()?.setContent(buildPopupHtml(fullNode, true, feed, sensors))
+        }
+      }
     }
-  }
-})
+  })
+}, { deep: true })
 
 const enableDrag = (node: any) => {
   const marker = markers[node.node_id]

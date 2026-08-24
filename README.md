@@ -1,6 +1,6 @@
 # 🌿 G-Connect — Smart Farming IoT Platform
 
-Platform monitoring dan manajemen perangkat IoT untuk pertanian cerdas (*smart farming*). G-Connect menghubungkan sensor di lapangan ke dashboard real-time berbasis web
+Platform monitoring dan manajemen perangkat IoT untuk pertanian cerdas (smart farming). G-Connect menghubungkan sensor dan aktuator di lapangan dengan dashboard web real-time untuk memantau kondisi lahan, status perangkat, serta memberikan peringatan (alert) terhadap kondisi yang memerlukan perhatian.
 
 ---
 

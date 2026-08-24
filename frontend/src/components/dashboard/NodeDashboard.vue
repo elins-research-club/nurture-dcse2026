@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
-import { useWebSocket } from '@/composables/useWebSocket'
+import { useTelemetryStore } from '@/stores/telemetry'
 import SensorCard from '@/components/dashboard/SensorCard.vue'
 import StatusBadge from '@/components/dashboard/StatusBadge.vue'
 import SensorLineChart from '@/components/charts/SensorLineChart.vue'
@@ -15,52 +15,29 @@ const props = defineProps<{
 }>()
 
 const authStore = useAuthStore()
-const wsUrl = 'ws://localhost:8000/ws/dashboard'
-const { lastMessage, isConnected } = useWebSocket(wsUrl)
+const telemetryStore = useTelemetryStore()
 
-const sensors = ref<any[]>([])
-const telemetry = ref<any[]>([])
-const isLoading = ref(true)
+const isLoading = ref(false)
 
-const fetchNodeData = async () => {
+const sensors = computed(() => telemetryStore.sensorsCache[props.nodeId] || [])
+const telemetry = computed(() => telemetryStore.telemetryHistory[props.nodeId] || [])
+
+const loadNodeData = async () => {
   if (!props.nodeId) return
-  isLoading.value = true
-  
-  // Fetch sensors instantly
-  fetch(`http://localhost:8000/api/v1/nodes/${props.nodeId}/sensors/`, {
-    headers: { 'Authorization': `Bearer ${authStore.token}` }
-  }).then(async res => {
-    if (res.ok) {
-      sensors.value = await res.json()
-    }
-  }).catch(console.error)
-  
-  // Fetch history in background
-  fetch(`http://localhost:8000/api/v1/nodes/${props.nodeId}/telemetry/history?results=50`, {
-    headers: { 'Authorization': `Bearer ${authStore.token}` }
-  }).then(async res => {
-    if (res.ok) {
-      const historyData = await res.json()
-      if (historyData.feeds && Array.isArray(historyData.feeds)) {
-        telemetry.value = historyData.feeds.reverse()
-      }
-    }
-    isLoading.value = false
-  }).catch((e) => {
-    console.error(e)
-    isLoading.value = false
-  })
+  if (!telemetry.value.length) isLoading.value = true
+  await Promise.all([
+    telemetryStore.fetchSensors(props.nodeId),
+    telemetryStore.fetchHistory(props.nodeId)
+  ])
+  isLoading.value = false
 }
 
 onMounted(() => {
-  fetchNodeData()
+  loadNodeData()
 })
 
 watch(() => props.nodeId, () => {
-  sensors.value = []
-  telemetry.value = []
-  fetchNodeData()
-  // Reset mini-map if node changes
+  loadNodeData()
   if (miniMap) {
     miniMap.remove()
     miniMap = null
@@ -68,26 +45,12 @@ watch(() => props.nodeId, () => {
   }
 })
 
-watch(lastMessage, (msg) => {
-  if (!msg || msg.event !== 'sensor_update') return
-  if (msg.node_id !== props.nodeId) return
-  
-  const currentTelemetry = [...telemetry.value]
-  currentTelemetry.unshift(msg.data)
-  if (currentTelemetry.length > 50) {
-    telemetry.value = currentTelemetry.slice(0, 50)
-  } else {
-    telemetry.value = currentTelemetry
-  }
-})
-
 const latestTelemetry = computed(() => {
-  if (telemetry.value.length === 0) return null
-  return telemetry.value[0]
+  return telemetryStore.getLatest(props.nodeId)
 })
 
 const chartData = computed(() => {
-  return [...telemetry.value].reverse()
+  return telemetryStore.getChartData(props.nodeId)
 })
 
 const lastSeen = computed(() => {
