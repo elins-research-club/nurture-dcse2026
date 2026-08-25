@@ -184,7 +184,7 @@ const initMiniMap = (lat: number, lng: number) => {
 }
 
 // Fetch node coords and init mini-map
-const API_BASE_URL = 'http://localhost:8000/api/v1'
+const API_BASE_URL = '/api/v1'
 const fetchNodeCoords = async () => {
   try {
     const res = await fetch(`${API_BASE_URL}/nodes/${props.nodeId}`, {

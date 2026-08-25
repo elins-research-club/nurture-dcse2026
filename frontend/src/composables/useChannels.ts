@@ -3,7 +3,7 @@ import { useAuthStore } from '@/stores/auth'
 import type { ThingspeakChannel } from '@/types'
 import { unref, type MaybeRef } from 'vue'
 
-const API_BASE_URL = 'http://localhost:8000/api/v1'
+const API_BASE_URL = '/api/v1'
 
 export function useChannels(nodeIdRef: MaybeRef<string>) {
   const authStore = useAuthStore()

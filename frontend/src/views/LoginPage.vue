@@ -22,7 +22,7 @@ const loginMutation = useMutation({
     params.append('username', username.value)
     params.append('password', password.value)
 
-    const response = await fetch('http://localhost:8000/api/v1/auth/login', {
+    const response = await fetch('/api/v1/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: params
