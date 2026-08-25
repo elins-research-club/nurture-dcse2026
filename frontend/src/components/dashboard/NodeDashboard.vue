@@ -5,8 +5,6 @@ import { useTelemetryStore } from '@/stores/telemetry'
 import SensorCard from '@/components/dashboard/SensorCard.vue'
 import StatusBadge from '@/components/dashboard/StatusBadge.vue'
 import SensorLineChart from '@/components/charts/SensorLineChart.vue'
-import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Calendar, Clock, Activity, Check, Layers, Sprout, CloudSun, Leaf } from 'lucide-vue-next'
@@ -116,28 +114,6 @@ const latestTelemetry = computed(() => {
   return telemetryStore.getLatest(props.nodeId)
 })
 
-// field8 kanal pendukung: bitmask 4 bit, bukan pengukuran. Didekode di satu
-// tempat supaya template tidak mengulang operasi bit di banyak baris.
-const aktuator = computed(() => {
-  const s = sensors.value.find(x => x.name === 'Status aktuator')
-  if (!s || !latestTelemetry.value) return null
-
-  const mentah = latestTelemetry.value[`${s.channel_id}_${s.thingspeak_field}`]
-  if (mentah == null) return null
-
-  const v = Number(mentah)
-  // Firmware hanya memakai 4 bit. Di luar 0-15 berarti field8 rusak, dan
-  // menerimanya menghasilkan status yang kelihatan wajar padahal bukan.
-  if (!Number.isFinite(v) || v < 0 || v > 15) return null
-
-  return {
-    kipas: !!(v & 0b0001),
-    lampu: !!(v & 0b0010),
-    valve: !!(v & 0b0100),
-    valve_timeout: !!(v & 0b1000),
-  }
-})
-
 const isArchive = computed(() => selectedRange.value !== '1d')
 
 const chartData = computed(() => {
@@ -235,40 +211,11 @@ onUnmounted(() => { miniMap?.remove(); miniMap = null })
         />
       </template>
       
-      <!-- Status aktuator. Indikator saja -- logika kipas, lampu, dan valve
-           seluruhnya di firmware ESP32, tidak bisa dikendalikan dari sini. -->
-      <div v-if="aktuator" class="col-span-full mt-4">
-        <h3 class="text-sm font-semibold mb-3">Status Aktuator</h3>
-
-        <div class="grid gap-3 md:grid-cols-3">
-          <Card v-for="a in [
-            { nama: 'Kipas', aktif: aktuator.kipas },
-            { nama: 'Lampu', aktif: aktuator.lampu },
-            { nama: 'Valve', aktif: aktuator.valve },
-          ]" :key="a.nama">
-            <CardContent class="p-4 flex items-center justify-between">
-              <span class="font-medium">{{ a.nama }}</span>
-              <Badge :variant="a.aktif ? 'success' : 'secondary'">
-                {{ a.aktif ? 'Nyala' : 'Mati' }}
-              </Badge>
-            </CardContent>
-          </Card>
-        </div>
-
-        <!-- Bit 3 bukan status nyala/mati, tapi penanda gangguan. Hanya
-             muncul saat menyala supaya tidak jadi hiasan tetap. -->
-        <Card v-if="aktuator.valve_timeout" class="mt-3 border-destructive/40">
-          <CardContent class="p-4 flex items-center justify-between gap-4">
-            <div>
-              <span class="font-medium text-destructive">Valve Timeout</span>
-              <p class="text-xs text-muted-foreground mt-0.5">
-                Valve berhenti karena batas waktu pengaman, bukan karena tanah sudah basah.
-              </p>
-            </div>
-            <Badge variant="destructive" class="shrink-0">Perlu diperiksa</Badge>
-          </CardContent>
-        </Card>
-      </div>
+      <!-- Status aktuator sengaja belum ditampilkan: perilaku valve dan
+           aktuator lain belum terverifikasi di lapangan, dan menampilkan
+           status yang belum dipastikan lebih menyesatkan daripada berguna.
+           Dekodenya sudah ada di backend (payload WebSocket "aktuator"),
+           tinggal dipasang kembali begitu perangkatnya terbukti andal. -->
     </div>
     <div v-else class="py-12 text-center text-muted-foreground border border-dashed rounded-xl">
       No sensors configured. Add sensors in Settings.
