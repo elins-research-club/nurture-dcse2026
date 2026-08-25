@@ -9,7 +9,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Calendar, Clock, Activity, Check, Layers, Sprout, CloudSun, Leaf } from 'lucide-vue-next'
+import { Calendar, Clock, Activity, Check, Layers, Sprout, CloudSun, Leaf, Droplets, Beaker, Zap, Thermometer, Wind, MapPin } from 'lucide-vue-next'
 import L from 'leaflet'
 
 const props = defineProps<{
@@ -140,6 +140,30 @@ const isNodeActive = computed(() => {
   return diffMinutes < 15
 })
 
+// Formatted last seen timestamp
+const formattedLastSeen = computed(() => {
+  if (!lastSeen.value) return '--'
+  try {
+    const dateStr = String(lastSeen.value).endsWith('Z') ? String(lastSeen.value) : String(lastSeen.value) + 'Z'
+    const d = new Date(dateStr)
+    return d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB'
+  } catch {
+    return '--'
+  }
+})
+
+// Grouped sensors by category for bento layout
+const npkSensors = computed(() => sensors.value.filter(s => getSensorCategory(s) === 'npk'))
+const soilSensors = computed(() => sensors.value.filter(s => getSensorCategory(s) === 'soil'))
+const envSensors = computed(() => sensors.value.filter(s => getSensorCategory(s) === 'environment'))
+const actuatorSensors = computed(() => sensors.value.filter(s => s.name === 'Status aktuator'))
+
+// Helper to get sensor value
+const getSensorValue = (sensor: any) => {
+  if (!latestTelemetry.value) return null
+  return latestTelemetry.value[`${sensor.channel_id}_${sensor.thingspeak_field}`]
+}
+
 // Mini-map
 const miniMapContainer = ref<HTMLElement | null>(null)
 const miniMapReady = ref(false)
@@ -181,172 +205,238 @@ onUnmounted(() => { miniMap?.remove(); miniMap = null })
 </script>
 
 <template>
-  <div class="space-y-4 w-full">
-    <div class="flex items-center gap-3">
-      <h3 v-if="nodeName" class="text-lg font-semibold">{{ nodeName }}</h3>
-      <StatusBadge 
-        v-if="!nodeName"
-        :is-active="isNodeActive" 
-        :last-seen="lastSeen" 
-      />
-      <!-- Live Connection Status -->
-      <div class="ml-auto flex items-center gap-2 text-sm font-medium">
-        <div :class="['w-2.5 h-2.5 rounded-full', isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500']"></div>
-        <span class="hidden sm:inline">{{ isConnected ? 'Live Connection Active' : 'Disconnected' }}</span>
+  <div class="w-full">
+    <!-- Loading State -->
+    <div v-if="isLoading && sensors.length === 0" class="py-16 text-center text-muted-foreground">
+      <div class="flex items-center justify-center gap-2 animate-pulse">
+        <svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        Memuat data sensor...
       </div>
     </div>
 
-    <!-- Loading State -->
-    <div v-if="isLoading && sensors.length === 0" class="py-12 text-center text-muted-foreground">
-      Loading sensors...
+    <!-- No Sensors State -->
+    <div v-else-if="sensors.length === 0" class="py-16 text-center text-muted-foreground border border-dashed rounded-2xl">
+      No sensors configured. Add sensors in Settings.
     </div>
 
-    <!-- Sensors Grid (Always Real-Time) -->
-    <div v-else-if="sensors.length > 0" class="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-      <!-- Normal Sensors -->
-      <template v-for="sensor in sensors.filter(s => s.name !== 'Status aktuator')" :key="sensor.id">
+    <!-- ═══════════════ BENTO GRID ═══════════════ -->
+    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 auto-rows-auto">
+      
+      <!-- ═══ ROW 1: Hero Status + Mini Map ═══ -->
+      
+      <!-- Hero Status Card -->
+      <Card class="lg:col-span-3 relative overflow-hidden">
+        <div class="absolute inset-0 bg-gradient-to-br from-emerald-500/8 via-transparent to-primary/5 pointer-events-none"></div>
+        <CardContent class="p-5 relative z-10">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div class="flex flex-col gap-1.5">
+              <div class="flex items-center gap-3">
+                <h2 class="text-xl sm:text-2xl font-bold tracking-tight">{{ nodeName || nodeId }}</h2>
+                <StatusBadge :is-active="isNodeActive" :last-seen="lastSeen" />
+              </div>
+              <div class="flex items-center gap-4 text-sm text-muted-foreground">
+                <span class="flex items-center gap-1.5">
+                  <Clock class="w-3.5 h-3.5" />
+                  Terakhir diperbarui: {{ formattedLastSeen }}
+                </span>
+              </div>
+            </div>
+            <!-- Live Connection Indicator -->
+            <div class="flex items-center gap-2 text-sm font-medium">
+              <div :class="['w-2.5 h-2.5 rounded-full', isConnected ? 'bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 'bg-red-500']"></div>
+              <span class="text-muted-foreground">{{ isConnected ? 'Live Connection' : 'Disconnected' }}</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <!-- Mini Map Card (row-span-2) -->
+      <Card class="lg:row-span-2 relative overflow-hidden" style="min-height: 200px">
+        <div ref="miniMapContainer" class="w-full h-full absolute inset-0" style="min-height: 200px" />
+        <div v-if="!miniMapReady" class="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground gap-2 bg-muted/30">
+          <MapPin class="w-8 h-8 opacity-30" />
+          <p class="text-xs opacity-50">Lokasi belum diatur</p>
+          <a href="/map" class="text-xs text-primary hover:underline opacity-70">Atur di Halaman Maps →</a>
+        </div>
+      </Card>
+
+      <!-- ═══ ROW 2: NPK Highlight Cards ═══ -->
+      <template v-if="npkSensors.length > 0">
         <SensorCard
+          v-for="sensor in npkSensors"
+          :key="sensor.id"
           :title="sensor.name"
-          :value="latestTelemetry ? latestTelemetry[`${sensor.channel_id}_${sensor.thingspeak_field}`] : null"
+          :value="getSensorValue(sensor)"
           :unit="sensor.unit"
-          type="default"
+          type="npk"
+          size="lg"
+          accent-gradient="linear-gradient(135deg, rgba(16,185,129,0.08) 0%, transparent 60%)"
         />
       </template>
-      
-      <!-- Actuator Status Bitmask Parser -->
-      <template v-for="sensor in sensors.filter(s => s.name === 'Status aktuator')" :key="sensor.id">
-        <div class="col-span-full mt-4">
-          <h3 class="text-sm font-semibold mb-3">Actuators Status</h3>
-          <div class="grid gap-3 md:grid-cols-3">
-            <Card v-for="i in 3" :key="i">
-              <CardContent class="p-4 flex items-center justify-between">
-                <span class="font-medium">Actuator {{ i }}</span>
+      <!-- Fill remaining cols if NPK < 3 -->
+      <template v-if="npkSensors.length > 0 && npkSensors.length < 3">
+        <div v-for="_ in (3 - npkSensors.length)" :key="'npk-fill-' + _" />
+      </template>
+
+      <!-- ═══ ROW 3: Chart + Soil Condition ═══ -->
+
+      <!-- Chart Card (col-span-2, row-span-2) -->
+      <Card class="md:col-span-2 lg:col-span-2 lg:row-span-2 relative overflow-hidden flex flex-col">
+        <div class="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-50 pointer-events-none"></div>
+        <CardContent class="p-4 relative z-10 flex flex-col gap-3 flex-1">
+          
+          <!-- Header: Category Pills + Time Range -->
+          <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5 pb-2.5 border-b border-border/40">
+            
+            <!-- Category Pills -->
+            <div class="flex items-center gap-1 overflow-x-auto pb-1 lg:pb-0 scrollbar-none">
+              <button
+                @click="selectedCategory = 'npk'"
+                :class="['px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all', selectedCategory === 'npk' ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 shadow-xs' : 'bg-muted/40 text-muted-foreground hover:text-foreground border border-transparent']"
+              >
+                <Leaf class="w-3.5 h-3.5 text-emerald-500" />
+                <span>Unsur Hara (NPK)</span>
+              </button>
+              <button
+                @click="selectedCategory = 'soil'"
+                :class="['px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all', selectedCategory === 'soil' ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 shadow-xs' : 'bg-muted/40 text-muted-foreground hover:text-foreground border border-transparent']"
+              >
+                <Sprout class="w-3.5 h-3.5 text-amber-500" />
+                <span>Kondisi Tanah</span>
+              </button>
+              <button
+                @click="selectedCategory = 'environment'"
+                :class="['px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all', selectedCategory === 'environment' ? 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30 shadow-xs' : 'bg-muted/40 text-muted-foreground hover:text-foreground border border-transparent']"
+              >
+                <CloudSun class="w-3.5 h-3.5 text-blue-500" />
+                <span>Lingkungan</span>
+              </button>
+              <button
+                @click="selectedCategory = 'all'"
+                :class="['px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all', selectedCategory === 'all' ? 'bg-primary/15 text-primary border border-primary/30 shadow-xs' : 'bg-muted/40 text-muted-foreground hover:text-foreground border border-transparent']"
+              >
+                <Layers class="w-3.5 h-3.5" />
+                <span>Semua</span>
+              </button>
+            </div>
+
+            <!-- Time Range Selector -->
+            <div class="flex items-center self-end lg:self-auto bg-muted/60 p-0.5 rounded-lg border border-border/40 text-xs">
+              <button
+                @click="changeRange('1d')"
+                :class="['px-2 py-0.5 rounded-md font-medium transition-all flex items-center gap-1', selectedRange === '1d' ? 'bg-background text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground']"
+                title="Live stream 24 jam terakhir"
+              >
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                24J
+              </button>
+              <button
+                @click="changeRange('1w')"
+                :class="['px-2 py-0.5 rounded-md font-medium transition-all', selectedRange === '1w' ? 'bg-background text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground']"
+                title="Arsip 7 hari terakhir"
+              >
+                7H
+              </button>
+              <button
+                @click="changeRange('1M')"
+                :class="['px-2 py-0.5 rounded-md font-medium transition-all', selectedRange === '1M' ? 'bg-background text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground']"
+                title="Arsip 30 hari terakhir (agregasi 1 jam)"
+              >
+                30H
+              </button>
+              <button
+                @click="selectedRange = 'custom'"
+                :class="['px-2 py-0.5 rounded-md font-medium transition-all flex items-center gap-1', selectedRange === 'custom' ? 'bg-background text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground']"
+                title="Pilih tanggal khusus"
+              >
+                <Calendar class="w-3 h-3" />
+              </button>
+            </div>
+          </div>
+
+          <!-- Custom Date Picker -->
+          <div v-if="selectedRange === 'custom'" class="flex flex-wrap items-center gap-2 p-2 bg-muted/30 border border-border/40 rounded-lg text-xs animate-slide-up">
+            <div class="flex items-center gap-1.5">
+              <span class="text-muted-foreground">Dari:</span>
+              <Input type="date" v-model="customStartDate" class="h-7 text-xs w-32 px-2 py-0 bg-background" />
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span class="text-muted-foreground">Sampai:</span>
+              <Input type="date" v-model="customEndDate" class="h-7 text-xs w-32 px-2 py-0 bg-background" />
+            </div>
+            <Button size="sm" variant="default" class="h-7 text-xs px-2.5" @click="applyCustomDate" :disabled="!customStartDate">
+              <Check class="w-3 h-3 mr-1" />
+              Terapkan
+            </Button>
+          </div>
+
+          <!-- Chart -->
+          <div class="flex-1 min-h-[300px]">
+            <SensorLineChart 
+              :data="chartData" 
+              :title="`Tren ${selectedCategory === 'npk' ? 'Unsur Hara NPK' : (selectedCategory === 'soil' ? 'Kondisi Tanah' : (selectedCategory === 'environment' ? 'Lingkungan & Iklim' : 'Sensor'))}`" 
+              :sensors="activeCategorySensors" 
+              :is-loading="isArchiveLoading"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      <!-- Soil Condition Cards (col-span-2) -->
+      <div v-if="soilSensors.length > 0" class="md:col-span-2 lg:col-span-2 grid grid-cols-2 gap-3">
+        <SensorCard
+          v-for="sensor in soilSensors"
+          :key="sensor.id"
+          :title="sensor.name"
+          :value="getSensorValue(sensor)"
+          :unit="sensor.unit"
+          type="soil"
+          accent-gradient="linear-gradient(135deg, rgba(245,158,11,0.06) 0%, transparent 60%)"
+        />
+      </div>
+
+      <!-- Environment Cards (col-span-2, sits beside Soil below chart on wide) -->
+      <div v-if="envSensors.length > 0" class="md:col-span-2 lg:col-span-2 grid grid-cols-2 gap-3">
+        <SensorCard
+          v-for="sensor in envSensors"
+          :key="sensor.id"
+          :title="sensor.name"
+          :value="getSensorValue(sensor)"
+          :unit="sensor.unit"
+          type="temperature"
+          accent-gradient="linear-gradient(135deg, rgba(59,130,246,0.06) 0%, transparent 60%)"
+        />
+      </div>
+
+      <!-- ═══ ROW BOTTOM: Actuator Status ═══ -->
+      <template v-for="sensor in actuatorSensors" :key="sensor.id">
+        <Card class="md:col-span-2 lg:col-span-4">
+          <CardContent class="p-4">
+            <h3 class="text-sm font-semibold mb-3 flex items-center gap-2">
+              <Zap class="w-4 h-4 text-amber-500" />
+              Status Aktuator
+            </h3>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div 
+                v-for="i in 3" 
+                :key="i" 
+                class="flex items-center justify-between p-3 rounded-xl bg-muted/30 border border-border/40"
+              >
+                <span class="font-medium text-sm">Actuator {{ i }}</span>
                 <Badge 
                   :variant="(latestTelemetry && latestTelemetry[`${sensor.channel_id}_${sensor.thingspeak_field}`] != null && (latestTelemetry[`${sensor.channel_id}_${sensor.thingspeak_field}`] & Math.pow(2, i-1))) ? 'success' : 'destructive'"
                 >
-                  {{ (latestTelemetry && latestTelemetry[`${sensor.channel_id}_${sensor.thingspeak_field}`] != null && (latestTelemetry[`${sensor.channel_id}_${sensor.thingspeak_field}`] & Math.pow(2, i-1))) ? 'Online' : 'Offline' }}
+                  {{ (latestTelemetry && latestTelemetry[`${sensor.channel_id}_${sensor.thingspeak_field}`] != null && (latestTelemetry[`${sensor.channel_id}_${sensor.thingspeak_field}`] & Math.pow(2, i-1))) ? 'ON' : 'OFF' }}
                 </Badge>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </template>
-    </div>
-    <div v-else class="py-12 text-center text-muted-foreground border border-dashed rounded-xl">
-      No sensors configured. Add sensors in Settings.
-    </div>
-    
-    <!-- Charts & Map Section -->
-    <div v-if="sensors.length > 0" class="grid gap-4 md:grid-cols-2 lg:grid-cols-7 animate-slide-up" style="animation-delay: 0.1s">
-      <!-- Chart Column (4 cols) -->
-      <div class="col-span-4 border border-border/50 rounded-xl bg-card/90 backdrop-blur-xl p-4 shadow-sm relative overflow-hidden flex flex-col gap-3">
-        <div class="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-50 pointer-events-none"></div>
-        
-        <!-- Header: Category Pills (Left) & Time Range (Right) -->
-        <div class="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-2.5 pb-2.5 border-b border-border/40">
-          
-          <!-- Category Pills -->
-          <div class="flex items-center gap-1 overflow-x-auto pb-1 lg:pb-0 scrollbar-none">
-            <button
-              @click="selectedCategory = 'npk'"
-              :class="['px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all', selectedCategory === 'npk' ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 shadow-xs' : 'bg-muted/40 text-muted-foreground hover:text-foreground border border-transparent']"
-            >
-              <Leaf class="w-3.5 h-3.5 text-emerald-500" />
-              <span>Unsur Hara (NPK)</span>
-            </button>
-            <button
-              @click="selectedCategory = 'soil'"
-              :class="['px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all', selectedCategory === 'soil' ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 shadow-xs' : 'bg-muted/40 text-muted-foreground hover:text-foreground border border-transparent']"
-            >
-              <Sprout class="w-3.5 h-3.5 text-amber-500" />
-              <span>Kondisi Tanah</span>
-            </button>
-            <button
-              @click="selectedCategory = 'environment'"
-              :class="['px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all', selectedCategory === 'environment' ? 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30 shadow-xs' : 'bg-muted/40 text-muted-foreground hover:text-foreground border border-transparent']"
-            >
-              <CloudSun class="w-3.5 h-3.5 text-blue-500" />
-              <span>Lingkungan</span>
-            </button>
-            <button
-              @click="selectedCategory = 'all'"
-              :class="['px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all', selectedCategory === 'all' ? 'bg-primary/15 text-primary border border-primary/30 shadow-xs' : 'bg-muted/40 text-muted-foreground hover:text-foreground border border-transparent']"
-            >
-              <Layers class="w-3.5 h-3.5" />
-              <span>Semua</span>
-            </button>
-          </div>
 
-          <!-- Time Range Selector -->
-          <div class="flex items-center self-end lg:self-auto bg-muted/60 p-0.5 rounded-lg border border-border/40 text-xs">
-            <button
-              @click="changeRange('1d')"
-              :class="['px-2 py-0.5 rounded-md font-medium transition-all flex items-center gap-1', selectedRange === '1d' ? 'bg-background text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground']"
-              title="Live stream 24 jam terakhir"
-            >
-              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-              24J
-            </button>
-            <button
-              @click="changeRange('1w')"
-              :class="['px-2 py-0.5 rounded-md font-medium transition-all', selectedRange === '1w' ? 'bg-background text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground']"
-              title="Arsip 7 hari terakhir"
-            >
-              7H
-            </button>
-            <button
-              @click="changeRange('1M')"
-              :class="['px-2 py-0.5 rounded-md font-medium transition-all', selectedRange === '1M' ? 'bg-background text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground']"
-              title="Arsip 30 hari terakhir (agregasi 1 jam)"
-            >
-              30H
-            </button>
-            <button
-              @click="selectedRange = 'custom'"
-              :class="['px-2 py-0.5 rounded-md font-medium transition-all flex items-center gap-1', selectedRange === 'custom' ? 'bg-background text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground']"
-              title="Pilih tanggal khusus"
-            >
-              <Calendar class="w-3 h-3" />
-            </button>
-          </div>
-        </div>
-
-        <!-- Custom Date Picker Dropdown/Bar (Shown only when 'custom' is active) -->
-        <div v-if="selectedRange === 'custom'" class="relative z-10 flex flex-wrap items-center gap-2 p-2 bg-muted/30 border border-border/40 rounded-lg text-xs animate-slide-up">
-          <div class="flex items-center gap-1.5">
-            <span class="text-muted-foreground">Dari:</span>
-            <Input type="date" v-model="customStartDate" class="h-7 text-xs w-32 px-2 py-0 bg-background" />
-          </div>
-          <div class="flex items-center gap-1.5">
-            <span class="text-muted-foreground">Sampai:</span>
-            <Input type="date" v-model="customEndDate" class="h-7 text-xs w-32 px-2 py-0 bg-background" />
-          </div>
-          <Button size="sm" variant="default" class="h-7 text-xs px-2.5" @click="applyCustomDate" :disabled="!customStartDate">
-            <Check class="w-3 h-3 mr-1" />
-            Terapkan
-          </Button>
-        </div>
-
-        <!-- The Line Chart -->
-        <div class="relative z-10 flex-1 min-h-[300px]">
-          <SensorLineChart 
-            :data="chartData" 
-            :title="`Tren ${selectedCategory === 'npk' ? 'Unsur Hara NPK' : (selectedCategory === 'soil' ? 'Kondisi Tanah' : (selectedCategory === 'environment' ? 'Lingkungan & Iklim' : 'Sensor'))}`" 
-            :sensors="activeCategorySensors" 
-            :is-loading="isArchiveLoading"
-          />
-        </div>
-      </div>
-
-      <!-- Mini Map Column (3 cols) -->
-      <div class="col-span-3 border border-border/50 rounded-xl bg-card/90 backdrop-blur-xl shadow-sm relative overflow-hidden flex flex-col" style="min-height:360px">
-        <div ref="miniMapContainer" class="w-full flex-1" style="min-height:360px" />
-        <div v-if="!miniMapReady" class="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground gap-2">
-          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="opacity-30"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
-          <p class="text-xs opacity-50">No location set for this node</p>
-          <a href="/map" class="text-xs text-primary hover:underline opacity-70">Set in Maps page →</a>
-        </div>
-      </div>
     </div>
   </div>
 </template>
