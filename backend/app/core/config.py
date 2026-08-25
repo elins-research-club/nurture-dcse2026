@@ -20,6 +20,12 @@ class Settings(BaseSettings):
     THINGSPEAK_MQTT_USERNAME: Optional[str] = None
     THINGSPEAK_MQTT_PASSWORD: Optional[str] = None
     
+    # Web Push (VAPID). Kunci publik ikut dikirim ke browser supaya bisa
+    # mendaftar langganan; kunci privat jangan pernah keluar dari server.
+    VAPID_PUBLIC_KEY: str = ""
+    VAPID_PRIVATE_KEY: str = ""
+    VAPID_SUBJECT: str = "mailto:admin@example.com"
+
     # Security
     SECRET_KEY: str = "change-this-in-production-long-secret-key-32-chars"
     ALGORITHM: str = "HS256"
@@ -36,6 +42,10 @@ class Settings(BaseSettings):
         "http://localhost:5174",
         "http://127.0.0.1:5174",
     ]
+
+    @property
+    def WEBPUSH_ENABLED(self) -> bool:
+        return bool(self.VAPID_PUBLIC_KEY and self.VAPID_PRIVATE_KEY)
 
     class Config:
         env_file = ".env"

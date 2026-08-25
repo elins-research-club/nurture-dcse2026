@@ -11,6 +11,7 @@ from app.repositories.event_log_repo import event_log_repo
 from app.schemas.event_log import EventLogCreate
 from datetime import datetime, timezone
 from app.services.aktuator import baca_aktuator
+from app.services.webpush_service import kirim_push
 
 
 logger = logging.getLogger(__name__)
@@ -137,6 +138,12 @@ async def poll_node(node_id: str, channels: list, db_session):
                     limit = s.max_threshold if is_high else s.min_threshold
                     msg = f"⚠️ <b>Threshold Alert</b>\nNode <code>{node.name}</code>\nSensor <b>{s.name}</b> is {alert_type}: {val}{s.unit} (Limit: {limit}{s.unit})"
                     await send_telegram_alert(db_session, msg)
+                    await kirim_push(
+                        db_session,
+                        f"{s.name} {'terlalu tinggi' if is_high else 'terlalu rendah'}",
+                        f"{node.name} — {val} {s.unit} (batas {limit} {s.unit})",
+                        "/dashboard",
+                    )
                     await event_log_repo.create(db_session, EventLogCreate(level="WARNING", message=f"{s.name} is {alert_type}: {val}{s.unit}", node_id=node.id))
                     sensor_alert_state[sensor_id_str] = True
                 
@@ -162,6 +169,12 @@ async def poll_node(node_id: str, channels: list, db_session):
                     f"tanah sudah basah. Periksa aliran air dan sensor kelembapan."
                 )
                 await send_telegram_alert(db_session, msg)
+                await kirim_push(
+                    db_session,
+                    "Valve Timeout",
+                    f"{node.name} — valve berhenti karena batas waktu pengaman. Periksa aliran air.",
+                    "/dashboard",
+                )
                 await event_log_repo.create(db_session, EventLogCreate(
                     level="WARNING",
                     message=f"Valve pada {node.name} berhenti karena timeout pengaman.",
