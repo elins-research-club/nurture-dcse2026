@@ -36,7 +36,7 @@ const newChannel = ref<TempChannel>({ label: '', channel_id: '', read_api_key: '
 
 const { addNodeMutation, nodesQuery, queryClient } = useNodes()
 const authStore = useAuthStore()
-const API_BASE_URL = 'http://localhost:8000/api/v1'
+const API_BASE_URL = '/api/v1'
 
 watch(isOpen, (newVal) => {
   if (newVal) {

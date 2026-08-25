@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import { useTelemetryStore } from '@/stores/telemetry'
 import DashboardLayout from '@/components/layout/DashboardLayout.vue'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
@@ -24,7 +25,7 @@ const toggleTheme = (dark: boolean) => {
   }
 }
 
-const API_BASE_URL = 'http://localhost:8000/api/v1'
+const API_BASE_URL = '/api/v1'
 
 const systemConfig = ref({
   node_status_check_interval: 15,
@@ -39,6 +40,25 @@ const isLoadingConfig = ref(true)
 const isSavingConfig = ref(false)
 const isTestingTelegram = ref(false)
 const authStore = useAuthStore()
+const telemetryStore = useTelemetryStore()
+
+const ujiWebpush = async () => {
+  try {
+    const res = await fetch(`${API_BASE_URL}/push/test`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${authStore.token}` }
+    })
+    const data = await res.json().catch(() => ({}))
+    modalType.value = res.ok ? 'success' : 'error'
+    modalMessage.value = res.ok
+      ? `Notifikasi terkirim ke ${data.terkirim} perangkat.`
+      : (data.detail || 'Gagal mengirim notifikasi.')
+  } catch (e) {
+    modalType.value = 'error'
+    modalMessage.value = 'Gagal menghubungi server.'
+  }
+  showModal.value = true
+}
 
 const loadSystemConfig = async () => {
   try {
@@ -196,6 +216,9 @@ onMounted(() => {
 
 onMounted(() => {
   loadSystemConfig()
+  // Menyesuaikan label tombol dengan keadaan sebenarnya -- langganan push
+  // bertahan lintas sesi, jadi jangan andaikan belum terdaftar.
+  telemetryStore.cekWebpush()
 })
 
 const currentPassword = ref('')
@@ -455,6 +478,54 @@ const updatePassword = async () => {
                         {{ isTestingTelegram ? 'Testing...' : 'Test Connection' }}
                       </Button>
                     </div>
+                </div>
+
+                <div class="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div class="space-y-0.5">
+                    <h4 class="text-base font-medium">Notifikasi Browser</h4>
+                    <p class="text-sm text-muted-foreground">
+                      Muncul di layar saat pembacaan melewati ambang, selama dashboard masih
+                      terbuka di browser. Untuk notifikasi saat dashboard ditutup, gunakan Telegram.
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    class="shrink-0"
+                    :disabled="telemetryStore.notifAktif"
+                    @click="telemetryStore.mintaIzinNotif"
+                  >
+                    {{ telemetryStore.notifAktif ? 'Sudah diizinkan' : 'Izinkan Notifikasi' }}
+                  </Button>
+                </div>
+
+                <div class="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div class="space-y-0.5">
+                    <h4 class="text-base font-medium">Notifikasi HP (Web Push)</h4>
+                    <p class="text-sm text-muted-foreground">
+                      Tetap datang walau dashboard sudah ditutup. Ditekan akan membuka
+                      halaman dashboard. Perlu HTTPS — dari HP lewat alamat IP biasa
+                      tidak akan terdaftar.
+                    </p>
+                  </div>
+                  <div class="flex gap-2 shrink-0">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      :disabled="telemetryStore.webpushAktif"
+                      @click="telemetryStore.daftarWebpush"
+                    >
+                      {{ telemetryStore.webpushAktif ? 'Perangkat terdaftar' : 'Daftarkan Perangkat' }}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      :disabled="!telemetryStore.webpushAktif"
+                      @click="ujiWebpush"
+                    >
+                      Uji Kirim
+                    </Button>
+                  </div>
                 </div>
               </div>
             </CardContent>

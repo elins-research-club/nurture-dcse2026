@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/vue-query'
 import { useAuthStore } from '@/stores/auth'
 
-const API_BASE_URL = 'http://localhost:8000/api/v1'
+const API_BASE_URL = '/api/v1'
 
 export interface EventLog {
   id: string

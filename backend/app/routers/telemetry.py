@@ -46,7 +46,7 @@ async def get_latest_telemetry(
     sys_conf = sys_conf_result.scalars().first()
     cache_ttl = sys_conf.telemetry_cache_interval if sys_conf else 30
 
-    cache_key = f"{node_id}_{time_range}_{start}_{end}_{results}"
+    cache_key = f"latest_{node_id}"
     now = time.time()
     if cache_key in HISTORY_CACHE:
         cached_time, cached_data = HISTORY_CACHE[cache_key]

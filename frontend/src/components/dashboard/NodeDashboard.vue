@@ -9,7 +9,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Calendar, Clock, Activity, Check, Layers, Sprout, CloudSun, Leaf, Droplets, Beaker, Zap, Thermometer, Wind, MapPin } from 'lucide-vue-next'
+import { Calendar, Clock, Check, Layers, Sprout, CloudSun, Leaf, Zap, MapPin, AlertTriangle } from 'lucide-vue-next'
 import L from 'leaflet'
 
 const props = defineProps<{
@@ -116,6 +116,25 @@ const latestTelemetry = computed(() => {
   return telemetryStore.getLatest(props.nodeId)
 })
 
+// field8 kanal pendukung: bitmask 4 bit, didekode di satu tempat
+const aktuator = computed(() => {
+  const s = sensors.value.find(x => x.name === 'Status aktuator')
+  if (!s || !latestTelemetry.value) return null
+
+  const mentah = latestTelemetry.value[`${s.channel_id}_${s.thingspeak_field}`]
+  if (mentah == null) return null
+
+  const v = Number(mentah)
+  if (!Number.isFinite(v) || v < 0 || v > 15) return null
+
+  return {
+    kipas: !!(v & 0b0001),
+    lampu: !!(v & 0b0010),
+    valve: !!(v & 0b0100),
+    valve_timeout: !!(v & 0b1000),
+  }
+})
+
 const isArchive = computed(() => selectedRange.value !== '1d')
 
 const chartData = computed(() => {
@@ -156,7 +175,6 @@ const formattedLastSeen = computed(() => {
 const npkSensors = computed(() => sensors.value.filter(s => getSensorCategory(s) === 'npk'))
 const soilSensors = computed(() => sensors.value.filter(s => getSensorCategory(s) === 'soil'))
 const envSensors = computed(() => sensors.value.filter(s => getSensorCategory(s) === 'environment'))
-const actuatorSensors = computed(() => sensors.value.filter(s => s.name === 'Status aktuator'))
 
 // Helper to get sensor value
 const getSensorValue = (sensor: any) => {
@@ -186,7 +204,7 @@ const initMiniMap = (lat: number, lng: number) => {
 }
 
 // Fetch node coords and init mini-map
-const API_BASE_URL = 'http://localhost:8000/api/v1'
+const API_BASE_URL = '/api/v1'
 const fetchNodeCoords = async () => {
   try {
     const res = await fetch(`${API_BASE_URL}/nodes/${props.nodeId}`, {
@@ -398,7 +416,7 @@ onUnmounted(() => { miniMap?.remove(); miniMap = null })
         />
       </div>
 
-      <!-- Environment Cards (col-span-2, sits beside Soil below chart on wide) -->
+      <!-- Environment Cards (col-span-2) -->
       <div v-if="envSensors.length > 0" class="md:col-span-2 lg:col-span-2 grid grid-cols-2 gap-3">
         <SensorCard
           v-for="sensor in envSensors"
@@ -412,30 +430,47 @@ onUnmounted(() => { miniMap?.remove(); miniMap = null })
       </div>
 
       <!-- ═══ ROW BOTTOM: Actuator Status ═══ -->
-      <template v-for="sensor in actuatorSensors" :key="sensor.id">
-        <Card class="md:col-span-2 lg:col-span-4">
+      <div v-if="aktuator" class="col-span-full">
+        <Card>
           <CardContent class="p-4">
             <h3 class="text-sm font-semibold mb-3 flex items-center gap-2">
               <Zap class="w-4 h-4 text-amber-500" />
               Status Aktuator
             </h3>
+
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div 
-                v-for="i in 3" 
-                :key="i" 
+                v-for="a in [
+                  { nama: 'Kipas', aktif: aktuator.kipas },
+                  { nama: 'Lampu', aktif: aktuator.lampu },
+                  { nama: 'Valve', aktif: aktuator.valve },
+                ]" 
+                :key="a.nama"
                 class="flex items-center justify-between p-3 rounded-xl bg-muted/30 border border-border/40"
               >
-                <span class="font-medium text-sm">Actuator {{ i }}</span>
-                <Badge 
-                  :variant="(latestTelemetry && latestTelemetry[`${sensor.channel_id}_${sensor.thingspeak_field}`] != null && (latestTelemetry[`${sensor.channel_id}_${sensor.thingspeak_field}`] & Math.pow(2, i-1))) ? 'success' : 'destructive'"
-                >
-                  {{ (latestTelemetry && latestTelemetry[`${sensor.channel_id}_${sensor.thingspeak_field}`] != null && (latestTelemetry[`${sensor.channel_id}_${sensor.thingspeak_field}`] & Math.pow(2, i-1))) ? 'ON' : 'OFF' }}
+                <span class="font-medium text-sm">{{ a.nama }}</span>
+                <Badge :variant="a.aktif ? 'success' : 'destructive'">
+                  {{ a.aktif ? 'ON' : 'OFF' }}
                 </Badge>
               </div>
             </div>
+
+            <!-- Bit 3: Valve Timeout Warning Alert -->
+            <div v-if="aktuator.valve_timeout" class="mt-3 p-3 rounded-xl bg-destructive/10 border border-destructive/30 flex items-center justify-between gap-4">
+              <div class="flex items-center gap-2.5">
+                <AlertTriangle class="w-5 h-5 text-destructive shrink-0" />
+                <div>
+                  <span class="font-medium text-destructive text-sm">Valve Timeout</span>
+                  <p class="text-xs text-muted-foreground mt-0.5">
+                    Valve berhenti karena batas waktu pengaman, bukan karena tanah sudah basah.
+                  </p>
+                </div>
+              </div>
+              <Badge variant="destructive" class="shrink-0">Perlu Diperiksa</Badge>
+            </div>
           </CardContent>
         </Card>
-      </template>
+      </div>
 
     </div>
   </div>
