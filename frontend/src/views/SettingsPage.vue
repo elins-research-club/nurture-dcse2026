@@ -177,11 +177,18 @@ const fetchSensors = async () => {
       selectedNodeId.value = enrichedNodes[0].id
     }
   } catch (err) {
-
     console.error(err)
   } finally {
     isLoadingSensors.value = false
   }
+}
+
+// Filter out diagnostic status & bitmask fields from threshold configuration
+const getThresholdableSensors = (sensors: any[]) => {
+  return (sensors || []).filter(s => {
+    const name = (s.name || '').toLowerCase()
+    return !name.includes('status aktuator') && !name.includes('kode error')
+  })
 }
 
 const saveThresholds = async (node, sensor) => {
@@ -553,7 +560,7 @@ const updatePassword = async () => {
                         <div class="w-2 h-2 rounded-full bg-primary"></div>
                         {{ node.name }}
                       </h5>
-                      <span class="ml-auto text-xs text-muted-foreground">{{ node.sensors.length }} sensors</span>
+                      <span class="ml-auto text-xs text-muted-foreground">{{ getThresholdableSensors(node.sensors).length }} sensors</span>
                     </div>
                     <Transition
                       enter-active-class="transition-all duration-300 ease-in-out overflow-hidden"
@@ -564,7 +571,7 @@ const updatePassword = async () => {
                       leave-to-class="opacity-0 max-h-0"
                     >
                       <div v-show="expandedNodes[node.id]" class="grid gap-4 pl-8 border-l-2 border-muted ml-3 pb-2 mt-2">
-                        <div v-for="sensor in node.sensors" :key="sensor.id" class="flex flex-col sm:flex-row gap-4 items-end">
+                        <div v-for="sensor in getThresholdableSensors(node.sensors)" :key="sensor.id" class="flex flex-col sm:flex-row gap-4 items-end">
                           <div class="w-full sm:w-1/3">
                             <Label class="text-xs text-muted-foreground">{{ sensor.name }} ({{ sensor.unit }})</Label>
                             <div class="font-medium text-sm pt-1">{{ sensor.thingspeak_field }}</div>
