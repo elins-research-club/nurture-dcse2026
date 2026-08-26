@@ -24,10 +24,6 @@ node_online_state = {}
 # {sensor_id: is_alerting_bool}
 sensor_alert_state = {}
 
-# {node_id: valve_timeout terakhir} -- supaya alert dikirim sekali saat
-# bitnya naik, bukan tiap siklus selama latch-nya masih menyala.
-valve_timeout_state: dict[str, bool] = {}
-
 
 async def fetch_latest(channel_id: str, read_api_key: str) -> Optional[Dict[str, Any]]:
     url = f"{settings.THINGSPEAK_BASE_URL}/channels/{channel_id}/feeds/last.json"
@@ -153,42 +149,6 @@ async def poll_node(node_id: str, channels: list, db_session):
                     await send_telegram_alert(db_session, msg)
                     await event_log_repo.create(db_session, EventLogCreate(level="INFO", message=f"{s.name} returned to normal: {val}{s.unit}", node_id=node.id))
                     sensor_alert_state[sensor_id_str] = False
-
-        # Aktuator tidak punya ambang, yang ada perubahan status.
-        # valve_timeout naik = valve berhenti karena batas waktu pengaman,
-        # bukan karena tanah sudah basah. Itu tanda masalah di lapangan.
-        if aktuator is not None:
-            timeout_kini = aktuator["valve_timeout"]
-            timeout_lalu = valve_timeout_state.get(node_id, False)
-
-            if timeout_kini and not timeout_lalu:
-                msg = (
-                    f"⚠️ <b>Valve Timeout</b>\n"
-                    f"Kebun <code>{node.name}</code>\n"
-                    f"Valve berhenti karena batas waktu pengaman, bukan karena "
-                    f"tanah sudah basah. Periksa aliran air dan sensor kelembapan."
-                )
-                await send_telegram_alert(db_session, msg)
-                await kirim_push(
-                    db_session,
-                    "Valve Timeout",
-                    f"{node.name} — valve berhenti karena batas waktu pengaman. Periksa aliran air.",
-                    "/dashboard",
-                )
-                await event_log_repo.create(db_session, EventLogCreate(
-                    level="WARNING",
-                    message=f"Valve pada {node.name} berhenti karena timeout pengaman.",
-                    node_id=node.id,
-                ))
-
-            elif timeout_lalu and not timeout_kini:
-                await event_log_repo.create(db_session, EventLogCreate(
-                    level="INFO",
-                    message=f"Valve timeout pada {node.name} sudah pulih.",
-                    node_id=node.id,
-                ))
-
-            valve_timeout_state[node_id] = timeout_kini
 
         await node_repo.update_last_seen(db_session, node)
 

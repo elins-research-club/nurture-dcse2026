@@ -9,7 +9,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Calendar, Clock, Check, Layers, Sprout, CloudSun, Leaf, Zap, MapPin, AlertTriangle } from 'lucide-vue-next'
+import { Calendar, Clock, Check, Layers, Sprout, CloudSun, Leaf, Zap, MapPin } from 'lucide-vue-next'
 import L from 'leaflet'
 
 const props = defineProps<{
@@ -116,7 +116,7 @@ const latestTelemetry = computed(() => {
   return telemetryStore.getLatest(props.nodeId)
 })
 
-// field8 kanal pendukung: bitmask 4 bit, didekode di satu tempat
+// field8 kanal pendukung: bitmask 3 bit (Kipas, Lampu, Valve)
 const aktuator = computed(() => {
   const s = sensors.value.find(x => x.name === 'Status aktuator')
   if (!s || !latestTelemetry.value) return null
@@ -125,13 +125,12 @@ const aktuator = computed(() => {
   if (mentah == null) return null
 
   const v = Number(mentah)
-  if (!Number.isFinite(v) || v < 0 || v > 15) return null
+  if (!Number.isFinite(v) || v < 0 || v > 7) return null
 
   return {
     kipas: !!(v & 0b0001),
     lampu: !!(v & 0b0010),
     valve: !!(v & 0b0100),
-    valve_timeout: !!(v & 0b1000),
   }
 })
 
@@ -453,20 +452,6 @@ onUnmounted(() => { miniMap?.remove(); miniMap = null })
                   {{ a.aktif ? 'ON' : 'OFF' }}
                 </Badge>
               </div>
-            </div>
-
-            <!-- Bit 3: Valve Timeout Warning Alert -->
-            <div v-if="aktuator.valve_timeout" class="mt-3 p-3 rounded-xl bg-destructive/10 border border-destructive/30 flex items-center justify-between gap-4">
-              <div class="flex items-center gap-2.5">
-                <AlertTriangle class="w-5 h-5 text-destructive shrink-0" />
-                <div>
-                  <span class="font-medium text-destructive text-sm">Valve Timeout</span>
-                  <p class="text-xs text-muted-foreground mt-0.5">
-                    Valve berhenti karena batas waktu pengaman, bukan karena tanah sudah basah.
-                  </p>
-                </div>
-              </div>
-              <Badge variant="destructive" class="shrink-0">Perlu Diperiksa</Badge>
             </div>
           </CardContent>
         </Card>
