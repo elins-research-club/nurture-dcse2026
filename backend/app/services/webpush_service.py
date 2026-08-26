@@ -30,6 +30,8 @@ def _kirim_satu(langganan: dict, muatan: str) -> None:
         data=muatan,
         vapid_private_key=settings.VAPID_PRIVATE_KEY,
         vapid_claims={"sub": settings.VAPID_SUBJECT},
+        ttl=86400,
+        headers={"X-WNS-Type": "wns/raw"},
     )
 
 
