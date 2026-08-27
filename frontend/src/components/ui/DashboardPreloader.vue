@@ -12,7 +12,7 @@ const logos = [
     <div class="fixed inset-0 z-[99999] w-screen h-screen flex flex-col items-center justify-center bg-background select-none transition-colors duration-300">
       <div class="flex flex-col items-center gap-5 sm:gap-6">
         <!-- Top Title: COMMUNITY SERVICE PROGRAM -->
-        <p class="text-xs sm:text-[13px] font-bold uppercase tracking-[0.2em] text-muted-foreground/80">
+        <p class="text-xs sm:text-[13px] font-bold uppercase tracking-[0.2em] text-slate-600 dark:text-slate-300">
           Community Service Program
         </p>
 
@@ -33,12 +33,12 @@ const logos = [
         </div>
 
         <!-- Sentence with sequential looping three dots -->
-        <div class="flex items-center text-xs sm:text-sm font-medium text-muted-foreground tracking-wide">
+        <div class="flex items-center text-xs sm:text-sm font-semibold text-slate-600 dark:text-slate-300 tracking-wide">
           <span>Mohon tunggu</span>
           <span class="inline-flex items-center ml-1 gap-0.5">
-            <span class="dot dot-1 font-bold text-foreground">.</span>
-            <span class="dot dot-2 font-bold text-foreground">.</span>
-            <span class="dot dot-3 font-bold text-foreground">.</span>
+            <span class="dot dot-1 font-bold">.</span>
+            <span class="dot dot-2 font-bold">.</span>
+            <span class="dot dot-3 font-bold">.</span>
           </span>
         </div>
       </div>

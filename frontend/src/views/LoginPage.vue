@@ -139,21 +139,21 @@ const handleLogin = () => {
 
       </div>
 
-      <!-- Institutional Credits / Community Service Footer -->
-      <div class="mt-8 text-center space-y-4">
-        <p class="text-xs font-semibold uppercase tracking-wider text-muted-foreground/80">
-          Community Service Program
-        </p>
-        <div class="flex items-center justify-center gap-6 grayscale opacity-80 hover:grayscale-0 hover:opacity-100 transition-all duration-300">
-          <img src="/Logo-UGM.png" alt="Universitas Gadjah Mada" class="h-[45px] max-w-[53px] object-contain select-none dark:brightness-0 dark:invert" title="Universitas Gadjah Mada" />
-          <img src="/Logo-DIKE.png" alt="Departemen Ilmu Komputer dan Elektronika" class="h-9 max-w-[75px] object-contain select-none dark:brightness-0 dark:invert" title="Departemen Ilmu Komputer dan Elektronika UGM" />
-          <img src="/logo-icon.webp" alt="Laboratorium Elektronika dan Instrumentasi" class="h-9 max-w-[40px] object-contain select-none" title="Laboratorium Elektronika dan Instrumentasi" />
-          <img src="/logo-webdev.webp" alt="Webdev ERC" class="h-9 max-w-[40px] object-contain select-none dark:invert" title="Webdev ERC" />
+        <!-- Institutional Credits / Community Service Footer -->
+        <div class="mt-8 text-center space-y-4">
+          <p class="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
+            Community Service Program
+          </p>
+          <div class="flex items-center justify-center gap-6 grayscale opacity-80 hover:grayscale-0 hover:opacity-100 transition-all duration-300">
+            <img src="/Logo-UGM.png" alt="Universitas Gadjah Mada" class="h-[45px] max-w-[53px] object-contain select-none dark:brightness-0 dark:invert" title="Universitas Gadjah Mada" />
+            <img src="/Logo-DIKE.png" alt="Departemen Ilmu Komputer dan Elektronika" class="h-9 max-w-[75px] object-contain select-none dark:brightness-0 dark:invert" title="Departemen Ilmu Komputer dan Elektronika UGM" />
+            <img src="/logo-icon.webp" alt="Laboratorium Elektronika dan Instrumentasi" class="h-9 max-w-[40px] object-contain select-none" title="Laboratorium Elektronika dan Instrumentasi" />
+            <img src="/logo-webdev.webp" alt="Webdev ERC" class="h-9 max-w-[40px] object-contain select-none dark:invert" title="Webdev ERC" />
+          </div>
+          <p class="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+            &copy; 2026 G-CONNECT &bull; Laboratorium ELINS DIKE UGM
+          </p>
         </div>
-        <p class="text-xs text-muted-foreground/60">
-          &copy; 2026 G-CONNECT &bull; Laboratorium ELINS DIKE UGM
-        </p>
-      </div>
 
     </div>
   </div>
