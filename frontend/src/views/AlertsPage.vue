@@ -87,145 +87,156 @@ const visiblePages = computed(() => {
 
 <template>
   <DashboardLayout>
-    <div class="flex flex-col space-y-4">
+    <div class="flex flex-col space-y-5">
       
-      <!-- Page Header (Subtitle removed) -->
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <!-- Page Header with Micro-animations -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 class="text-2xl font-bold tracking-tight text-foreground">Alerts & Event Logs</h2>
+          <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">Alerts & Event Logs</h2>
         </div>
 
-        <!-- Level Filter Tabs (Clean Light & Dark Mode Pills) -->
-        <div class="flex items-center bg-slate-200/90 dark:bg-slate-800 p-1 rounded-xl border border-slate-300/80 dark:border-slate-700 text-xs">
+        <!-- ═══════════════ MICRO-ANIMATION 1: INTERACTIVE FILTER PILLS ═══════════════ -->
+        <div class="flex items-center bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl border border-border/80 text-sm gap-1 shadow-2xs">
           <button
             @click="selectedLevel = undefined"
             :class="[
-              'px-3 py-1 rounded-lg font-bold transition-all cursor-pointer flex items-center gap-1.5',
+              'px-3.5 py-1.5 rounded-xl font-bold transition-all duration-200 cursor-pointer flex items-center gap-1.5 text-xs sm:text-sm hover:-translate-y-0.5 active:scale-95 group',
               selectedLevel === undefined 
-                ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border border-slate-300/90 dark:border-slate-700 shadow-none' 
+                ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border border-slate-300/90 dark:border-slate-700 shadow-xs' 
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
             ]"
           >
-            <span>Semua</span>
+            <span class="group-hover:scale-105 transition-transform duration-200">Semua</span>
           </button>
+
           <button
             @click="selectedLevel = 'INFO'"
             :class="[
-              'px-3 py-1 rounded-lg font-bold transition-all cursor-pointer flex items-center gap-1.5',
+              'px-3.5 py-1.5 rounded-xl font-bold transition-all duration-200 cursor-pointer flex items-center gap-1.5 text-xs sm:text-sm hover:-translate-y-0.5 active:scale-95 group',
               selectedLevel === 'INFO' 
-                ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 border border-slate-300/90 dark:border-slate-700 shadow-none' 
+                ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 border border-slate-300/90 dark:border-slate-700 shadow-xs' 
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
             ]"
           >
-            <Info class="w-3.5 h-3.5 text-blue-500" />
+            <Info class="w-4 h-4 text-blue-500 transition-transform duration-200 group-hover:rotate-12 group-hover:scale-110" />
             <span>Info</span>
           </button>
+
           <button
             @click="selectedLevel = 'WARNING'"
             :class="[
-              'px-3 py-1 rounded-lg font-bold transition-all cursor-pointer flex items-center gap-1.5',
+              'px-3.5 py-1.5 rounded-xl font-bold transition-all duration-200 cursor-pointer flex items-center gap-1.5 text-xs sm:text-sm hover:-translate-y-0.5 active:scale-95 group',
               selectedLevel === 'WARNING' 
-                ? 'bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 border border-slate-300/90 dark:border-slate-700 shadow-none' 
+                ? 'bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 border border-slate-300/90 dark:border-slate-700 shadow-xs' 
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
             ]"
           >
-            <AlertTriangle class="w-3.5 h-3.5 text-amber-500" />
+            <AlertTriangle class="w-4 h-4 text-amber-500 transition-transform duration-200 group-hover:-rotate-12 group-hover:scale-110" />
             <span>Warning</span>
           </button>
+
           <button
             @click="selectedLevel = 'ERROR'"
             :class="[
-              'px-3 py-1 rounded-lg font-bold transition-all cursor-pointer flex items-center gap-1.5',
+              'px-3.5 py-1.5 rounded-xl font-bold transition-all duration-200 cursor-pointer flex items-center gap-1.5 text-xs sm:text-sm hover:-translate-y-0.5 active:scale-95 group',
               selectedLevel === 'ERROR' 
-                ? 'bg-white dark:bg-slate-900 text-rose-600 dark:text-rose-400 border border-slate-300/90 dark:border-slate-700 shadow-none' 
+                ? 'bg-white dark:bg-slate-900 text-rose-600 dark:text-rose-400 border border-slate-300/90 dark:border-slate-700 shadow-xs' 
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
             ]"
           >
-            <XCircle class="w-3.5 h-3.5 text-rose-500" />
+            <XCircle class="w-4 h-4 text-rose-500 transition-transform duration-200 group-hover:rotate-90 group-hover:scale-110" />
             <span>Error</span>
           </button>
         </div>
       </div>
       
       <!-- Main Content Card -->
-      <Card class="border border-border/80 bg-white dark:bg-card shadow-none">
+      <Card class="border border-border/80 bg-white dark:bg-card shadow-xs rounded-2xl">
         <!-- Card Header with Count & Refresh -->
-        <CardHeader class="p-4 border-b border-border/60 flex flex-row items-center justify-between space-y-0">
-          <div class="flex items-center gap-2">
-            <Bell class="w-4 h-4 text-primary" />
-            <CardTitle class="text-base font-bold">Riwayat Log Peristiwa</CardTitle>
-            <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+        <CardHeader class="p-5 border-b border-border/60 flex flex-row items-center justify-between space-y-0">
+          <div class="flex items-center gap-2.5">
+            <Bell class="w-5 h-5 text-primary" />
+            <CardTitle class="text-base sm:text-lg font-bold text-foreground">Daftar Logs</CardTitle>
+            
+            <span class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
               {{ totalCount }} Total
             </span>
           </div>
 
+          <!-- ═══════════════ MICRO-ANIMATION 3: KINETIC REFRESH BUTTON ═══════════════ -->
           <Button 
             variant="outline" 
             size="sm" 
-            class="h-8 text-xs gap-1.5 shadow-none border-border/80 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
+            class="h-9 px-3.5 rounded-xl text-xs sm:text-sm font-semibold gap-2 shadow-none border-border/80 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer hover:scale-105 active:scale-95 transition-all duration-200 group"
             @click="logsQuery.refetch()"
             :disabled="logsQuery.isFetching.value"
           >
-            <RefreshCw :class="['w-3 h-3', logsQuery.isFetching.value ? 'animate-spin' : '']" />
+            <RefreshCw :class="['w-3.5 h-3.5 transition-transform duration-300 group-hover:rotate-90', logsQuery.isFetching.value ? 'animate-spin' : '']" />
             <span>Refresh</span>
           </Button>
         </CardHeader>
 
-        <CardContent class="p-4 flex flex-col gap-4">
+        <CardContent class="p-5 flex flex-col gap-4">
           
           <!-- Loading State -->
           <div v-if="logsQuery.isLoading.value" class="py-16 text-center text-muted-foreground">
-            <div class="flex items-center justify-center gap-2 animate-pulse">
-              <RefreshCw class="animate-spin h-5 w-5 text-primary" />
-              <span>Memuat log peristiwa...</span>
+            <div class="flex items-center justify-center gap-2.5 animate-pulse">
+              <RefreshCw class="animate-spin h-6 w-6 text-primary" />
+              <span class="text-sm font-semibold">Memuat log peristiwa...</span>
             </div>
           </div>
 
           <!-- Error State -->
-          <div v-else-if="logsQuery.isError.value" class="py-12 text-center text-destructive border border-rose-200 bg-rose-50/50 rounded-xl">
-            <AlertTriangle class="w-8 h-8 mx-auto mb-2 text-rose-500" />
-            <p class="font-semibold text-sm">Gagal memuat log peristiwa</p>
-            <p class="text-xs text-muted-foreground mt-1">Periksa koneksi jaringan atau hubungi administrator.</p>
+          <div v-else-if="logsQuery.isError.value" class="py-12 text-center text-destructive border border-rose-200 bg-rose-50/50 rounded-2xl">
+            <AlertTriangle class="w-10 h-10 mx-auto mb-2.5 text-rose-500 animate-bounce" />
+            <p class="font-bold text-base">Gagal memuat log peristiwa</p>
+            <p class="text-xs sm:text-sm text-muted-foreground mt-1">Periksa koneksi jaringan atau hubungi administrator.</p>
           </div>
 
           <!-- Empty State -->
-          <div v-else-if="!logsQuery.data.value || logsQuery.data.value.length === 0" class="py-16 text-center text-muted-foreground border border-dashed rounded-xl">
-            <Bell class="w-8 h-8 mx-auto mb-2 opacity-40 text-primary" />
-            <p class="font-semibold text-sm">Tidak ada log peristiwa yang ditemukan</p>
-            <p class="text-xs text-muted-foreground mt-1">Belum ada aktivitas atau filter yang dipilih tidak memiliki rekaman.</p>
+          <div v-else-if="!logsQuery.data.value || logsQuery.data.value.length === 0" class="py-16 text-center text-muted-foreground border border-dashed rounded-2xl">
+            <Bell class="w-10 h-10 mx-auto mb-2.5 opacity-40 text-primary" />
+            <p class="font-bold text-base text-foreground">Tidak ada log peristiwa yang ditemukan</p>
+            <p class="text-xs sm:text-sm text-muted-foreground mt-1">Belum ada aktivitas atau filter yang dipilih tidak memiliki rekaman.</p>
           </div>
           
-          <!-- Log List -->
-          <div v-else class="space-y-2.5">
+          <!-- ═══════════════ MICRO-ANIMATION 4: STAGGERED CASCADE LIST ═══════════════ -->
+          <div v-else class="space-y-3">
             <div 
-              v-for="log in logsQuery.data.value" 
+              v-for="(log, idx) in logsQuery.data.value" 
               :key="log.id"
-              class="flex items-start gap-3.5 p-3.5 rounded-xl border border-slate-200/80 bg-slate-50/50 hover:bg-slate-100/70 transition-colors"
+              class="animate-alert-cascade flex items-start gap-4 p-4 rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/40 hover:bg-white dark:hover:bg-slate-800/80 hover:border-primary/40 hover:translate-x-1.5 hover:shadow-md transition-all duration-200 group cursor-default"
+              :style="{ animationDelay: `${(idx % 12) * 35}ms` }"
             >
-              <!-- Icon by Level -->
-              <div class="shrink-0 mt-0.5">
-                <div v-if="log.level === 'INFO'" class="w-7 h-7 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-600">
-                  <Info class="w-4 h-4" />
+              <!-- ═══════════════ MICRO-ANIMATION 5: LEVEL ICON BEACON & HOVER ROTATION ═══════════════ -->
+              <div class="shrink-0 mt-0.5 relative">
+                <!-- ERROR Live Beacon Ping Ring -->
+                <span v-if="log.level === 'ERROR'" class="animate-ping absolute -inset-0.5 rounded-xl bg-rose-500/40 opacity-75"></span>
+                <!-- WARNING Pulse Beacon Ring -->
+                <span v-if="log.level === 'WARNING'" class="animate-pulse absolute -inset-0.5 rounded-xl bg-amber-500/30 opacity-60"></span>
+
+                <div v-if="log.level === 'INFO'" class="w-9 h-9 rounded-xl bg-blue-500/10 dark:bg-blue-500/20 border border-blue-500/20 flex items-center justify-center text-blue-600 dark:text-blue-400 group-hover:scale-110 group-hover:rotate-6 transition-transform duration-200 shadow-2xs relative z-10">
+                  <Info class="w-5 h-5" />
                 </div>
-                <div v-else-if="log.level === 'WARNING'" class="w-7 h-7 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-600">
-                  <AlertTriangle class="w-4 h-4" />
+                <div v-else-if="log.level === 'WARNING'" class="w-9 h-9 rounded-xl bg-amber-500/10 dark:bg-amber-500/20 border border-amber-500/20 flex items-center justify-center text-amber-600 dark:text-amber-400 group-hover:scale-110 group-hover:-rotate-6 transition-transform duration-200 shadow-2xs relative z-10">
+                  <AlertTriangle class="w-5 h-5" />
                 </div>
-                <div v-else-if="log.level === 'ERROR'" class="w-7 h-7 rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-600">
-                  <XCircle class="w-4 h-4" />
+                <div v-else-if="log.level === 'ERROR'" class="w-9 h-9 rounded-xl bg-rose-500/10 dark:bg-rose-500/20 border border-rose-500/20 flex items-center justify-center text-rose-600 dark:text-rose-400 group-hover:scale-110 group-hover:rotate-12 transition-transform duration-200 shadow-2xs relative z-10">
+                  <XCircle class="w-5 h-5" />
                 </div>
-                <div v-else class="w-7 h-7 rounded-lg bg-slate-200 flex items-center justify-center text-slate-600">
-                  <Info class="w-4 h-4" />
+                <div v-else class="w-9 h-9 rounded-xl bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400 group-hover:scale-110 transition-transform duration-200 shadow-2xs relative z-10">
+                  <Info class="w-5 h-5" />
                 </div>
               </div>
               
               <!-- Content -->
-              <div class="flex-1 min-w-0 space-y-1">
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                  <p class="font-semibold text-sm text-foreground break-words">
+              <div class="flex-1 min-w-0 space-y-1.5">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+                  <p class="font-bold text-sm sm:text-base text-foreground break-words leading-snug group-hover:text-primary transition-colors duration-200">
                     {{ log.message }}
                   </p>
-                  <div class="flex items-center text-xs text-muted-foreground whitespace-nowrap shrink-0">
-                    <Clock class="w-3 h-3 mr-1 text-primary" />
+                  <div class="flex items-center text-xs sm:text-sm text-muted-foreground whitespace-nowrap shrink-0 font-medium group-hover:text-slate-700 dark:group-hover:text-slate-300 transition-colors duration-200">
+                    <Clock class="w-3.5 h-3.5 mr-1.5 text-primary group-hover:rotate-45 transition-transform duration-300" />
                     <span>{{ formatDate(log.created_at) }}</span>
                   </div>
                 </div>
@@ -233,11 +244,11 @@ const visiblePages = computed(() => {
                 <div class="flex items-center gap-2 pt-0.5">
                   <span 
                     :class="[
-                      'text-[10px] font-bold px-2 py-0.2 rounded-full border uppercase tracking-wider',
-                      log.level === 'INFO' ? 'bg-blue-500/10 text-blue-700 border-blue-500/30' :
-                      log.level === 'WARNING' ? 'bg-amber-500/10 text-amber-700 border-amber-500/30' :
-                      log.level === 'ERROR' ? 'bg-rose-500/10 text-rose-700 border-rose-500/30' :
-                      'bg-slate-200 text-slate-700 border-slate-300'
+                      'text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border uppercase tracking-wider transition-transform duration-200 group-hover:scale-105',
+                      log.level === 'INFO' ? 'bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/30' :
+                      log.level === 'WARNING' ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30' :
+                      log.level === 'ERROR' ? 'bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/30' :
+                      'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700'
                     ]"
                   >
                     {{ log.level }}
@@ -246,36 +257,36 @@ const visiblePages = computed(() => {
                   <!-- Human readable Node name / code (e.g. IoT Lab ELINS or NODE001) -->
                   <span 
                     v-if="log.node_name || log.node_code" 
-                    class="text-[10px] font-medium text-slate-700 bg-white px-2 py-0.5 rounded-full border border-slate-200 shadow-none"
+                    class="text-[11px] font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 px-2.5 py-0.5 rounded-full border border-slate-200 dark:border-slate-700 shadow-xs transition-transform duration-200 group-hover:scale-105"
                   >
-                    Node: <strong class="font-semibold text-foreground">{{ log.node_name || log.node_code }}</strong>
+                    Node: <strong class="font-bold text-foreground">{{ log.node_name || log.node_code }}</strong>
                   </span>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- ═══════════════ PAGINATION CONTROLS (25, 50, 100) ═══════════════ -->
-          <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-3 border-t border-border/60 text-xs text-muted-foreground">
+          <!-- ═══════════════ MICRO-ANIMATION 6: SPRING PAGINATION CONTROLS ═══════════════ -->
+          <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-border/60 text-xs sm:text-sm text-muted-foreground font-medium">
             
             <!-- Left: Items Info & Page Size Options -->
             <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
               <span>
-                Menampilkan <strong class="text-foreground">{{ startItem }} - {{ endItem }}</strong> dari <strong class="text-foreground">{{ totalCount }}</strong> log
+                Menampilkan <strong class="text-foreground font-bold">{{ startItem }} - {{ endItem }}</strong> dari <strong class="text-foreground font-bold">{{ totalCount }}</strong> log
               </span>
 
               <!-- Page Size Selection (25, 50, 100) -->
               <div class="flex items-center gap-1.5">
                 <span class="text-muted-foreground">Tampilkan:</span>
-                <div class="flex items-center bg-slate-100 rounded-lg p-0.5 border border-slate-200">
+                <div class="flex items-center bg-slate-100 dark:bg-slate-800 rounded-xl p-1 border border-border/80">
                   <button
                     v-for="size in pageSizeOptions"
                     :key="size"
                     @click="pageSize = size"
                     :class="[
-                      'px-2 py-0.5 rounded-md font-semibold text-xs transition-all cursor-pointer',
+                      'px-2.5 py-0.5 rounded-lg font-bold text-xs transition-all duration-200 cursor-pointer hover:scale-105 active:scale-95',
                       pageSize === size 
-                        ? 'bg-white text-foreground border border-slate-200 shadow-none' 
+                        ? 'bg-white dark:bg-slate-900 text-foreground border border-slate-200 dark:border-slate-700 shadow-xs' 
                         : 'text-muted-foreground hover:text-foreground'
                     ]"
                   >
@@ -286,45 +297,45 @@ const visiblePages = computed(() => {
               </div>
             </div>
 
-            <!-- Right: Pagination Navigation -->
-            <div class="flex items-center gap-1">
+            <!-- Right: Pagination Navigation with Micro-Spring -->
+            <div class="flex items-center gap-1.5">
               <!-- First Page -->
               <Button
                 variant="outline"
                 size="icon"
-                class="h-8 w-8 shadow-none border-border/80 hover:bg-slate-50 cursor-pointer"
+                class="h-9 w-9 rounded-xl shadow-none border-border/80 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer hover:scale-110 active:scale-90 hover:-translate-x-0.5 transition-all duration-200 group"
                 :disabled="currentPage <= 1 || logsQuery.isLoading.value"
                 @click="changePage(1)"
                 title="Halaman Pertama"
               >
-                <ChevronsLeft class="w-3.5 h-3.5" />
+                <ChevronsLeft class="w-4 h-4 transition-transform duration-200 group-hover:-translate-x-0.5" />
               </Button>
 
               <!-- Previous Page -->
               <Button
                 variant="outline"
                 size="icon"
-                class="h-8 w-8 shadow-none border-border/80 hover:bg-slate-50 cursor-pointer"
+                class="h-9 w-9 rounded-xl shadow-none border-border/80 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer hover:scale-110 active:scale-90 hover:-translate-x-0.5 transition-all duration-200 group"
                 :disabled="currentPage <= 1 || logsQuery.isLoading.value"
                 @click="changePage(currentPage - 1)"
                 title="Halaman Sebelumnya"
               >
-                <ChevronLeft class="w-3.5 h-3.5" />
+                <ChevronLeft class="w-4 h-4 transition-transform duration-200 group-hover:-translate-x-0.5" />
               </Button>
 
               <!-- Page Number Buttons -->
               <template v-for="(p, idx) in visiblePages" :key="idx">
-                <span v-if="p === '...'" class="px-1 text-slate-400 font-semibold">
+                <span v-if="p === '...'" class="px-1.5 text-slate-400 font-bold">
                   ...
                 </span>
                 <button
                   v-else
                   @click="changePage(Number(p))"
                   :class="[
-                    'h-8 min-w-[2rem] px-2 rounded-lg font-semibold text-xs transition-all cursor-pointer border',
+                    'h-9 min-w-[2.25rem] px-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all duration-200 cursor-pointer border hover:scale-110 active:scale-90 hover:-translate-y-0.5',
                     currentPage === p 
-                      ? 'bg-primary text-primary-foreground border-primary' 
-                      : 'bg-white text-foreground border-border/80 hover:bg-slate-50'
+                      ? 'bg-primary text-primary-foreground border-primary shadow-xs' 
+                      : 'bg-white dark:bg-card text-foreground border-border/80 hover:bg-slate-50 dark:hover:bg-slate-800'
                   ]"
                 >
                   {{ p }}
@@ -335,24 +346,24 @@ const visiblePages = computed(() => {
               <Button
                 variant="outline"
                 size="icon"
-                class="h-8 w-8 shadow-none border-border/80 hover:bg-slate-50 cursor-pointer"
+                class="h-9 w-9 rounded-xl shadow-none border-border/80 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer hover:scale-110 active:scale-90 hover:translate-x-0.5 transition-all duration-200 group"
                 :disabled="currentPage >= totalPages || logsQuery.isLoading.value"
                 @click="changePage(currentPage + 1)"
                 title="Halaman Selanjutnya"
               >
-                <ChevronRight class="w-3.5 h-3.5" />
+                <ChevronRight class="w-4 h-4 transition-transform duration-200 group-hover:translate-x-0.5" />
               </Button>
 
               <!-- Last Page -->
               <Button
                 variant="outline"
                 size="icon"
-                class="h-8 w-8 shadow-none border-border/80 hover:bg-slate-50 cursor-pointer"
+                class="h-9 w-9 rounded-xl shadow-none border-border/80 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer hover:scale-110 active:scale-90 hover:translate-x-0.5 transition-all duration-200 group"
                 :disabled="currentPage >= totalPages || logsQuery.isLoading.value"
                 @click="changePage(totalPages)"
                 title="Halaman Terakhir"
               >
-                <ChevronsRight class="w-3.5 h-3.5" />
+                <ChevronsRight class="w-4 h-4 transition-transform duration-200 group-hover:translate-x-0.5" />
               </Button>
             </div>
 
@@ -363,3 +374,30 @@ const visiblePages = computed(() => {
     </div>
   </DashboardLayout>
 </template>
+
+<style scoped>
+@keyframes alertSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-alert-cascade {
+  animation: alertSlideUp 0.38s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes bounceSubtle {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+</style>

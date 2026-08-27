@@ -48,6 +48,10 @@ const router = createRouter({
       name: 'map',
       component: () => import('@/views/MapPage.vue'),
       meta: { requiresAuth: true }
+    },
+    {
+      path: '/maps',
+      redirect: '/map'
     }
   ]
 })

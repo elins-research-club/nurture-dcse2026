@@ -73,7 +73,7 @@ const handleLogin = () => {
           </div>
           <div class="text-center">
             <h1 class="text-2xl font-bold tracking-tight text-foreground">G-CONNECT</h1>
-            <p class="text-sm text-muted-foreground mt-0.5">Smart Farming Monitoring</p>
+            <p class="text-sm text-muted-foreground mt-0.5">Smart Farming Platform</p>
           </div>
         </div>
 

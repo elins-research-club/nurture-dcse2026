@@ -8,6 +8,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -121,17 +122,41 @@ const isActive = (path: string) => {
 
   <!-- Logout Confirmation Dialog -->
   <Dialog :open="isLogoutModalOpen" @update:open="isLogoutModalOpen = $event">
-    <DialogContent class="sm:max-w-[425px]">
-      <DialogHeader>
-        <DialogTitle>Konfirmasi Logout</DialogTitle>
-      </DialogHeader>
-      <div class="py-4">
-        <p class="text-sm text-muted-foreground">Apakah Anda yakin ingin keluar dari sistem G-CONNECT?</p>
+    <DialogContent class="sm:max-w-[380px] p-6 rounded-2xl border border-border/80 shadow-2xl bg-white dark:bg-card">
+      <div class="flex flex-col items-center pt-2">
+        <!-- Large Centered Logout Icon with Soft Glow Ring -->
+        <div class="w-16 h-16 sm:w-18 sm:h-18 rounded-2xl bg-rose-500/10 dark:bg-rose-500/20 border border-rose-500/20 flex items-center justify-center text-rose-600 dark:text-rose-400 mb-4 shadow-inner">
+          <LogOut class="w-8 h-8 sm:w-9 sm:h-9" />
+        </div>
+
+        <DialogHeader class="text-center sm:text-center space-y-1.5 w-full">
+          <DialogTitle class="text-lg sm:text-xl font-extrabold text-foreground tracking-tight text-center">
+            Konfirmasi Logout
+          </DialogTitle>
+          <DialogDescription class="text-xs sm:text-sm text-muted-foreground text-center leading-relaxed font-medium">
+            Apakah Anda yakin ingin keluar dari sesi sistem monitoring <strong class="text-foreground font-bold">G-CONNECT</strong>?
+          </DialogDescription>
+        </DialogHeader>
+
+        <!-- Action Buttons -->
+        <div class="grid grid-cols-2 gap-3 w-full mt-6">
+          <Button 
+            variant="outline" 
+            class="h-10 rounded-xl font-bold border-border/80 hover:bg-slate-100 dark:hover:bg-slate-800 text-foreground cursor-pointer text-xs sm:text-sm transition-all"
+            @click="isLogoutModalOpen = false"
+          >
+            Batal
+          </Button>
+          <Button 
+            variant="destructive" 
+            class="h-10 rounded-xl font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-sm cursor-pointer text-xs sm:text-sm gap-1.5 transition-all"
+            @click="confirmLogout"
+          >
+            <LogOut class="w-4 h-4" />
+            <span>Logout</span>
+          </Button>
+        </div>
       </div>
-      <DialogFooter class="flex gap-2 justify-end">
-        <Button variant="outline" @click="isLogoutModalOpen = false">Batal</Button>
-        <Button variant="destructive" @click="confirmLogout">Logout</Button>
-      </DialogFooter>
     </DialogContent>
   </Dialog>
 </template>
