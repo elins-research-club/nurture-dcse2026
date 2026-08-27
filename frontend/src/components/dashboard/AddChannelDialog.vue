@@ -63,41 +63,42 @@ const handleSubmit = async () => {
       </slot>
     </DialogTrigger>
     
-    <DialogContent class="sm:max-w-xl">
+    <DialogContent class="sm:max-w-xl rounded-2xl">
       <DialogHeader>
-        <DialogTitle>Add ThingSpeak Channel</DialogTitle>
-        <DialogDescription>
-          Link a ThingSpeak channel to this node to receive telemetry data.
-        </DialogDescription>
+        <DialogTitle class="text-lg font-bold text-foreground">Tambah Channel ThingSpeak</DialogTitle>
       </DialogHeader>
       
-      <div class="grid gap-4 py-4">
-        <div class="space-y-2">
-          <Label for="label">Label (Optional)</Label>
-          <Input id="label" v-model="label" placeholder="e.g. Sensors 1-8" />
+      <div class="grid gap-4 py-3">
+        <div class="space-y-1.5">
+          <Label for="label" class="text-xs font-bold text-foreground">Label (Opsional)</Label>
+          <Input id="label" v-model="label" placeholder="Contoh: Kanal 1 - Nutrisi & Tanah" class="rounded-xl h-9 text-xs sm:text-sm" />
         </div>
-        <div class="space-y-2">
-          <Label for="channelId">Channel ID</Label>
-          <Input id="channelId" v-model="channelId" placeholder="e.g. 1234567" />
+        <div class="space-y-1.5">
+          <Label for="channelId" class="text-xs font-bold text-foreground">Channel ID</Label>
+          <Input id="channelId" v-model="channelId" placeholder="Contoh: 3461921" class="rounded-xl h-9 text-xs sm:text-sm font-mono" />
         </div>
-        <div class="space-y-2">
-          <Label for="readApiKey">Read API Key</Label>
-          <Input id="readApiKey" v-model="readApiKey" placeholder="e.g. ABCDEFG123456XYZ" />
+        <div class="space-y-1.5">
+          <Label for="readApiKey" class="text-xs font-bold text-foreground">Read API Key</Label>
+          <Input id="readApiKey" v-model="readApiKey" placeholder="Contoh: ABCDEFG123456XYZ" class="rounded-xl h-9 text-xs sm:text-sm font-mono" />
         </div>
-        <div class="space-y-2">
-          <Label for="writeApiKey">Write API Key (Optional for now)</Label>
-          <Input id="writeApiKey" v-model="writeApiKey" placeholder="e.g. ZYX654321GFEDCBA" />
+        <div class="space-y-1.5">
+          <Label for="writeApiKey" class="text-xs font-bold text-foreground">Write API Key (Opsional)</Label>
+          <Input id="writeApiKey" v-model="writeApiKey" placeholder="Contoh: ZYX654321GFEDCBA" class="rounded-xl h-9 text-xs sm:text-sm font-mono" />
         </div>
         
-        <div v-if="errorMsg" class="text-sm text-destructive font-medium">
+        <div v-if="errorMsg" class="text-xs text-destructive font-semibold bg-destructive/10 p-2.5 rounded-xl border border-destructive/20">
           {{ errorMsg }}
         </div>
       </div>
       
-      <DialogFooter>
-        <Button variant="outline" @click="isOpen = false">Cancel</Button>
-        <Button @click="handleSubmit" :disabled="addChannelMutation.isPending.value">
-          {{ addChannelMutation.isPending.value ? 'Adding...' : 'Add Channel' }}
+      <DialogFooter class="gap-2 sm:gap-0 pt-2 border-t border-border/80">
+        <Button variant="outline" class="rounded-xl font-semibold text-xs cursor-pointer" @click="isOpen = false">Batal</Button>
+        <Button 
+          class="rounded-xl font-bold text-xs bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs cursor-pointer" 
+          @click="handleSubmit" 
+          :disabled="addChannelMutation.isPending.value"
+        >
+          {{ addChannelMutation.isPending.value ? 'Menambahkan...' : 'Tambah Channel' }}
         </Button>
       </DialogFooter>
     </DialogContent>
