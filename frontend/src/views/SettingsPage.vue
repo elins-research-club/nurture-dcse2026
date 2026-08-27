@@ -845,7 +845,7 @@ const updatePassword = async () => {
                 <!-- UGM -->
                 <div class="flex items-center gap-4 p-4 rounded-xl border bg-card/50 hover:bg-muted/40 transition-colors">
                   <div class="w-14 h-14 rounded-xl bg-muted/30 p-1 flex items-center justify-center shrink-0 overflow-hidden">
-                    <img src="/Logo-UGM.png" alt="Universitas Gadjah Mada" class="w-full h-full object-contain scale-125" />
+                    <img src="/Logo-UGM.png" alt="Universitas Gadjah Mada" class="w-full h-full object-contain scale-125 dark:brightness-0 dark:invert" />
                   </div>
                   <div>
                     <h4 class="font-semibold text-sm">Universitas Gadjah Mada</h4>
@@ -856,7 +856,7 @@ const updatePassword = async () => {
                 <!-- DIKE -->
                 <div class="flex items-center gap-4 p-4 rounded-xl border bg-card/50 hover:bg-muted/40 transition-colors">
                   <div class="w-14 h-14 rounded-xl bg-muted/30 p-2 flex items-center justify-center shrink-0">
-                    <img src="/Logo-DIKE.png" alt="Departemen Ilmu Komputer dan Elektronika" class="w-full h-full object-contain" />
+                    <img src="/Logo-DIKE.png" alt="Departemen Ilmu Komputer dan Elektronika" class="w-full h-full object-contain dark:brightness-0 dark:invert" />
                   </div>
                   <div>
                     <h4 class="font-semibold text-sm">Departemen Ilmu Komputer dan Elektronika</h4>
