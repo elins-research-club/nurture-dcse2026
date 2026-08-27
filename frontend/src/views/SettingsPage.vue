@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
-import { Sun, Moon, CheckCircle, XCircle, Loader2, ChevronDown, ChevronRight } from 'lucide-vue-next'
+import { Sun, Moon, CheckCircle, XCircle, Loader2, ChevronDown, ChevronRight, Sprout } from 'lucide-vue-next'
 
 const isDarkMode = ref(document.documentElement.classList.contains('dark'))
 const showModal = ref(false)
@@ -345,12 +345,13 @@ const updatePassword = async () => {
       </Dialog>
       
       <Tabs defaultValue="appearance" class="w-full">
-        <TabsList class="grid w-full grid-cols-5">
+        <TabsList class="grid w-full grid-cols-3 sm:grid-cols-6">
           <TabsTrigger value="appearance">Appearance</TabsTrigger>
           <TabsTrigger value="system">System</TabsTrigger>
           <TabsTrigger value="alerts">Alerts</TabsTrigger>
           <TabsTrigger value="thresholds">Thresholds</TabsTrigger>
           <TabsTrigger value="security">Security</TabsTrigger>
+          <TabsTrigger value="about">About</TabsTrigger>
         </TabsList>
         
         <TabsContent value="appearance">
@@ -634,6 +635,83 @@ const updatePassword = async () => {
                   {{ isSavingPassword ? 'Saving...' : 'Save Password' }}
                 </Button>
               </CardFooter>
+          </Card>
+        </TabsContent>
+
+        <!-- About & Community Service Tab -->
+        <TabsContent value="about">
+          <Card>
+            <CardHeader>
+              <CardTitle>About & Community Service Program</CardTitle>
+              <CardDescription>
+                IoT monitoring and device management platform for smart farming, connecting field sensors and actuators with a real-time web dashboard to monitor field conditions, device status, and early warning alerts.
+              </CardDescription>
+            </CardHeader>
+            <CardContent class="space-y-6">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                
+                <!-- UGM -->
+                <div class="flex items-center gap-4 p-4 rounded-xl border bg-card/50 hover:bg-muted/40 transition-colors">
+                  <div class="w-14 h-14 rounded-xl bg-muted/30 p-2 flex items-center justify-center shrink-0">
+                    <img src="/Logo-UGM.png" alt="Universitas Gadjah Mada" class="w-full h-full object-contain" />
+                  </div>
+                  <div>
+                    <h4 class="font-semibold text-sm">Universitas Gadjah Mada</h4>
+                    <p class="text-xs text-muted-foreground mt-0.5">Higher education institution advancing research and community service</p>
+                  </div>
+                </div>
+
+                <!-- DIKE -->
+                <div class="flex items-center gap-4 p-4 rounded-xl border bg-card/50 hover:bg-muted/40 transition-colors">
+                  <div class="w-14 h-14 rounded-xl bg-muted/30 p-2 flex items-center justify-center shrink-0">
+                    <img src="/Logo-DIKE.png" alt="Departemen Ilmu Komputer dan Elektronika" class="w-full h-full object-contain" />
+                  </div>
+                  <div>
+                    <h4 class="font-semibold text-sm">Departemen Ilmu Komputer dan Elektronika</h4>
+                    <p class="text-xs text-muted-foreground mt-0.5">Academic department at FMIPA UGM advancing computer science & electronics innovation</p>
+                  </div>
+                </div>
+
+                <!-- Lab ELINS -->
+                <div class="flex items-center gap-4 p-4 rounded-xl border bg-card/50 hover:bg-muted/40 transition-colors">
+                  <div class="w-14 h-14 rounded-xl bg-muted/30 p-2 flex items-center justify-center shrink-0">
+                    <img src="/logo-icon.webp" alt="Laboratorium Elektronika dan Instrumentasi" class="w-full h-full object-contain" />
+                  </div>
+                  <div>
+                    <h4 class="font-semibold text-sm">Laboratorium Elektronika & Instrumentasi</h4>
+                    <p class="text-xs text-muted-foreground mt-0.5">Research laboratory for electronics, instrumentation, control systems, and IoT sensor networks</p>
+                  </div>
+                </div>
+
+                <!-- Webdev ERC -->
+                <div class="flex items-center gap-4 p-4 rounded-xl border bg-card/50 hover:bg-muted/40 transition-colors">
+                  <div class="w-14 h-14 rounded-xl bg-muted/30 p-2 flex items-center justify-center shrink-0">
+                    <img src="/logo-webdev.webp" alt="Webdev ERC" class="w-full h-full object-contain dark:invert" />
+                  </div>
+                  <div>
+                    <h4 class="font-semibold text-sm">Webdev ERC</h4>
+                    <p class="text-xs text-muted-foreground mt-0.5">Student web application research and development division at Elins Research Club</p>
+                  </div>
+                </div>
+
+                <!-- Gubug Milenial Margorejo -->
+                <div class="flex items-center gap-4 p-4 rounded-xl border bg-card/50 hover:bg-muted/40 transition-colors md:col-span-2">
+                  <div class="w-14 h-14 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0 text-emerald-600">
+                    <Sprout class="w-7 h-7 text-emerald-600" />
+                  </div>
+                  <div>
+                    <h4 class="font-semibold text-sm">Gubug Milenial Margorejo</h4>
+                    <p class="text-xs text-muted-foreground mt-0.5">Mitra kelompok tani dan lokasi implementasi riset pertanian presisi berbasis IoT</p>
+                  </div>
+                </div>
+
+              </div>
+
+              <!-- Project info badge -->
+              <div class="pt-4 border-t border-border/40 flex items-center justify-center text-xs text-muted-foreground text-center">
+                <span>&copy; 2026 G-CONNECT &bull; Laboratorium ELINS DIKE UGM</span>
+              </div>
+            </CardContent>
           </Card>
         </TabsContent>
       </Tabs>

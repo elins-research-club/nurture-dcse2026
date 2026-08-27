@@ -6,10 +6,10 @@ import { useMutation } from '@tanstack/vue-query'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Eye, EyeOff, Leaf } from 'lucide-vue-next'
+import { Eye, EyeOff } from 'lucide-vue-next'
 
-const username = ref('gconnect')
-const password = ref('atminelins123')
+const username = ref('')
+const password = ref('')
 const errorMsg = ref('')
 const showPassword = ref(false)
 
@@ -68,8 +68,8 @@ const handleLogin = () => {
 
         <!-- Brand -->
         <div class="flex flex-col items-center gap-3 mb-2">
-          <div class="flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 shadow-inner shadow-primary/10">
-            <Leaf class="w-7 h-7 text-primary" />
+          <div class="flex items-center justify-center w-20 h-20 select-none">
+            <img src="/logo-icon.webp" alt="Lab ELINS Logo" class="w-full h-full object-contain drop-shadow-md" />
           </div>
           <div class="text-center">
             <h1 class="text-2xl font-bold tracking-tight text-foreground">G-CONNECT</h1>
@@ -88,7 +88,8 @@ const handleLogin = () => {
               id="username"
               v-model="username"
               type="text"
-              placeholder="Enter username"
+              autocomplete="username"
+              placeholder="e.g. gconnect"
               class="h-10 bg-background/50"
               @keyup.enter="handleLogin"
             />
@@ -101,7 +102,8 @@ const handleLogin = () => {
                 id="password"
                 v-model="password"
                 :type="showPassword ? 'text' : 'password'"
-                placeholder="Enter password"
+                autocomplete="current-password"
+                placeholder="••••••••"
                 @keyup.enter="handleLogin"
                 class="pr-10 h-10 bg-background/50 hide-password-eye"
               />
@@ -136,6 +138,23 @@ const handleLogin = () => {
         </div>
 
       </div>
+
+      <!-- Institutional Credits / Community Service Footer -->
+      <div class="mt-8 text-center space-y-4">
+        <p class="text-xs font-semibold uppercase tracking-wider text-muted-foreground/80">
+          Community Service Program
+        </p>
+        <div class="flex items-center justify-center gap-6 grayscale opacity-80 hover:grayscale-0 hover:opacity-100 transition-all duration-300">
+          <img src="/Logo-UGM.png" alt="Universitas Gadjah Mada" class="h-9 max-w-[42px] object-contain select-none" title="Universitas Gadjah Mada" />
+          <img src="/Logo-DIKE.png" alt="Departemen Ilmu Komputer dan Elektronika" class="h-9 max-w-[75px] object-contain select-none" title="Departemen Ilmu Komputer dan Elektronika UGM" />
+          <img src="/logo-icon.webp" alt="Laboratorium Elektronika dan Instrumentasi" class="h-9 max-w-[40px] object-contain select-none" title="Laboratorium Elektronika dan Instrumentasi" />
+          <img src="/logo-webdev.webp" alt="Webdev ERC" class="h-9 max-w-[40px] object-contain select-none dark:invert" title="Webdev ERC" />
+        </div>
+        <p class="text-xs text-muted-foreground/60">
+          &copy; 2026 G-CONNECT &bull; Laboratorium ELINS DIKE UGM
+        </p>
+      </div>
+
     </div>
   </div>
 </template>

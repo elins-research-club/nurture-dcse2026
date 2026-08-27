@@ -10,10 +10,17 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
+      "@": path.resolve(import.meta.dirname, "./src"),
     },
   },
   server: {
+    host: true,
+    allowedHosts: [
+      'unaugmented-unfine-charles.ngrok-free.dev',
+      '.ngrok-free.dev',
+      '.ngrok-free.app',
+      '.ngrok.io',
+    ],
     // Frontend memanggil "/api/v1/..." ke dirinya sendiri, lalu Vite yang
     // meneruskan ke backend. Tanpa ini alamat backend harus ditulis lengkap
     // di kode, dan itu langsung rusak begitu dibuka dari perangkat lain --

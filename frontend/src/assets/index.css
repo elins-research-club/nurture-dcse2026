@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "leaflet/dist/leaflet.css";
 
+@custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
   --color-border: hsl(var(--border));
@@ -44,7 +45,8 @@
 
 @layer base {
   :root {
-    --background: 210 40% 98%;
+    /* Solid Light Canvas #F1F5F9 (HSL: 210, 40%, 96.1%) */
+    --background: 210 40% 96.1%;
     --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;
@@ -67,18 +69,18 @@
   }
 
   .dark {
-    /* Sleek Deep Navy Background */
-    --background: 214 56% 9%;
+    /* Sleek Deep Dark Canvas #090d16 */
+    --background: 224 71% 4%;
     --foreground: 210 40% 98%;
     
-    /* Slightly lighter card with blue tint */
-    --card: 217 56% 12%;
+    /* Dark Surface Card #0d1527 */
+    --card: 222.2 47.4% 11.2%;
     --card-foreground: 210 40% 98%;
     
-    --popover: 217 56% 12%;
+    --popover: 222.2 47.4% 11.2%;
     --popover-foreground: 210 40% 98%;
     
-    /* Vibrant Pure Green (Brighter version of #006400) */
+    /* Vibrant Pure Green */
     --primary: 120 100% 45%;
     --primary-foreground: 214 56% 9%;
     
@@ -94,8 +96,8 @@
     --destructive: 0 70% 50%;
     --destructive-foreground: 210 40% 98%;
     
-    --border: 217 33% 22%;
-    --input: 217 33% 22%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
     --ring: 120 100% 45%;
   }
 }
@@ -106,7 +108,6 @@
   }
   body {
     @apply bg-background text-foreground font-sans;
-    background-image: radial-gradient(circle at 50% -20%, rgba(0, 230, 0, 0.05), rgba(10, 21, 36, 0) 50%);
   }
 }
 
@@ -124,4 +125,3 @@
   0%, 100% { opacity: 1; filter: drop-shadow(0 0 8px rgba(0, 230, 0, 0.6)); }
   50% { opacity: 0.7; filter: drop-shadow(0 0 2px rgba(0, 230, 0, 0.3)); }
 }
-
