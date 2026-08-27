@@ -145,7 +145,7 @@ const handleLogin = () => {
           Community Service Program
         </p>
         <div class="flex items-center justify-center gap-6 grayscale opacity-80 hover:grayscale-0 hover:opacity-100 transition-all duration-300">
-          <img src="/Logo-UGM.png" alt="Universitas Gadjah Mada" class="h-9 max-w-[42px] object-contain select-none" title="Universitas Gadjah Mada" />
+          <img src="/Logo-UGM.png" alt="Universitas Gadjah Mada" class="h-[45px] max-w-[53px] object-contain select-none" title="Universitas Gadjah Mada" />
           <img src="/Logo-DIKE.png" alt="Departemen Ilmu Komputer dan Elektronika" class="h-9 max-w-[75px] object-contain select-none" title="Departemen Ilmu Komputer dan Elektronika UGM" />
           <img src="/logo-icon.webp" alt="Laboratorium Elektronika dan Instrumentasi" class="h-9 max-w-[40px] object-contain select-none" title="Laboratorium Elektronika dan Instrumentasi" />
           <img src="/logo-webdev.webp" alt="Webdev ERC" class="h-9 max-w-[40px] object-contain select-none dark:invert" title="Webdev ERC" />

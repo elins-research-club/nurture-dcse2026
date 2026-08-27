@@ -46,19 +46,6 @@ watch(() => nodesQuery.data.value, (newData) => {
   }
 }, { immediate: true })
 
-const getNodeLastSeen = (node: any) => {
-  if (!node) return undefined
-  return telemetryStore.telemetryHistory[node.node_id]?.[0]?.created_at || node.last_seen
-}
-
-const isNodeActive = (node: any) => {
-  const lastSeen = getNodeLastSeen(node)
-  if (!lastSeen) return false
-  const dateStr = String(lastSeen).endsWith('Z') ? String(lastSeen) : String(lastSeen) + 'Z'
-  const diffMinutes = (Date.now() - new Date(dateStr).getTime()) / (1000 * 60)
-  return diffMinutes < 15
-}
-
 const goBack = () => {
   router.push('/nodes')
 }
@@ -132,8 +119,8 @@ const confirmDeleteChannel = async () => {
             {{ activeNode?.name || 'Loading Node...' }}
             <StatusBadge 
               v-if="activeNode"
-              :is-active="isNodeActive(activeNode)" 
-              :last-seen="getNodeLastSeen(activeNode)" 
+              :is-active="telemetryStore.isNodeOnline(activeNode.node_id, activeNode.last_seen)" 
+              :last-seen="telemetryStore.getNodeLastSeen(activeNode.node_id, activeNode.last_seen)" 
             />
           </h2>
           <p class="text-muted-foreground font-mono text-sm mt-1">ID: {{ activeNode?.node_id }}</p>

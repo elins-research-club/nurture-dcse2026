@@ -22,17 +22,6 @@ watch(() => nodesQuery.data.value, (newData) => {
   }
 }, { immediate: true })
 
-const getNodeLastSeen = (node: NodeDeviceWithData) => {
-  return telemetryStore.telemetryHistory[node.node_id]?.[0]?.created_at || node.last_seen
-}
-
-const isNodeActive = (lastSeen: string | undefined) => {
-  if (!lastSeen) return false
-  const dateStr = String(lastSeen).endsWith('Z') ? String(lastSeen) : String(lastSeen) + 'Z'
-  const diffMinutes = (new Date().getTime() - new Date(dateStr).getTime()) / (1000 * 60)
-  return diffMinutes < 15
-}
-
 const goToNodeDetail = (id: number) => {
   router.push(`/nodes/${id}`)
 }
@@ -91,13 +80,16 @@ const goToNodeDetail = (id: number) => {
                 <CardTitle class="text-lg">{{ node.name }}</CardTitle>
                 <CardDescription class="mt-1 font-mono text-xs">{{ node.node_id }}</CardDescription>
               </div>
-              <StatusBadge :is-active="isNodeActive(getNodeLastSeen(node))" :last-seen="getNodeLastSeen(node)" />
+              <StatusBadge 
+                :is-active="telemetryStore.isNodeOnline(node.node_id, node.last_seen)" 
+                :last-seen="telemetryStore.getNodeLastSeen(node.node_id, node.last_seen)" 
+              />
             </div>
           </CardHeader>
           <CardContent>
             <div class="text-sm text-muted-foreground mt-4">
               <p><strong>Location:</strong> {{ node.location || 'Not specified' }}</p>
-              <p><strong>Last Seen:</strong> {{ getNodeLastSeen(node) ? new Date(getNodeLastSeen(node)!).toLocaleString() : 'Never' }}</p>
+              <p><strong>Last Seen:</strong> {{ telemetryStore.getNodeLastSeen(node.node_id, node.last_seen) ? new Date(telemetryStore.getNodeLastSeen(node.node_id, node.last_seen)!).toLocaleString() : 'Never' }}</p>
             </div>
           </CardContent>
         </Card>

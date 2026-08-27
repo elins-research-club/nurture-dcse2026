@@ -30,16 +30,8 @@ const editingNode = ref<string | null>(null)
 const editLat = ref('')
 const editLng = ref('')
 
-const getNodeLastSeen = (node: any) => {
-  return telemetryStore.telemetryHistory[node.node_id]?.[0]?.created_at || node.last_seen
-}
-
 const isNodeOnline = (node: any) => {
-  const lastSeen = getNodeLastSeen(node)
-  if (!lastSeen) return false
-  const dateStr = String(lastSeen).endsWith('Z') ? String(lastSeen) : String(lastSeen) + 'Z'
-  const diffMinutes = (Date.now() - new Date(dateStr).getTime()) / (1000 * 60)
-  return diffMinutes < 15
+  return telemetryStore.isNodeOnline(node.node_id, node.last_seen)
 }
 
 const makeIcon = (online: boolean) =>
