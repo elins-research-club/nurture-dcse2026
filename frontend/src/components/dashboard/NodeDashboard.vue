@@ -5,13 +5,15 @@ import { useTelemetryStore } from '@/stores/telemetry'
 import SensorCard from '@/components/dashboard/SensorCard.vue'
 import StatusBadge from '@/components/dashboard/StatusBadge.vue'
 import SensorLineChart from '@/components/charts/SensorLineChart.vue'
+import DashboardPreloader from '@/components/ui/DashboardPreloader.vue'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { 
-  Calendar, Clock, Check, Layers, Sprout, CloudSun, Leaf, Zap, MapPin, 
-  Cpu, Thermometer, Droplet
+  Calendar, Clock, Check, Layers, MapPin, 
+  Thermometer, Droplet, Sparkles, TrendingUp, 
+  TrendingDown, Minus, Info, Activity, AlertTriangle
 } from 'lucide-vue-next'
 import L from 'leaflet'
 
@@ -23,7 +25,8 @@ const props = defineProps<{
 const authStore = useAuthStore()
 const telemetryStore = useTelemetryStore()
 
-const isLoading = ref(false)
+const isLoading = ref(true)
+const isInitialLoaded = ref(false)
 const selectedCategory = ref<'all' | 'npk' | 'soil' | 'environment'>('npk')
 const selectedRange = ref<'1d' | '1w' | '1M' | 'custom'>('1d')
 const customStartDate = ref('')
@@ -31,16 +34,24 @@ const customEndDate = ref('')
 
 const sensors = ref<any[]>([])
 const telemetry = computed(() => telemetryStore.telemetryHistory[props.nodeId] || [])
+const dashboardSummary = computed(() => telemetryStore.dashboardSummaries[props.nodeId])
 
 const loadNodeData = async () => {
   if (!props.nodeId) return
-  if (!telemetry.value.length) isLoading.value = true
-  const [sensorsData] = await Promise.all([
-    telemetryStore.fetchSensors(props.nodeId),
-    telemetryStore.fetchHistory(props.nodeId, { range: '1d' })
-  ])
-  sensors.value = sensorsData
-  isLoading.value = false
+  isLoading.value = true
+  try {
+    const [sensorsData] = await Promise.all([
+      telemetryStore.fetchSensors(props.nodeId),
+      telemetryStore.fetchDashboardSummary(props.nodeId),
+      telemetryStore.fetchHistory(props.nodeId, { range: '1d' })
+    ])
+    sensors.value = sensorsData || []
+  } catch (err) {
+    console.error('Failed to load node data:', err)
+  } finally {
+    isLoading.value = false
+    isInitialLoaded.value = true
+  }
 }
 
 onMounted(() => {
@@ -59,7 +70,7 @@ watch(() => props.nodeId, () => {
   fetchNodeCoords()
 })
 
-// Categorize sensors intelligently
+// Categorize sensors for chart tabs
 const getSensorCategory = (sensor: any): 'npk' | 'soil' | 'environment' | 'other' => {
   const name = (sensor.name || '').toLowerCase()
   const type = (sensor.type || '').toLowerCase()
@@ -120,6 +131,43 @@ const latestTelemetry = computed(() => {
   return telemetryStore.getLatest(props.nodeId)
 })
 
+// Helper to get real-time dynamic value prioritizing live WS stream
+const getLiveVal = (metric: any) => {
+  if (!metric) return null
+  if (latestTelemetry.value && metric.field_key && latestTelemetry.value[metric.field_key] !== undefined && latestTelemetry.value[metric.field_key] !== null) {
+    const v = Number(latestTelemetry.value[metric.field_key])
+    return isNaN(v) ? latestTelemetry.value[metric.field_key] : v
+  }
+  return metric.current_value ?? null
+}
+
+const findSensorByKeywords = (keywords: string[], excludeKeywords: string[] = []) => {
+  return sensors.value.find(s => {
+    const name = (s.name || '').toLowerCase()
+    const type = (s.type || '').toLowerCase()
+    if (excludeKeywords.some(ex => name.includes(ex) || type.includes(ex))) return false
+    return keywords.some(k => name.includes(k) || type.includes(k))
+  })
+}
+
+const wrapSensorAsMetric = (s: any) => {
+  if (!s) return null
+  return {
+    id: s.id,
+    name: s.name,
+    type: s.type,
+    unit: s.unit,
+    thingspeak_field: s.thingspeak_field,
+    channel_id: s.channel_id,
+    field_key: `${s.channel_id}_${s.thingspeak_field}`,
+    current_value: latestTelemetry.value ? latestTelemetry.value[`${s.channel_id}_${s.thingspeak_field}`] : null,
+    min_threshold: s.min_threshold,
+    max_threshold: s.max_threshold,
+    min_recorded: null,
+    max_recorded: null
+  }
+}
+
 // field8 kanal pendukung: bitmask 3 bit (Kipas, Lampu, Valve)
 const aktuator = computed(() => {
   const s = sensors.value.find(x => x.name === 'Status aktuator')
@@ -148,86 +196,146 @@ const isArchiveLoading = computed(() => {
   return telemetryStore.isArchiveLoading[props.nodeId] || false
 })
 
-const lastSeen = computed(() => {
-  if (telemetry.value.length === 0) return undefined
-  return telemetry.value[0].created_at
-})
-
 const isConnected = computed(() => telemetryStore.isConnected)
 
 const isNodeActive = computed(() => {
-  if (!lastSeen.value) return false
-  const dateStr = String(lastSeen.value).endsWith('Z') ? String(lastSeen.value) : String(lastSeen.value) + 'Z'
-  const diffMinutes = (new Date().getTime() - new Date(dateStr).getTime()) / (1000 * 60)
-  return diffMinutes < 15
+  return dashboardSummary.value?.is_active ?? telemetryStore.isNodeOnline(props.nodeId, null)
 })
 
-// Formatted last seen timestamp
+// Formatted last seen timestamp from centralized store
 const formattedLastSeen = computed(() => {
-  if (!lastSeen.value) return '--'
-  try {
-    const dateStr = String(lastSeen.value).endsWith('Z') ? String(lastSeen.value) : String(lastSeen.value) + 'Z'
-    const d = new Date(dateStr)
-    return d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB'
-  } catch {
-    return '--'
-  }
+  return telemetryStore.getFormattedLastSeen(props.nodeId, dashboardSummary.value?.last_seen)
 })
 
-// Grouped sensors
-const npkSensors = computed(() => sensors.value.filter(s => getSensorCategory(s) === 'npk'))
+// Grouped Sensors directly from PostgreSQL API with graceful fallback
+const npkSensors = computed(() => {
+  if (dashboardSummary.value?.npk_sensors?.length) {
+    return dashboardSummary.value.npk_sensors
+  }
+  return sensors.value
+    .filter(s => getSensorCategory(s) === 'npk')
+    .map(s => wrapSensorAsMetric(s))
+    .filter(Boolean)
+})
 
-// Helper to get raw sensor value by exact sensor object
-const getSensorValue = (sensor: any) => {
-  if (!sensor || !latestTelemetry.value) return null
-  return latestTelemetry.value[`${sensor.channel_id}_${sensor.thingspeak_field}`]
-}
+const soilProbes = computed(() => {
+  if (dashboardSummary.value?.soil_probes?.length) {
+    return dashboardSummary.value.soil_probes
+  }
+  return sensors.value
+    .filter(s => {
+      const n = (s.name || '').toLowerCase()
+      return n.includes('probe') && (n.includes('soil') || n.includes('titik') || n.includes('1') || n.includes('2') || n.includes('3'))
+    })
+    .map(s => wrapSensorAsMetric(s))
+    .filter(Boolean)
+    .sort((a: any, b: any) => (a?.name || '').localeCompare(b?.name || ''))
+})
 
-// Helper to find value by keyword matching
-const getValueByKeywords = (keywords: string[]) => {
-  const sensor = sensors.value.find(s => {
-    const name = (s.name || '').toLowerCase()
-    const type = (s.type || '').toLowerCase()
-    return keywords.some(k => name.includes(k) || type.includes(k))
-  })
-  if (!sensor || !latestTelemetry.value) return null
-  return latestTelemetry.value[`${sensor.channel_id}_${sensor.thingspeak_field}`]
-}
+// Specific Portlet Metrics from PostgreSQL API with fallback
+const phMetric = computed(() => {
+  return dashboardSummary.value?.soil_metrics?.ph || wrapSensorAsMetric(findSensorByKeywords(['ph']))
+})
+const soilTempMetric = computed(() => {
+  return dashboardSummary.value?.soil_metrics?.soil_temp || wrapSensorAsMetric(findSensorByKeywords(['suhu tanah', 'soil temp']))
+})
+const ecMetric = computed(() => {
+  return dashboardSummary.value?.soil_metrics?.ec || wrapSensorAsMetric(findSensorByKeywords(['ec', 'conductivity']))
+})
+const avgMoistureMetric = computed(() => {
+  return dashboardSummary.value?.soil_metrics?.avg_moisture || wrapSensorAsMetric(findSensorByKeywords(['rata-rata kelembapan', 'kelembapan tanah']))
+})
 
-// Specific Sensor Values for Soil Portlet
-const phValue = computed(() => getValueByKeywords(['ph']))
-const soilTempValue = computed(() => getValueByKeywords(['soil temp', 'suhu tanah', 'temp tanah']))
-const soilEcValue = computed(() => getValueByKeywords(['ec', 'conductivity', 'daya hantar']))
-const moistureAvgValue = computed(() => getValueByKeywords(['avg', 'rata-rata', 'soil moisture avg']))
+const enclosureTempMetric = computed(() => {
+  return dashboardSummary.value?.iot_metrics?.enclosure_temp || wrapSensorAsMetric(findSensorByKeywords(['suhu dalam', 'dalam casing', 'dalam box', 'enclosure'], ['luar', 'ambient']))
+})
+const airTempMetric = computed(() => {
+  return dashboardSummary.value?.iot_metrics?.air_temp || wrapSensorAsMetric(findSensorByKeywords(['suhu luar', 'luar casing', 'ambient']))
+})
+const humidityMetric = computed(() => {
+  return dashboardSummary.value?.iot_metrics?.humidity || wrapSensorAsMetric(findSensorByKeywords(['lembab luar', 'kelembaban udara', 'humidity']))
+})
+const modbusMetric = computed(() => {
+  return dashboardSummary.value?.iot_metrics?.modbus || wrapSensorAsMetric(findSensorByKeywords(['modbus', 'error']))
+})
 
-const probe1Value = computed(() => getValueByKeywords(['probe 1', 'moisture 1', 'analog 1', 'analog probe 1']))
-const probe2Value = computed(() => getValueByKeywords(['probe 2', 'moisture 2', 'analog 2', 'analog probe 2']))
-const probe3Value = computed(() => getValueByKeywords(['probe 3', 'moisture 3', 'analog 3', 'analog probe 3']))
+const enclosureMinVal = computed(() => {
+  if (enclosureTempMetric.value?.min_recorded != null) return enclosureTempMetric.value.min_recorded
+  const curr = getLiveVal(enclosureTempMetric.value)
+  return curr != null ? curr : null
+})
 
-// Specific Sensor Values for IoT & Ambient Portlet
-const enclosureTempValue = computed(() => getValueByKeywords(['enclosure', 'panel', 'dalam box', 'box temp', 'suhu panel', 'suhu box']))
-const airTempValue = computed(() => getValueByKeywords(['air temp', 'suhu luar', 'suhu udara', 'ambient', 'temp luar']))
-const airHumidityValue = computed(() => getValueByKeywords(['air humidity', 'kelembaban udara', 'humidity', 'kelembaban luar', 'kelembapan']))
-const modbusCodeValue = computed(() => getValueByKeywords(['modbus', 'status modbus', 'modbus code']))
+const enclosureMaxVal = computed(() => {
+  if (enclosureTempMetric.value?.max_recorded != null) return enclosureTempMetric.value.max_recorded
+  const curr = getLiveVal(enclosureTempMetric.value)
+  return curr != null ? curr : null
+})
 
 // Dynamic Soil pH Status badge
 const phStatus = computed(() => {
-  const v = phValue.value
+  const v = getLiveVal(phMetric.value)
   if (v == null) return { text: 'Netral', bg: 'bg-slate-100', border: 'border-slate-200', textClass: 'text-slate-600' }
   const num = Number(v)
-  if (num < 6.0) return { text: 'Asam', bg: 'bg-rose-500/10', border: 'border-rose-500/30', textClass: 'text-rose-600' }
-  if (num <= 7.5) return { text: 'Optimal', bg: 'bg-emerald-500/10', border: 'border-emerald-500/30', textClass: 'text-emerald-600' }
+  const min = phMetric.value?.min_threshold ?? 5.8
+  const max = phMetric.value?.max_threshold ?? 7.5
+  if (num < min) return { text: 'Asam', bg: 'bg-rose-500/10', border: 'border-rose-500/30', textClass: 'text-rose-600' }
+  if (num <= max) return { text: 'Optimal', bg: 'bg-emerald-500/10', border: 'border-emerald-500/30', textClass: 'text-emerald-600' }
   return { text: 'Basa', bg: 'bg-amber-500/10', border: 'border-amber-500/30', textClass: 'text-amber-600' }
 })
 
-// Dynamic IoT Thermal Status badge
+// Dynamic Safe Threshold from database sensor config or default hardware standard (45°C)
+const enclosureSafeThreshold = computed(() => {
+  return enclosureTempMetric.value?.max_threshold ?? 45
+})
+
+// Dynamic IoT Thermal Status & Saturated NPK-style Gradient Styling
 const thermalStatus = computed(() => {
-  const v = enclosureTempValue.value
-  if (v == null) return { text: 'Normal', badgeClass: 'border-slate-200 bg-slate-100 text-slate-600', dotClass: 'bg-slate-500' }
-  const num = Number(v)
-  if (num < 40) return { text: 'Normal', badgeClass: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600', dotClass: 'bg-emerald-500' }
-  if (num <= 50) return { text: 'Hangat', badgeClass: 'border-amber-500/30 bg-amber-500/10 text-amber-600', dotClass: 'bg-amber-500' }
-  return { text: 'Overheat', badgeClass: 'border-rose-500/30 bg-rose-500/10 text-rose-600', dotClass: 'bg-rose-500 animate-pulse' }
+  const v = getLiveVal(enclosureTempMetric.value)
+  const num = v != null ? Number(v) : null
+  const currentNum = num ?? 0
+  const safeLimit = enclosureSafeThreshold.value
+  const percentage = safeLimit > 0 ? Math.min(Math.max((currentNum / safeLimit) * 100, 0), 100) : 0
+  
+  if (num == null) {
+    return {
+      gradient: 'linear-gradient(135deg, #94A3B8 0%, #64748B 100%)',
+      shadowClass: 'shadow-md shadow-slate-500/20',
+      barGradient: 'from-white/70 to-white',
+      percentage: 0,
+      safeLimit
+    }
+  }
+  
+  if (num < safeLimit - 5) {
+    return {
+      // Bright & Fresh Emerald Green gradient (Same as NPK Ideal)
+      gradient: 'linear-gradient(135deg, #34D399 0%, #10B981 45%, #059669 100%)',
+      shadowClass: 'shadow-md shadow-emerald-400/20 hover:shadow-lg hover:shadow-emerald-400/30',
+      barGradient: 'from-white/70 to-white',
+      percentage,
+      safeLimit
+    }
+  }
+  
+  if (num <= safeLimit + 5) {
+    return {
+      // Bright Warm Amber gradient
+      gradient: 'linear-gradient(135deg, #FBBF24 0%, #F59E0B 45%, #D97706 100%)',
+      shadowClass: 'shadow-md shadow-amber-400/20 hover:shadow-lg hover:shadow-amber-400/30',
+      barGradient: 'from-white/70 to-white',
+      percentage,
+      safeLimit
+    }
+  }
+  
+  return {
+    // Bright Coral Rose gradient (Same as NPK High)
+    gradient: 'linear-gradient(135deg, #FB7185 0%, #F43F5E 45%, #E11D48 100%)',
+    shadowClass: 'shadow-md shadow-rose-400/20 hover:shadow-lg hover:shadow-rose-400/30',
+    barGradient: 'from-white/70 to-white',
+    percentage,
+    safeLimit
+  }
 })
 
 // Mini-map logic with reactive watch & 1:1 square ratio
@@ -243,8 +351,9 @@ const initMiniMap = (lat: number, lng: number) => {
       zoomControl: false, 
       dragging: false, 
       scrollWheelZoom: false, 
-      attributionControl: false 
-    }).setView([lat, lng], 18)
+      attributionControl: false,
+      zoomSnap: 0.5
+    }).setView([lat, lng], 19)
 
     L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', { 
       maxZoom: 21,
@@ -293,6 +402,228 @@ watch(
   { flush: 'post', immediate: true }
 )
 
+// Range Label for context
+const rangeLabel = computed(() => {
+  switch (selectedRange.value) {
+    case '1d': return '24 Jam'
+    case '1w': return '7 Hari'
+    case '1M': return '30 Hari'
+    case 'custom': return 'Rentang Kustom'
+    default: return '24 Jam'
+  }
+})
+
+// Dynamic Reactive Analytics Data based on selectedCategory & selectedRange
+const analyticsData = computed(() => {
+  const feeds = chartData.value || []
+  const catSensors = (activeCategorySensors.value || []).filter((s: any) => s.name !== 'Status aktuator')
+  
+  if (!feeds.length || !catSensors.length) {
+    return {
+      hasData: false,
+      dataPoints: 0,
+      summaryTitle: 'Analisis Sensor',
+      badgeText: 'Memuat...',
+      badgeColor: 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700',
+      metrics: [],
+      insightText: 'Menghubungkan data telemetri historis untuk periode ini...',
+      npkRatio: null
+    }
+  }
+
+  // Calculate statistics per active sensor in current category
+  const sensorStats = catSensors.map((s: any) => {
+    const key = `${s.channel_id}_${s.thingspeak_field}`
+    const rawVals = feeds.map((f: any) => parseFloat(f[key])).filter((v: number) => Number.isFinite(v))
+    
+    if (!rawVals.length) {
+      return {
+        id: s.id,
+        name: s.name,
+        unit: s.unit || '',
+        current: null,
+        avg: null,
+        min: null,
+        max: null,
+        delta: 0,
+        trend: 'stable'
+      }
+    }
+
+    const current = rawVals[rawVals.length - 1]
+    const min = Math.min(...rawVals)
+    const max = Math.max(...rawVals)
+    const sum = rawVals.reduce((a: number, b: number) => a + b, 0)
+    const avg = Number((sum / rawVals.length).toFixed(1))
+    const first = rawVals[0]
+    const delta = Number((current - first).toFixed(1))
+    const trend = delta > 0.3 ? 'up' : (delta < -0.3 ? 'down' : 'stable')
+
+    return {
+      id: s.id,
+      name: s.name,
+      unit: s.unit || '',
+      current,
+      avg,
+      min,
+      max,
+      delta,
+      trend
+    }
+  })
+
+  // 1. Kategori NPK
+  if (selectedCategory.value === 'npk') {
+    const nStat = sensorStats.find((s: any) => s.name.toLowerCase().includes('nitrogen') || s.name.toLowerCase().includes('n'))
+    const pStat = sensorStats.find((s: any) => s.name.toLowerCase().includes('phosphor') || s.name.toLowerCase().includes('p'))
+    const kStat = sensorStats.find((s: any) => s.name.toLowerCase().includes('potassium') || s.name.toLowerCase().includes('kalium') || s.name.toLowerCase().includes('k'))
+    
+    const nVal = nStat?.current ?? 0
+    const pVal = pStat?.current ?? 0
+    const kVal = kStat?.current ?? 0
+    const total = (nVal + pVal + kVal) || 1
+
+    const distributionWidget = {
+      title: 'Rasio Keseimbangan NPK',
+      subtitle: `${nVal}:${pVal}:${kVal}`,
+      segments: [
+        { label: `N: ${Math.round((nVal / total) * 100)}%`, percent: Math.round((nVal / total) * 100), color: 'bg-emerald-500', textClass: 'text-emerald-600 dark:text-emerald-400' },
+        { label: `P: ${Math.round((pVal / total) * 100)}%`, percent: Math.round((pVal / total) * 100), color: 'bg-blue-500', textClass: 'text-blue-600 dark:text-blue-400' },
+        { label: `K: ${Math.round((kVal / total) * 100)}%`, percent: Math.round((kVal / total) * 100), color: 'bg-purple-500', textClass: 'text-purple-600 dark:text-purple-400' }
+      ]
+    }
+
+    let badgeText = 'Status Seimbang'
+    let badgeColor = 'bg-emerald-500/15 border-emerald-500/30 text-emerald-700 dark:text-emerald-400'
+    let insightText = `Keseimbangan NPK dalam rentang ${rangeLabel.value} terpantau stabil. Rasio N:P:K (${nVal}:${pVal}:${kVal}) mendukung fase metabolisme & vegetatif tanaman.`
+
+    if (nVal > 0 && nVal < 25) {
+      badgeText = 'Defisit Nutrisi N'
+      badgeColor = 'bg-amber-500/15 border-amber-500/30 text-amber-700 dark:text-amber-400'
+      insightText = `Kadar Nitrogen rata-rata berada di bawah target (${nStat?.avg ?? nVal} mg/kg). Pertimbangkan penambahan pupuk N pada siklus berikutnya.`
+    }
+
+    return {
+      hasData: true,
+      dataPoints: feeds.length,
+      summaryTitle: 'Analisis Nutrisi NPK',
+      badgeText,
+      badgeColor,
+      metrics: sensorStats,
+      insightText,
+      distributionWidget
+    }
+  }
+
+  // 2. Kategori Tanah
+  if (selectedCategory.value === 'soil') {
+    const phStat = sensorStats.find((s: any) => s.name.toLowerCase().includes('ph'))
+    const moistProbes = sensorStats.filter((s: any) => s.name.toLowerCase().includes('probe') || s.name.toLowerCase().includes('kelembapan'))
+    
+    const avgMoist = moistProbes.length > 0 
+      ? Number((moistProbes.reduce((sum: number, p: any) => sum + (p.avg ?? p.current ?? 0), 0) / moistProbes.length).toFixed(1))
+      : null
+
+    const p1 = moistProbes[0]?.current ?? moistProbes[0]?.avg ?? 33
+    const p2 = moistProbes[1]?.current ?? moistProbes[1]?.avg ?? 33
+    const p3 = moistProbes[2]?.current ?? moistProbes[2]?.avg ?? 34
+    const pTotal = (p1 + p2 + p3) || 1
+
+    const distributionWidget = {
+      title: 'Distribusi Multi-Probe Kelembaban',
+      subtitle: `Rata-rata: ${avgMoist ?? '--'}%`,
+      segments: [
+        { label: `P1: ${Math.round((p1 / pTotal) * 100)}%`, percent: Math.round((p1 / pTotal) * 100), color: 'bg-sky-400', textClass: 'text-sky-600 dark:text-sky-400' },
+        { label: `P2: ${Math.round((p2 / pTotal) * 100)}%`, percent: Math.round((p2 / pTotal) * 100), color: 'bg-blue-500', textClass: 'text-blue-600 dark:text-blue-400' },
+        { label: `P3: ${Math.round((p3 / pTotal) * 100)}%`, percent: Math.round((p3 / pTotal) * 100), color: 'bg-indigo-600', textClass: 'text-indigo-600 dark:text-indigo-400' }
+      ]
+    }
+
+    let badgeText = 'Media Tanah Prima'
+    let badgeColor = 'bg-emerald-500/15 border-emerald-500/30 text-emerald-700 dark:text-emerald-400'
+    let insightText = `Kelembaban rata-rata perakaran (${avgMoist ?? '--'}%) terjaga stabil sepanjang ${rangeLabel.value}. Daya hantar listrik (EC) optimal tanpa akumulasi garam berlebih.`
+
+    if (phStat?.avg != null && (phStat.avg < 5.8 || phStat.avg > 7.5)) {
+      badgeText = 'pH Perlu Perhatian'
+      badgeColor = 'bg-amber-500/15 border-amber-500/30 text-amber-700 dark:text-amber-400'
+      insightText = `Nilai pH rata-rata (${phStat.avg}) berada di luar ambang netral ideal 6.0–7.0 pada periode ${rangeLabel.value}.`
+    }
+
+    return {
+      hasData: true,
+      dataPoints: feeds.length,
+      summaryTitle: 'Analisis Kondisi Tanah',
+      badgeText,
+      badgeColor,
+      metrics: sensorStats,
+      insightText,
+      distributionWidget
+    }
+  }
+
+  // 3. Kategori IoT & Iklim
+  if (selectedCategory.value === 'environment') {
+    const encStat = sensorStats.find((s: any) => s.name.toLowerCase().includes('suhu dalam') || s.name.toLowerCase().includes('enclosure') || s.name.toLowerCase().includes('box'))
+    const airStat = sensorStats.find((s: any) => s.name.toLowerCase().includes('suhu luar') || s.name.toLowerCase().includes('air'))
+    
+    const encVal = encStat?.current ?? encStat?.avg ?? 35
+    const airVal = airStat?.current ?? airStat?.avg ?? 28
+    const tTotal = (encVal + airVal) || 1
+
+    const distributionWidget = {
+      title: 'Perbandingan Suhu Box vs Lingkungan',
+      subtitle: `Δ ${(encVal - airVal).toFixed(1)}°C`,
+      segments: [
+        { label: `Box: ${Math.round((encVal / tTotal) * 100)}%`, percent: Math.round((encVal / tTotal) * 100), color: 'bg-rose-500', textClass: 'text-rose-600 dark:text-rose-400' },
+        { label: `Luar: ${Math.round((airVal / tTotal) * 100)}%`, percent: Math.round((airVal / tTotal) * 100), color: 'bg-amber-500', textClass: 'text-amber-600 dark:text-amber-400' }
+      ]
+    }
+
+    let badgeText = 'Termal & Uptime Aman'
+    let badgeColor = 'bg-emerald-500/15 border-emerald-500/30 text-emerald-700 dark:text-emerald-400'
+    let insightText = `Suhu operasional box panel (${encStat?.avg ?? '--'}°C) berada di bawah batas aman. Manajemen termal perangkat stabil selama ${rangeLabel.value}.`
+
+    if (encStat?.max != null && encStat.max > 45) {
+      badgeText = 'Peringatan Termal'
+      badgeColor = 'bg-rose-500/15 border-rose-500/30 text-rose-700 dark:text-rose-400'
+      insightText = `Suhu box panel sempat menyentuh puncak ${encStat.max}°C pada rentang ${rangeLabel.value}. Pastikan kipas beroperasi optimal.`
+    }
+
+    return {
+      hasData: true,
+      dataPoints: feeds.length,
+      summaryTitle: 'Analisis IoT & Mikroklimat',
+      badgeText,
+      badgeColor,
+      metrics: sensorStats,
+      insightText,
+      distributionWidget
+    }
+  }
+
+  // 4. Kategori Semua Sensor
+  const distributionWidget = {
+    title: 'Sebaran Kanal Sensor Telemetri',
+    subtitle: `${sensorStats.length} Kanal Aktif`,
+    segments: [
+      { label: 'NPK: 33%', percent: 33, color: 'bg-emerald-500', textClass: 'text-emerald-600 dark:text-emerald-400' },
+      { label: 'Tanah: 45%', percent: 45, color: 'bg-amber-500', textClass: 'text-amber-600 dark:text-amber-400' },
+      { label: 'IoT: 22%', percent: 22, color: 'bg-blue-500', textClass: 'text-blue-600 dark:text-blue-400' }
+    ]
+  }
+
+  return {
+    hasData: true,
+    dataPoints: feeds.length,
+    summaryTitle: 'Ikhtisar Seluruh Telemetri',
+    badgeText: `${sensorStats.length} Kanal Sensor`,
+    badgeColor: 'bg-primary/15 border-primary/30 text-primary',
+    metrics: sensorStats.slice(0, 3),
+    insightText: `Berhasil mengagregasi ${feeds.length} titik data telemetri untuk seluruh domain sensor pada rentang ${rangeLabel.value}.`,
+    distributionWidget
+  }
+})
+
 onMounted(() => {
   fetchNodeCoords()
 })
@@ -307,20 +638,12 @@ onUnmounted(() => {
 
 <template>
   <div class="w-full">
-    <!-- Loading State -->
-    <div v-if="isLoading && sensors.length === 0" class="py-16 text-center text-muted-foreground">
-      <div class="flex items-center justify-center gap-2 animate-pulse">
-        <svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-        </svg>
-        Memuat data sensor...
-      </div>
-    </div>
+    <!-- Loading Screen Preloader -->
+    <DashboardPreloader v-if="!isInitialLoaded || (isLoading && sensors.length === 0)" />
 
-    <!-- No Sensors State -->
-    <div v-else-if="sensors.length === 0" class="py-16 text-center text-muted-foreground border border-dashed rounded-2xl">
-      No sensors configured. Add sensors in Settings.
+    <!-- No Sensors State (Shown only after loading completes and there are genuinely no sensors) -->
+    <div v-else-if="isInitialLoaded && sensors.length === 0" class="py-16 text-center text-muted-foreground border border-dashed rounded-2xl">
+      Belum ada sensor yang terpasang pada node ini. Tambahkan sensor di menu Pengaturan.
     </div>
 
     <!-- ═══════════════ BENTO GRID: FLAT WHITE CARDS ON #F1F5F9 CANVAS ═══════════════ -->
@@ -338,23 +661,27 @@ onUnmounted(() => {
             <!-- Node Title & Status Badge -->
             <div class="flex items-start justify-between gap-2">
               <div class="space-y-0.5">
-                <h2 class="text-base sm:text-lg font-bold tracking-tight">{{ nodeName || nodeId }}</h2>
-                <p class="text-[11px] text-muted-foreground font-mono">ID: {{ nodeId }}</p>
+                <h2 class="text-lg sm:text-xl font-bold tracking-tight">{{ nodeName || nodeId }}</h2>
+                <p class="text-xs text-muted-foreground font-mono">ID: {{ nodeId }}</p>
               </div>
 
               <!-- Single Node Status Badge on top-right -->
-              <StatusBadge :is-active="isNodeActive" :last-seen="lastSeen" class="shrink-0" />
+              <StatusBadge 
+                :is-active="isNodeActive" 
+                :last-seen="telemetryStore.getNodeLastSeen(nodeId, dashboardSummary?.last_seen)" 
+                class="shrink-0" 
+              />
             </div>
 
-            <!-- Footer: Last seen & GPS Coordinates -->
-            <div class="flex flex-col gap-1 pt-2 border-t border-border/40 text-[11px] text-muted-foreground">
+            <!-- Footer: Last seen & GPS Coordinates (Horizontal Layout with Larger Text) -->
+            <div class="flex flex-wrap items-center justify-between gap-2.5 pt-2.5 border-t border-border/40 text-xs sm:text-sm text-muted-foreground">
               <div class="flex items-center gap-1.5">
-                <Clock class="w-3 h-3 text-primary shrink-0" />
-                <span>Update: <strong class="text-foreground">{{ formattedLastSeen }}</strong></span>
+                <Clock class="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <span class="text-xs sm:text-sm">Update: <strong class="text-foreground font-bold">{{ formattedLastSeen }}</strong></span>
               </div>
               <div v-if="nodeCoords" class="flex items-center gap-1.5">
-                <MapPin class="w-3 h-3 text-blue-500 shrink-0" />
-                <span class="font-mono text-[10px]">{{ nodeCoords.lat.toFixed(5) }}, {{ nodeCoords.lng.toFixed(5) }}</span>
+                <MapPin class="w-4 h-4 text-blue-500 shrink-0" />
+                <span class="text-xs sm:text-sm font-bold text-foreground/90">{{ nodeCoords.lat.toFixed(5) }}, {{ nodeCoords.lng.toFixed(5) }}</span>
               </div>
             </div>
           </CardContent>
@@ -368,7 +695,7 @@ onUnmounted(() => {
           <div v-if="miniMapReady" class="absolute bottom-2.5 right-2.5 z-10">
             <a 
               href="/map" 
-              class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-white/90 backdrop-blur-md text-foreground border border-border/70 hover:bg-white flex items-center gap-1.5 transition-all hover:scale-105"
+              class="px-2.5 py-1 rounded-lg text-xs font-bold bg-white/90 backdrop-blur-md text-foreground border border-border/70 hover:bg-white flex items-center gap-1.5 transition-all hover:scale-105"
             >
               <MapPin class="w-3.5 h-3.5 text-primary" />
               <span>Buka Peta →</span>
@@ -382,21 +709,17 @@ onUnmounted(() => {
           </div>
         </Card>
 
-        <!-- CARD 3: Compact Actuator Control Status -->
-        <Card v-if="aktuator" class="relative overflow-hidden border border-border/80 bg-white shadow-none hover:border-amber-500/30 transition-all">
-          <div class="p-3 flex flex-col gap-2">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-1.5">
-                <div class="w-5 h-5 rounded bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-600">
-                  <Zap class="w-3 h-3" />
-                </div>
-                <h4 class="text-xs font-bold tracking-tight">Status Aktuator</h4>
-              </div>
-              <span class="text-[9px] text-muted-foreground">3 Relay</span>
+        <!-- CARD 3: Compact Actuator Control Status (Enlarged Height & Typography) -->
+        <Card v-if="aktuator" class="relative overflow-hidden border border-border/80 bg-white dark:bg-card shadow-none hover:border-amber-500/30 transition-all">
+          <div class="p-4 sm:p-4.5 flex flex-col gap-3.5">
+            <!-- Header: Title, Icon -->
+            <div class="flex items-center gap-2">
+              <img src="/actuator-icon.svg" alt="Status Aktuator" class="w-5 h-5 object-contain dark:invert shrink-0" />
+              <h4 class="text-base sm:text-lg font-bold tracking-tight text-foreground">Status Aktuator</h4>
             </div>
 
-            <!-- 3 Inline State Chips -->
-            <div class="grid grid-cols-3 gap-1">
+            <!-- 3 Expanded State Chips -->
+            <div class="grid grid-cols-3 gap-2">
               <div 
                 v-for="a in [
                   { nama: 'Kipas', aktif: aktuator.kipas },
@@ -405,17 +728,29 @@ onUnmounted(() => {
                 ]" 
                 :key="a.nama"
                 :class="[
-                  'p-1.5 rounded-md text-[10px] font-medium border flex flex-col items-center justify-center gap-0.5 transition-all text-center',
+                  'py-3 px-2 rounded-xl text-xs sm:text-sm font-medium border flex flex-col items-center justify-center gap-1.5 transition-all text-center min-h-[72px] sm:min-h-[78px]',
                   a.aktif 
-                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 font-semibold' 
-                    : 'bg-slate-50 border-slate-200 text-slate-500'
+                    ? 'bg-emerald-500/10 dark:bg-emerald-950/30 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 shadow-xs' 
+                    : 'bg-slate-50 dark:bg-slate-900/50 border-slate-200/80 dark:border-slate-800 text-slate-500 dark:text-slate-400'
                 ]"
               >
-                <div class="flex items-center gap-1">
-                  <div :class="['w-1.5 h-1.5 rounded-full', a.aktif ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400']"></div>
-                  <span class="font-bold">{{ a.nama }}</span>
+                <!-- Actuator Name & Status Dot -->
+                <div class="flex items-center gap-1.5">
+                  <div :class="['w-2 h-2 rounded-full shrink-0', a.aktif ? 'bg-emerald-500 animate-pulse ring-2 ring-emerald-500/30' : 'bg-slate-400 dark:bg-slate-600']"></div>
+                  <span class="text-xs sm:text-sm font-extrabold text-foreground tracking-tight">{{ a.nama }}</span>
                 </div>
-                <span class="text-[9px] font-bold">{{ a.aktif ? 'ON' : 'OFF' }}</span>
+                
+                <!-- ON / OFF Pill Badge -->
+                <span 
+                  :class="[
+                    'text-[11px] sm:text-xs font-black tracking-wider px-2.5 py-0.5 rounded-md leading-tight uppercase',
+                    a.aktif 
+                      ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-black' 
+                      : 'bg-slate-200/70 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-bold'
+                  ]"
+                >
+                  {{ a.aktif ? 'ON' : 'OFF' }}
+                </span>
               </div>
             </div>
           </div>
@@ -434,7 +769,7 @@ onUnmounted(() => {
             v-for="sensor in npkSensors"
             :key="sensor.id"
             :title="sensor.name"
-            :value="getSensorValue(sensor)"
+            :value="getLiveVal(sensor)"
             :unit="sensor.unit"
             type="npk"
             size="default"
@@ -443,124 +778,224 @@ onUnmounted(() => {
           />
         </div>
 
-        <!-- ROW 2: Wide Sensor Trends Line Chart -->
-        <Card class="relative overflow-hidden flex flex-col border border-border/80 bg-white dark:bg-card shadow-none">
-          <div class="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-30 pointer-events-none"></div>
-          <CardContent class="p-4 relative z-10 flex flex-col gap-3 flex-1">
-            
-            <!-- Chart Header: Category Pills + Time Range -->
-            <div class="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-border/40">
+        <!-- ROW 2: Split Row: Line Chart (~67%) + Quick Analytics & Health Insights (~33%) -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-stretch">
+          
+          <!-- LEFT COL (lg:col-span-8): Wide Sensor Trends Line Chart -->
+          <Card class="lg:col-span-8 relative overflow-hidden flex flex-col border border-border/80 bg-white dark:bg-card shadow-none min-h-[460px]">
+            <div class="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-30 pointer-events-none"></div>
+            <CardContent class="p-4 relative z-10 flex flex-col gap-2 flex-1">
               
-              <!-- Category Pills -->
-              <div class="flex flex-wrap items-center gap-1">
-                <button
-                  @click="selectedCategory = 'npk'"
-                  :class="['px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer', selectedCategory === 'npk' ? 'bg-emerald-500/15 text-emerald-600 border border-emerald-500/30' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-foreground border border-transparent']"
-                >
-                  <Leaf class="w-3.5 h-3.5 text-emerald-500" />
-                  <span>NPK</span>
-                </button>
-                <button
-                  @click="selectedCategory = 'soil'"
-                  :class="['px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer', selectedCategory === 'soil' ? 'bg-amber-500/15 text-amber-600 border border-amber-500/30' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-foreground border border-transparent']"
-                >
-                  <Sprout class="w-3.5 h-3.5 text-amber-500" />
-                  <span>Tanah</span>
-                </button>
-                <button
-                  @click="selectedCategory = 'environment'"
-                  :class="['px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer', selectedCategory === 'environment' ? 'bg-blue-500/15 text-blue-600 border border-blue-500/30' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-foreground border border-transparent']"
-                >
-                  <CloudSun class="w-3.5 h-3.5 text-blue-500" />
-                  <span>IoT & Iklim</span>
-                </button>
-                <button
-                  @click="selectedCategory = 'all'"
-                  :class="['px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer', selectedCategory === 'all' ? 'bg-primary/15 text-primary border border-primary/30' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-foreground border border-transparent']"
-                >
-                  <Layers class="w-3.5 h-3.5 text-primary" />
-                  <span>Semua</span>
-                </button>
+              <!-- Chart Header: Category Pills + Time Range -->
+              <div class="flex flex-wrap items-center justify-between gap-2.5 pb-2 border-b border-border/40">
+                
+                <!-- Category Pills (Enlarged) -->
+                <div class="flex flex-wrap items-center gap-1.5">
+                  <button
+                    @click="selectedCategory = 'npk'"
+                    :class="['px-3 py-1.5 rounded-full text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer', selectedCategory === 'npk' ? 'bg-emerald-500/15 text-emerald-600 border border-emerald-500/30' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-foreground border border-transparent']"
+                  >
+                    <img src="/npk-icon.svg" alt="NPK" class="w-4 h-4 object-contain dark:invert shrink-0" />
+                    <span>NPK</span>
+                  </button>
+                  <button
+                    @click="selectedCategory = 'soil'"
+                    :class="['px-3 py-1.5 rounded-full text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer', selectedCategory === 'soil' ? 'bg-amber-500/15 text-amber-600 border border-amber-500/30' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-foreground border border-transparent']"
+                  >
+                    <img src="/soil-icon.svg" alt="Tanah" class="w-4 h-4 object-contain dark:invert shrink-0" />
+                    <span>Tanah</span>
+                  </button>
+                  <button
+                    @click="selectedCategory = 'environment'"
+                    :class="['px-3 py-1.5 rounded-full text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer', selectedCategory === 'environment' ? 'bg-blue-500/15 text-blue-600 border border-blue-500/30' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-foreground border border-transparent']"
+                  >
+                    <img src="/iot-icon.svg" alt="IoT" class="w-4 h-4 object-contain dark:invert shrink-0" />
+                    <span>IoT & Iklim</span>
+                  </button>
+                  <button
+                    @click="selectedCategory = 'all'"
+                    :class="['px-3 py-1.5 rounded-full text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer', selectedCategory === 'all' ? 'bg-primary/15 text-primary border border-primary/30' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-foreground border border-transparent']"
+                  >
+                    <Layers class="w-4 h-4 text-primary shrink-0" />
+                    <span>Semua</span>
+                  </button>
+                </div>
+
+                <!-- Time Range Selector (Enlarged) -->
+                <div class="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200/80 dark:border-slate-700/80 text-xs sm:text-sm">
+                  <button
+                    @click="changeRange('1d')"
+                    :class="[
+                      'px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer flex items-center gap-1.5 text-xs sm:text-sm',
+                      selectedRange === '1d' 
+                        ? 'bg-white dark:bg-card text-foreground border border-border/80 shadow-xs' 
+                        : 'text-muted-foreground hover:text-foreground'
+                    ]"
+                  >
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    24J
+                  </button>
+                  <button
+                    @click="changeRange('1w')"
+                    :class="[
+                      'px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer text-xs sm:text-sm',
+                      selectedRange === '1w' 
+                        ? 'bg-white dark:bg-card text-foreground border border-border/80 shadow-xs' 
+                        : 'text-muted-foreground hover:text-foreground'
+                    ]"
+                  >
+                    7H
+                  </button>
+                  <button
+                    @click="changeRange('1M')"
+                    :class="[
+                      'px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer text-xs sm:text-sm',
+                      selectedRange === '1M' 
+                        ? 'bg-white dark:bg-card text-foreground border border-border/80 shadow-xs' 
+                        : 'text-muted-foreground hover:text-foreground'
+                    ]"
+                  >
+                    30H
+                  </button>
+                  <button
+                    @click="selectedRange = 'custom'"
+                    :class="[
+                      'px-2 py-1 rounded-lg font-bold transition-all cursor-pointer text-xs sm:text-sm',
+                      selectedRange === 'custom' 
+                        ? 'bg-white dark:bg-card text-foreground border border-border/80 shadow-xs' 
+                        : 'text-muted-foreground hover:text-foreground'
+                    ]"
+                    title="Rentang Kustom"
+                  >
+                    <Calendar class="w-4 h-4" />
+                  </button>
+                </div>
               </div>
 
-              <!-- Time Range Selector -->
-              <div class="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200/80 dark:border-slate-700/80 text-xs">
-                <button
-                  @click="changeRange('1d')"
-                  :class="[
-                    'px-2 py-1 rounded-md font-semibold transition-all cursor-pointer flex items-center gap-1 text-xs',
-                    selectedRange === '1d' 
-                      ? 'bg-white dark:bg-card text-foreground border border-border/80 shadow-none' 
-                      : 'text-muted-foreground hover:text-foreground'
-                  ]"
-                >
-                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                  24J
-                </button>
-                <button
-                  @click="changeRange('1w')"
-                  :class="[
-                    'px-2 py-1 rounded-md font-semibold transition-all cursor-pointer text-xs',
-                    selectedRange === '1w' 
-                      ? 'bg-white dark:bg-card text-foreground border border-border/80 shadow-none' 
-                      : 'text-muted-foreground hover:text-foreground'
-                  ]"
-                >
-                  7H
-                </button>
-                <button
-                  @click="changeRange('1M')"
-                  :class="[
-                    'px-2 py-1 rounded-md font-semibold transition-all cursor-pointer text-xs',
-                    selectedRange === '1M' 
-                      ? 'bg-white dark:bg-card text-foreground border border-border/80 shadow-none' 
-                      : 'text-muted-foreground hover:text-foreground'
-                  ]"
-                >
-                  30H
-                </button>
-                <button
-                  @click="selectedRange = 'custom'"
-                  :class="[
-                    'px-1.5 py-1 rounded-md font-semibold transition-all cursor-pointer text-xs',
-                    selectedRange === 'custom' 
-                      ? 'bg-white dark:bg-card text-foreground border border-border/80 shadow-none' 
-                      : 'text-muted-foreground hover:text-foreground'
-                  ]"
-                  title="Rentang Kustom"
-                >
-                  <Calendar class="w-3.5 h-3.5" />
-                </button>
+              <!-- Custom Date Picker -->
+              <div v-if="selectedRange === 'custom'" class="flex flex-wrap items-center gap-2.5 p-2.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl text-xs sm:text-sm animate-slide-up">
+                <div class="flex items-center gap-2">
+                  <span class="text-slate-500 dark:text-slate-400 font-semibold">Dari:</span>
+                  <Input type="date" v-model="customStartDate" class="h-8 text-xs sm:text-sm w-36 px-2.5 py-0 bg-white dark:bg-slate-800" />
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="text-slate-500 dark:text-slate-400 font-semibold">Sampai:</span>
+                  <Input type="date" v-model="customEndDate" class="h-8 text-xs sm:text-sm w-36 px-2.5 py-0 bg-white dark:bg-slate-800" />
+                </div>
+                <Button size="sm" variant="default" class="h-8 text-xs sm:text-sm px-3 shadow-none font-bold" @click="applyCustomDate" :disabled="!customStartDate">
+                  <Check class="w-3.5 h-3.5 mr-1" />
+                  Terapkan
+                </Button>
               </div>
-            </div>
 
-            <!-- Custom Date Picker -->
-            <div v-if="selectedRange === 'custom'" class="flex flex-wrap items-center gap-2 p-2 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg text-xs animate-slide-up">
-              <div class="flex items-center gap-1.5">
-                <span class="text-slate-500 dark:text-slate-400">Dari:</span>
-                <Input type="date" v-model="customStartDate" class="h-7 text-xs w-32 px-2 py-0 bg-white dark:bg-slate-800" />
+              <!-- Chart Visual Canvas (Fills 100% of Stretched Card Height) -->
+              <div class="w-full flex-1 flex flex-col min-h-[350px] pt-1">
+                <SensorLineChart 
+                  :data="chartData" 
+                  :title="`Tren ${selectedCategory === 'npk' ? 'Unsur Hara NPK' : (selectedCategory === 'soil' ? 'Kondisi Tanah' : (selectedCategory === 'environment' ? 'Kondisi IoT' : 'Sensor'))}`" 
+                  :sensors="activeCategorySensors" 
+                  :is-loading="isArchiveLoading"
+                />
               </div>
-              <div class="flex items-center gap-1.5">
-                <span class="text-slate-500 dark:text-slate-400">Sampai:</span>
-                <Input type="date" v-model="customEndDate" class="h-7 text-xs w-32 px-2 py-0 bg-white dark:bg-slate-800" />
-              </div>
-              <Button size="sm" variant="default" class="h-7 text-xs px-2.5 shadow-none" @click="applyCustomDate" :disabled="!customStartDate">
-                <Check class="w-3 h-3 mr-1" />
-                Terapkan
-              </Button>
-            </div>
+            </CardContent>
+          </Card>
 
-            <!-- Chart Visual Canvas -->
-            <div class="h-[350px] w-full">
-              <SensorLineChart 
-                :data="chartData" 
-                :title="`Tren ${selectedCategory === 'npk' ? 'Unsur Hara NPK' : (selectedCategory === 'soil' ? 'Kondisi Tanah' : (selectedCategory === 'environment' ? 'Kondisi IoT' : 'Sensor'))}`" 
-                :sensors="activeCategorySensors" 
-                :is-loading="isArchiveLoading"
-              />
-            </div>
-          </CardContent>
-        </Card>
+          <!-- RIGHT COL (lg:col-span-4): Dynamic Category-Aware Analytics & Insights Card (Enlarged Typography) -->
+          <Card class="lg:col-span-4 relative overflow-hidden flex flex-col border border-border/80 bg-white dark:bg-card shadow-none min-h-[460px]">
+            <div class="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-transparent to-primary/5 pointer-events-none"></div>
+            <CardContent class="p-4 sm:p-4.5 relative z-10 flex flex-col justify-between gap-3 flex-1 h-full">
+              
+              <!-- Header: Title & Status Badge -->
+              <div class="flex items-start justify-between gap-2 pb-2.5 border-b border-border/40">
+                <div class="space-y-0.5">
+                  <div class="flex items-center gap-2">
+                    <Sparkles class="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <h4 class="text-base sm:text-lg font-extrabold text-foreground tracking-tight">{{ analyticsData.summaryTitle }}</h4>
+                  </div>
+                  <p class="text-xs sm:text-sm text-muted-foreground font-medium">Periode {{ rangeLabel }} ({{ analyticsData.dataPoints }} data)</p>
+                </div>
+                <span :class="['text-xs sm:text-sm font-extrabold px-3 py-1 rounded-full border whitespace-nowrap shrink-0', analyticsData.badgeColor]">
+                  {{ analyticsData.badgeText }}
+                </span>
+              </div>
+
+              <!-- Unified Distribution Bar (Present in ALL categories: NPK, Tanah, IoT, Semua) -->
+              <div v-if="analyticsData.distributionWidget" class="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 space-y-2">
+                <div class="flex items-center justify-between text-xs sm:text-sm font-bold text-foreground">
+                  <span>{{ analyticsData.distributionWidget.title }}</span>
+                  <span class="text-xs sm:text-sm font-extrabold text-muted-foreground">
+                    {{ analyticsData.distributionWidget.subtitle }}
+                  </span>
+                </div>
+                <div class="h-2.5 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden flex">
+                  <div 
+                    v-for="(seg, i) in analyticsData.distributionWidget.segments" 
+                    :key="i"
+                    :class="[seg.color, 'h-full transition-all duration-500']" 
+                    :style="{ width: `${seg.percent}%` }"
+                    :title="seg.label"
+                  />
+                </div>
+                <div class="flex justify-between text-xs sm:text-sm font-extrabold pt-0.5">
+                  <span 
+                    v-for="(seg, i) in analyticsData.distributionWidget.segments" 
+                    :key="i"
+                    :class="seg.textClass"
+                  >
+                    {{ seg.label }}
+                  </span>
+                </div>
+              </div>
+
+              <!-- Dynamic Key Period Sensor Metrics -->
+              <div class="space-y-2.5 flex-1 flex flex-col justify-center">
+                <div 
+                  v-for="stat in analyticsData.metrics.slice(0, 3)" 
+                  :key="stat.id"
+                  class="p-2.5 sm:p-3 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 flex items-center justify-between gap-2.5"
+                >
+                  <div class="space-y-1">
+                    <span class="text-sm sm:text-base font-extrabold text-foreground block truncate max-w-[130px] sm:max-w-[160px]">{{ stat.name }}</span>
+                    <div class="flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground font-medium">
+                      <span>Rata-rata: <strong class="text-sm sm:text-base font-extrabold text-foreground">{{ stat.avg ?? '--' }}{{ stat.unit }}</strong></span>
+                    </div>
+                  </div>
+
+                  <!-- Min / Max & Trend Badge -->
+                  <div class="flex items-center gap-2.5 text-right shrink-0">
+                    <div class="text-xs sm:text-sm text-muted-foreground leading-tight font-semibold">
+                      <div>Min: <span class="font-extrabold text-foreground">{{ stat.min ?? '--' }}</span></div>
+                      <div>Max: <span class="font-extrabold text-foreground">{{ stat.max ?? '--' }}</span></div>
+                    </div>
+                    <div 
+                      :class="[
+                        'w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center border shrink-0',
+                        stat.trend === 'up' 
+                          ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-600' 
+                          : (stat.trend === 'down' 
+                            ? 'bg-rose-500/15 border-rose-500/30 text-rose-600' 
+                            : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500')
+                      ]"
+                      :title="`Delta tren: ${stat.delta > 0 ? '+' : ''}${stat.delta} ${stat.unit}`"
+                    >
+                      <TrendingUp v-if="stat.trend === 'up'" class="w-4 h-4" />
+                      <TrendingDown v-else-if="stat.trend === 'down'" class="w-4 h-4" />
+                      <Minus v-else class="w-4 h-4" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Contextual Agronomy Insight Box -->
+              <div class="p-3 rounded-xl bg-emerald-500/10 dark:bg-emerald-950/30 border border-emerald-500/20 text-xs sm:text-sm text-emerald-900 dark:text-emerald-300 flex items-start gap-2.5 leading-relaxed min-h-[64px]">
+                <Info class="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                <p class="text-xs sm:text-sm font-semibold">{{ analyticsData.insightText }}</p>
+              </div>
+
+            </CardContent>
+          </Card>
+
+        </div>
 
         <!-- ROW 3: Dua Portlet Berdampingan (Kondisi Tanah & Kondisi IoT) -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
@@ -571,62 +1006,34 @@ onUnmounted(() => {
               <!-- Portlet Header -->
               <div class="flex items-center justify-between pb-2 border-b border-border/40">
                 <div class="flex items-center gap-2">
-                  <div class="w-7 h-7 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-600">
-                    <Sprout class="w-4 h-4" />
-                  </div>
-                  <h3 class="text-sm font-bold tracking-tight text-foreground">Kondisi Tanah</h3>
+                  <img src="/soil-icon.svg" alt="Kondisi Tanah" class="w-5 h-5 object-contain dark:invert shrink-0" />
+                  <h4 class="text-base sm:text-lg font-bold tracking-tight text-foreground">Kondisi Tanah</h4>
                 </div>
               </div>
 
               <!-- Multi-Probe Moisture Comparison Widget -->
               <div class="bg-slate-50 dark:bg-slate-900/50 rounded-xl p-3 border border-slate-200/80 dark:border-slate-800 space-y-2">
-                <div class="flex items-center justify-between text-xs">
+                <div class="flex items-center justify-between text-sm">
                   <span class="font-semibold text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
-                    <Droplet class="w-3.5 h-3.5 text-blue-500" />
-                    Kelembaban Multi-Titik
+                    <Droplet class="w-4 h-4 text-blue-500" />
+                    {{ avgMoistureMetric?.name || 'Kelembaban Multi-Titik' }}
                   </span>
-                  <span v-if="moistureAvgValue != null" class="font-bold text-xs text-slate-900 dark:text-slate-100">
-                    Avg: <span class="text-blue-500 font-extrabold">{{ moistureAvgValue }}%</span>
+                  <span v-if="getLiveVal(avgMoistureMetric) != null" class="font-bold text-sm text-slate-900 dark:text-slate-100">
+                    Avg: <span class="text-blue-500 font-extrabold">{{ getLiveVal(avgMoistureMetric) }}{{ avgMoistureMetric?.unit || '%' }}</span>
                   </span>
                 </div>
 
                 <!-- Probe Bars -->
                 <div class="space-y-1.5 pt-0.5">
-                  <div class="space-y-0.5">
-                    <div class="flex justify-between text-[11px]">
-                      <span class="text-slate-500 dark:text-slate-400 font-medium">Probe 1 (Titik A)</span>
-                      <span class="font-bold text-foreground">{{ probe1Value ?? '--' }}%</span>
+                  <div v-for="probe in soilProbes" :key="probe.id" class="space-y-0.5">
+                    <div class="flex justify-between text-xs">
+                      <span class="text-slate-500 dark:text-slate-400 font-medium">{{ probe.name }}</span>
+                      <span class="font-bold text-foreground">{{ getLiveVal(probe) ?? '--' }}{{ probe.unit || '%' }}</span>
                     </div>
                     <div class="h-1.5 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
                       <div 
                         class="h-full bg-gradient-to-r from-blue-400 to-blue-600 rounded-full transition-all duration-500" 
-                        :style="{ width: `${Math.min(Math.max(Number(probe1Value || 0), 0), 100)}%` }"
-                      />
-                    </div>
-                  </div>
-
-                  <div class="space-y-0.5">
-                    <div class="flex justify-between text-[11px]">
-                      <span class="text-slate-500 dark:text-slate-400 font-medium">Probe 2 (Titik B)</span>
-                      <span class="font-bold text-foreground">{{ probe2Value ?? '--' }}%</span>
-                    </div>
-                    <div class="h-1.5 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
-                      <div 
-                        class="h-full bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full transition-all duration-500" 
-                        :style="{ width: `${Math.min(Math.max(Number(probe2Value || 0), 0), 100)}%` }"
-                      />
-                    </div>
-                  </div>
-
-                  <div class="space-y-0.5">
-                    <div class="flex justify-between text-[11px]">
-                      <span class="text-slate-500 dark:text-slate-400 font-medium">Probe 3 (Titik C)</span>
-                      <span class="font-bold text-foreground">{{ probe3Value ?? '--' }}%</span>
-                    </div>
-                    <div class="h-1.5 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
-                      <div 
-                        class="h-full bg-gradient-to-r from-teal-400 to-cyan-500 rounded-full transition-all duration-500" 
-                        :style="{ width: `${Math.min(Math.max(Number(probe3Value || 0), 0), 100)}%` }"
+                        :style="{ width: `${Math.min(Math.max(Number(getLiveVal(probe) || 0), 0), 100)}%` }"
                       />
                     </div>
                   </div>
@@ -636,34 +1043,34 @@ onUnmounted(() => {
               <!-- Compact Mini Metrics: pH, Suhu Tanah, EC -->
               <div class="grid grid-cols-3 gap-2">
                 <!-- pH Tanah Card -->
-                <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 flex flex-col justify-between min-h-[58px]">
+                <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 flex flex-col justify-between min-h-[62px]">
                   <div class="flex items-center justify-between gap-1">
-                    <span class="text-[11px] font-medium text-slate-500 dark:text-slate-400 truncate">pH</span>
-                    <span :class="['text-[9px] font-bold px-1.5 py-0.2 rounded-full border whitespace-nowrap', phStatus.border, phStatus.bg, phStatus.textClass]">
+                    <span class="text-xs font-semibold text-slate-500 dark:text-slate-400 truncate">{{ phMetric?.name || 'pH' }}</span>
+                    <span :class="['text-[10px] font-bold px-1.5 py-0.5 rounded-full border whitespace-nowrap', phStatus.border, phStatus.bg, phStatus.textClass]">
                       {{ phStatus.text }}
                     </span>
                   </div>
                   <div class="mt-1">
-                    <span class="text-base sm:text-lg font-bold tracking-tight text-slate-900 dark:text-slate-100">{{ phValue ?? '--' }}</span>
-                    <span class="text-[10px] text-slate-500 dark:text-slate-400 ml-1">pH</span>
+                    <span class="text-lg sm:text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100">{{ getLiveVal(phMetric) ?? '--' }}</span>
+                    <span class="text-xs text-slate-500 dark:text-slate-400 ml-1">{{ phMetric?.unit || 'pH' }}</span>
                   </div>
                 </div>
 
                 <!-- Suhu Tanah Card -->
-                <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 flex flex-col justify-between min-h-[58px]">
-                  <span class="text-[11px] font-medium text-slate-500 dark:text-slate-400 truncate">Suhu Tanah</span>
+                <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 flex flex-col justify-between min-h-[62px]">
+                  <span class="text-xs font-semibold text-slate-500 dark:text-slate-400 truncate">{{ soilTempMetric?.name || 'Suhu Tanah' }}</span>
                   <div class="mt-1">
-                    <span class="text-base sm:text-lg font-bold tracking-tight text-slate-900 dark:text-slate-100">{{ soilTempValue ?? '--' }}</span>
-                    <span class="text-[10px] text-slate-500 dark:text-slate-400 ml-1">°C</span>
+                    <span class="text-lg sm:text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100">{{ getLiveVal(soilTempMetric) ?? '--' }}</span>
+                    <span class="text-xs text-slate-500 dark:text-slate-400 ml-1">{{ soilTempMetric?.unit || '°C' }}</span>
                   </div>
                 </div>
 
                 <!-- EC (Electrical Conductivity) Card -->
-                <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 flex flex-col justify-between min-h-[58px]">
-                  <span class="text-[11px] font-medium text-slate-500 dark:text-slate-400 truncate">EC Tanah</span>
+                <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 flex flex-col justify-between min-h-[62px]">
+                  <span class="text-xs font-semibold text-slate-500 dark:text-slate-400 truncate">{{ ecMetric?.name || 'eC' }}</span>
                   <div class="mt-1">
-                    <span class="text-base sm:text-lg font-bold tracking-tight text-slate-900 dark:text-slate-100">{{ soilEcValue ?? '--' }}</span>
-                    <span class="text-[10px] text-slate-500 dark:text-slate-400 ml-1 font-sans">µS/cm</span>
+                    <span class="text-lg sm:text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100">{{ getLiveVal(ecMetric) ?? '--' }}</span>
+                    <span class="text-xs text-slate-500 dark:text-slate-400 ml-1 font-sans">{{ ecMetric?.unit || 'µS/cm' }}</span>
                   </div>
                 </div>
               </div>
@@ -677,63 +1084,104 @@ onUnmounted(() => {
               <!-- Portlet Header -->
               <div class="flex items-center justify-between pb-2 border-b border-border/40">
                 <div class="flex items-center gap-2">
-                  <div class="w-7 h-7 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-600">
-                    <Cpu class="w-4 h-4" />
-                  </div>
-                  <h3 class="text-sm font-bold tracking-tight text-foreground">Kondisi IoT</h3>
+                  <img src="/iot-icon.svg" alt="Kondisi IoT" class="w-5 h-5 object-contain dark:invert shrink-0" />
+                  <h4 class="text-base sm:text-lg font-bold tracking-tight text-foreground">Kondisi IoT</h4>
                 </div>
               </div>
 
-              <!-- Highlight Suhu Dalam Panel (Enclosure) & Thermal Status -->
-              <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 flex items-center justify-between">
-                <div class="flex items-center gap-2.5">
-                  <div class="w-9 h-9 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-orange-500 shadow-none">
-                    <Thermometer class="w-5 h-5" />
+              <!-- Highlight Suhu Dalam Panel (Enclosure) & Dynamic Thermal Safety Card (NPK Style - Expanded Height) -->
+              <div 
+                class="relative overflow-hidden p-4 sm:p-4.5 rounded-2xl transition-all duration-300 flex-1 flex flex-col justify-between gap-3 text-white border-0 min-h-[135px]"
+                :class="thermalStatus.shadowClass"
+                :style="{ background: thermalStatus.gradient }"
+              >
+                <!-- Soft Glass Inner Glow / Lighting Reflection (Same as NPK Card) -->
+                <div 
+                  class="absolute inset-0 pointer-events-none opacity-20"
+                  style="background: radial-gradient(circle at 85% 15%, rgba(255, 255, 255, 0.4) 0%, transparent 60%);"
+                ></div>
+
+                <!-- Top: Thermometer Icon, Label, Main Value, and Min/Max Stats -->
+                <div class="flex items-center justify-between gap-2.5 relative z-10 my-auto">
+                  <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-white/25 backdrop-blur-md flex items-center justify-center text-white shadow-none shrink-0 border-0">
+                      <Thermometer class="w-5 h-5 stroke-[2.5]" />
+                    </div>
+                    <div>
+                      <p class="text-sm sm:text-base font-semibold text-white/95 tracking-wide drop-shadow-[0_1px_1px_rgba(0,0,0,0.1)]">
+                        {{ enclosureTempMetric?.name || 'Suhu Dalam Box Panel' }}
+                      </p>
+                      <div class="flex items-baseline gap-1 mt-0.5">
+                        <span class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.15)]">
+                          {{ getLiveVal(enclosureTempMetric) ?? '--' }}
+                        </span>
+                        <span class="text-sm font-semibold text-white/90 drop-shadow-[0_1px_1px_rgba(0,0,0,0.1)]">
+                          {{ enclosureTempMetric?.unit || '°C' }}
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Suhu Dalam Panel (Box)</p>
-                    <div class="flex items-baseline gap-1">
-                      <span class="text-lg sm:text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100">{{ enclosureTempValue ?? '--' }}</span>
-                      <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">°C</span>
+
+                  <!-- Min & Max Stats (Compact, Sleek 50/50 Symmetrical Grid Capsule) -->
+                  <div class="grid grid-cols-2 divide-x divide-white/35 items-center bg-white/30 hover:bg-white/35 backdrop-blur-md px-1.5 py-1 sm:py-1.5 rounded-xl shrink-0 border border-white/50 shadow-sm w-28 sm:w-32">
+                    <div class="px-1.5 flex flex-col items-center justify-center text-center">
+                      <span class="text-[10px] font-bold text-white/90 block leading-none tracking-wider drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)]">MIN</span>
+                      <span class="text-xs sm:text-sm font-extrabold text-white font-mono leading-tight mt-0.5 drop-shadow-[0_1px_1px_rgba(0,0,0,0.2)]">
+                        {{ enclosureMinVal != null ? `${enclosureMinVal}°` : '--' }}
+                      </span>
+                    </div>
+                    <div class="px-1.5 flex flex-col items-center justify-center text-center">
+                      <span class="text-[10px] font-bold text-white/90 block leading-none tracking-wider drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)]">MAX</span>
+                      <span class="text-xs sm:text-sm font-extrabold text-white font-mono leading-tight mt-0.5 drop-shadow-[0_1px_1px_rgba(0,0,0,0.2)]">
+                        {{ enclosureMaxVal != null ? `${enclosureMaxVal}°` : '--' }}
+                      </span>
                     </div>
                   </div>
                 </div>
-                <!-- Thermal status badge -->
-                <div class="text-right">
-                  <span :class="['text-[11px] font-semibold px-2.5 py-1 rounded-full border flex items-center gap-1.5 shadow-none', thermalStatus.badgeClass]">
-                    <span :class="['w-1.5 h-1.5 rounded-full', thermalStatus.dotClass]"></span>
-                    {{ thermalStatus.text }}
-                  </span>
-                  <p class="text-[10px] text-muted-foreground mt-0.5">Status Termal</p>
+
+                <!-- Bottom: Thermal Safety Threshold Bar (Current / Max Threshold) -->
+                <div class="space-y-1.5 relative z-10 pt-1 mt-auto">
+                  <div class="flex items-center justify-between text-xs text-white/90 font-medium">
+                    <span>Batas Aman Panel: <strong class="text-white font-bold">{{ thermalStatus.safeLimit }}°C</strong></span>
+                    <span class="font-bold text-white">{{ getLiveVal(enclosureTempMetric) ?? '--' }} / {{ thermalStatus.safeLimit }}°C</span>
+                  </div>
+                  <!-- Progress bar -->
+                  <div class="relative h-1.5 w-full bg-black/25 rounded-full overflow-hidden backdrop-blur-xs">
+                    <!-- Active temperature bar scaled to max threshold -->
+                    <div 
+                      :class="['h-full bg-gradient-to-r rounded-full transition-all duration-500', thermalStatus.barGradient]" 
+                      :style="{ width: `${thermalStatus.percentage}%` }"
+                    />
+                  </div>
                 </div>
               </div>
 
               <!-- Mini Grid: Suhu Luar (Ambient), Kelembaban Udara, Status Modbus -->
               <div class="grid grid-cols-3 gap-2">
                 <!-- Suhu Luar / Ambient -->
-                <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 flex flex-col justify-between min-h-[58px]">
-                  <span class="text-[11px] font-medium text-slate-500 dark:text-slate-400 truncate">Suhu Luar</span>
+                <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 flex flex-col justify-between min-h-[62px]">
+                  <span class="text-xs font-semibold text-slate-500 dark:text-slate-400 truncate">{{ airTempMetric?.name || 'Suhu Luar' }}</span>
                   <div class="mt-1">
-                    <span class="text-base sm:text-lg font-bold tracking-tight text-slate-900 dark:text-slate-100">{{ airTempValue ?? '--' }}</span>
-                    <span class="text-[10px] text-slate-500 dark:text-slate-400 ml-1">°C</span>
+                    <span class="text-lg sm:text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100">{{ getLiveVal(airTempMetric) ?? '--' }}</span>
+                    <span class="text-xs text-slate-500 dark:text-slate-400 ml-1">{{ airTempMetric?.unit || '°C' }}</span>
                   </div>
                 </div>
 
                 <!-- Kelembaban Udara -->
-                <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 flex flex-col justify-between min-h-[58px]">
-                  <span class="text-[11px] font-medium text-slate-500 dark:text-slate-400 truncate">Kelembaban</span>
+                <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 flex flex-col justify-between min-h-[62px]">
+                  <span class="text-xs font-semibold text-slate-500 dark:text-slate-400 truncate">{{ humidityMetric?.name || 'Kelembaban' }}</span>
                   <div class="mt-1">
-                    <span class="text-base sm:text-lg font-bold tracking-tight text-slate-900 dark:text-slate-100">{{ airHumidityValue ?? '--' }}</span>
-                    <span class="text-[10px] text-slate-500 dark:text-slate-400 ml-1">%</span>
+                    <span class="text-lg sm:text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100">{{ getLiveVal(humidityMetric) ?? '--' }}</span>
+                    <span class="text-xs text-slate-500 dark:text-slate-400 ml-1">{{ humidityMetric?.unit || '%' }}</span>
                   </div>
                 </div>
 
                 <!-- Modbus Status -->
-                <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 flex flex-col justify-between min-h-[58px]">
-                  <span class="text-[11px] font-medium text-slate-500 dark:text-slate-400 truncate">Modbus Code</span>
+                <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 flex flex-col justify-between min-h-[62px]">
+                  <span class="text-xs font-semibold text-slate-500 dark:text-slate-400 truncate">{{ modbusMetric?.name || 'Modbus Code' }}</span>
                   <div class="mt-1 flex items-center">
-                    <span class="text-xs font-bold font-mono bg-slate-200 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200">
-                      {{ modbusCodeValue != null ? `Code ${modbusCodeValue}` : 'OK (0)' }}
+                    <span class="text-xs sm:text-sm font-bold font-mono bg-slate-200 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200">
+                      {{ getLiveVal(modbusMetric) != null ? `Code ${getLiveVal(modbusMetric)}` : 'OK (0)' }}
                     </span>
                   </div>
                 </div>

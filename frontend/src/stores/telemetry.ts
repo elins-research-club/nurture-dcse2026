@@ -16,8 +16,50 @@ export interface HistoryOptions {
   force?: boolean;
 }
 
+export interface SensorMetricSummary {
+  id: string;
+  name: string;
+  type: string;
+  unit: string;
+  thingspeak_field: string;
+  channel_id?: string | null;
+  field_key: string;
+  current_value?: number | null;
+  min_recorded?: number | null;
+  max_recorded?: number | null;
+  min_threshold?: number | null;
+  max_threshold?: number | null;
+  status?: string | null;
+}
+
+export interface DashboardSummaryResponse {
+  node_id: string;
+  node_name?: string | null;
+  last_seen?: string | null;
+  is_active: boolean;
+  sensors: SensorMetricSummary[];
+  npk_sensors: SensorMetricSummary[];
+  soil_probes: SensorMetricSummary[];
+  soil_metrics: {
+    ph?: SensorMetricSummary | null;
+    soil_temp?: SensorMetricSummary | null;
+    ec?: SensorMetricSummary | null;
+    avg_moisture?: SensorMetricSummary | null;
+  };
+  iot_metrics: {
+    enclosure_temp?: SensorMetricSummary | null;
+    air_temp?: SensorMetricSummary | null;
+    humidity?: SensorMetricSummary | null;
+    modbus?: SensorMetricSummary | null;
+  };
+}
+
 export const useTelemetryStore = defineStore("telemetry", () => {
   const authStore = useAuthStore();
+
+  // State: Structured Dashboard Summaries directly from PostgreSQL Backend API
+  const dashboardSummaries = ref<Record<string, DashboardSummaryResponse>>({});
+  const isDashboardLoading = ref<Record<string, boolean>>({});
 
   // State: NodeId -> Live telemetry feeds (index 0 is newest, updated by WS)
   const telemetryHistory = ref<Record<string, any[]>>({});
@@ -129,6 +171,7 @@ export const useTelemetryStore = defineStore("telemetry", () => {
   const cekAmbang = (nodeId: string, feed: Record<string, any>) => {
     const daftar = sensorsByNode.value[nodeId];
     if (!daftar?.length) return;
+    const namaNode = dashboardSummaries.value[nodeId]?.node_name || nodeId;
 
     for (const s of daftar) {
       if (!s.enabled) continue;
@@ -147,18 +190,21 @@ export const useTelemetryStore = defineStore("telemetry", () => {
       const sebelumnya = statusAlert[s.id] || false;
 
       if (diLuar && !sebelumnya) {
-        const batas = terlaluTinggi ? s.max_threshold : s.min_threshold;
-        tampilkanNotif(
-          `${s.name} ${terlaluTinggi ? "terlalu tinggi" : "terlalu rendah"}`,
-          `${nilai} ${s.unit} (batas ${batas} ${s.unit})`,
-          `sensor-${s.id}`,
-        );
-      } else if (!diLuar && sebelumnya) {
-        tampilkanNotif(
-          `${s.name} kembali normal`,
-          `${nilai} ${s.unit}`,
-          `sensor-${s.id}`,
-        );
+        let ambangStr = "";
+        const u = s.unit || "";
+        if (s.min_threshold != null && s.max_threshold != null) {
+          ambangStr = `${s.min_threshold} - ${s.max_threshold} ${u}`.trim();
+        } else if (s.max_threshold != null) {
+          ambangStr = `Maks. ${s.max_threshold} ${u}`.trim();
+        } else if (s.min_threshold != null) {
+          ambangStr = `Min. ${s.min_threshold} ${u}`.trim();
+        }
+
+        const statusKondisi = terlaluTinggi ? "Tinggi" : "Rendah";
+        const judul = `⚠️ Peringatan: ${namaNode}`;
+        const isi = `${s.name} mencapai ${nilai} ${u} (${statusKondisi} | Ambang batas: ${ambangStr})`.trim();
+
+        tampilkanNotif(judul, isi, `sensor-${s.id}`);
       }
 
       statusAlert[s.id] = diLuar;
@@ -169,11 +215,13 @@ export const useTelemetryStore = defineStore("telemetry", () => {
   let reconnectTimer: any = null;
 
   const connectWebSocket = () => {
-    if (ws || !authStore.token) return;
+    if (ws) return;
 
     try {
       const url = new URL(WS_URL);
-      url.searchParams.append("token", authStore.token);
+      if (authStore.token) {
+        url.searchParams.append("token", authStore.token);
+      }
 
       ws = new WebSocket(url.toString());
 
@@ -213,9 +261,7 @@ export const useTelemetryStore = defineStore("telemetry", () => {
       ws.onclose = () => {
         isConnected.value = false;
         ws = null;
-        if (authStore.isAuthenticated()) {
-          reconnectTimer = setTimeout(connectWebSocket, 3000);
-        }
+        reconnectTimer = setTimeout(connectWebSocket, 3000);
       };
 
       ws.onerror = (err) => {
@@ -237,9 +283,11 @@ export const useTelemetryStore = defineStore("telemetry", () => {
 
   const fetchSensors = async (nodeId: string) => {
     try {
-      const res = await fetch(`${API_BASE_URL}/nodes/${nodeId}/sensors/`, {
-        headers: { Authorization: `Bearer ${authStore.token}` },
-      });
+      const headers: Record<string, string> = {};
+      if (authStore.token) {
+        headers["Authorization"] = `Bearer ${authStore.token}`;
+      }
+      const res = await fetch(`${API_BASE_URL}/nodes/${nodeId}/sensors/`, { headers });
       if (res.ok) {
         const data = await res.json();
         sensorsByNode.value[nodeId] = data;
@@ -284,11 +332,13 @@ export const useTelemetryStore = defineStore("telemetry", () => {
     }
 
     try {
+      const headers: Record<string, string> = {};
+      if (authStore.token) {
+        headers["Authorization"] = `Bearer ${authStore.token}`;
+      }
       const res = await fetch(
         `${API_BASE_URL}/nodes/${nodeId}/telemetry/history?${params.toString()}`,
-        {
-          headers: { Authorization: `Bearer ${authStore.token}` },
-        },
+        { headers },
       );
       if (res.ok) {
         const data = await res.json();
@@ -326,7 +376,64 @@ export const useTelemetryStore = defineStore("telemetry", () => {
     return [...(telemetryHistory.value[nodeId] || [])].reverse();
   };
 
+  // --- Centralized Single Source of Truth: Node Online/Offline Status ---
+  const OFFLINE_THRESHOLD_MINS = 15;
+
+  const getNodeLastSeen = (nodeId: string, fallbackLastSeen?: string | null): string | undefined => {
+    return telemetryHistory.value[nodeId]?.[0]?.created_at || fallbackLastSeen || undefined;
+  };
+
+  const isNodeOnline = (nodeId: string, fallbackLastSeen?: string | null): boolean => {
+    const lastSeen = getNodeLastSeen(nodeId, fallbackLastSeen);
+    if (!lastSeen) return false;
+    try {
+      const dateStr = String(lastSeen).endsWith("Z") ? String(lastSeen) : String(lastSeen) + "Z";
+      const diffMinutes = (Date.now() - new Date(dateStr).getTime()) / (1000 * 60);
+      return diffMinutes < OFFLINE_THRESHOLD_MINS;
+    } catch {
+      return false;
+    }
+  };
+
+  const getFormattedLastSeen = (nodeId: string, fallbackLastSeen?: string | null): string => {
+    const lastSeen = getNodeLastSeen(nodeId, fallbackLastSeen);
+    if (!lastSeen) return "--";
+    try {
+      const dateStr = String(lastSeen).endsWith("Z") ? String(lastSeen) : String(lastSeen) + "Z";
+      const d = new Date(dateStr);
+      return d.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) + " WIB";
+    } catch {
+      return "--";
+    }
+  };
+
+  const fetchDashboardSummary = async (nodeId: string): Promise<DashboardSummaryResponse | null> => {
+    isDashboardLoading.value[nodeId] = true;
+    try {
+      const headers: Record<string, string> = {};
+      if (authStore.token) {
+        headers["Authorization"] = `Bearer ${authStore.token}`;
+      }
+      const res = await fetch(`${API_BASE_URL}/nodes/${nodeId}/telemetry/dashboard`, { headers });
+      if (res.ok) {
+        const data: DashboardSummaryResponse = await res.json();
+        dashboardSummaries.value[nodeId] = data;
+        return data;
+      } else {
+        console.error(`[TelemetryStore] Failed to fetch dashboard summary, status: ${res.status}`);
+      }
+    } catch (e) {
+      console.error(`[TelemetryStore] Failed to fetch dashboard summary for ${nodeId}`, e);
+    } finally {
+      isDashboardLoading.value[nodeId] = false;
+    }
+    return dashboardSummaries.value[nodeId] ?? null;
+  };
+
   return {
+    dashboardSummaries,
+    isDashboardLoading,
+    fetchDashboardSummary,
     telemetryHistory,
     archiveHistory,
     isArchiveLoading,
@@ -337,6 +444,9 @@ export const useTelemetryStore = defineStore("telemetry", () => {
     fetchHistory,
     getLatest,
     getChartData,
+    getNodeLastSeen,
+    isNodeOnline,
+    getFormattedLastSeen,
     notifAktif,
     mintaIzinNotif,
     webpushAktif,
