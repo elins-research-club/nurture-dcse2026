@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, nextTick, computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import { useDark } from '@vueuse/core'
 import { useTelemetryStore } from '@/stores/telemetry'
 import DashboardLayout from '@/components/layout/DashboardLayout.vue'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
@@ -82,18 +83,18 @@ watch(activeTab, () => {
   updateSlider()
 })
 
-const isDarkMode = ref(document.documentElement.classList.contains('dark'))
+const isDarkMode = useDark({
+  storageKey: 'theme',
+  valueDark: 'dark',
+  valueLight: 'light'
+})
+
 const showModal = ref(false)
 const modalType = ref<'success' | 'error'>('success')
 const modalMessage = ref('')
 
 const toggleTheme = (dark: boolean) => {
   isDarkMode.value = dark
-  if (dark) {
-    document.documentElement.classList.add('dark')
-  } else {
-    document.documentElement.classList.remove('dark')
-  }
 }
 
 const API_BASE_URL = '/api/v1'

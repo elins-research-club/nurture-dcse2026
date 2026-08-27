@@ -5,6 +5,7 @@ import Sidebar from './Sidebar.vue'
 import { useAuthStore } from '@/stores/auth'
 import { Button } from '@/components/ui/button'
 import { LogIn, Sun, Moon } from 'lucide-vue-next'
+import { useDark, useToggle } from '@vueuse/core'
 
 const props = withDefaults(defineProps<{
   noPadding?: boolean
@@ -18,18 +19,14 @@ const router = useRouter()
 const isCollapsed = ref(true)
 const authStore = useAuthStore()
 
-const isDarkMode = ref(document.documentElement.classList.contains('dark'))
+const isDarkMode = useDark({
+  storageKey: 'theme',
+  valueDark: 'dark',
+  valueLight: 'light'
+})
 
-const toggleTheme = () => {
-  isDarkMode.value = !isDarkMode.value
-  if (isDarkMode.value) {
-    document.documentElement.classList.add('dark')
-    localStorage.setItem('theme', 'dark')
-  } else {
-    document.documentElement.classList.remove('dark')
-    localStorage.setItem('theme', 'light')
-  }
-}
+const toggleTheme = useToggle(isDarkMode)
+
 </script>
 
 <template>
