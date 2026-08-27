@@ -10,9 +10,23 @@ from app.services.telegram_service import send_telegram_alert
 from app.repositories.event_log_repo import event_log_repo
 from app.schemas.event_log import EventLogCreate
 from datetime import datetime, timezone
+from sqlalchemy.future import select
+from app.models.system_config import SystemConfig
 from app.services.aktuator import baca_aktuator
 from app.services.webpush_service import kirim_push
+from app.services.telemetry_buffer import append_node_telemetry
 
+
+from app.services.alert_formatter import (
+    format_sensor_alert_telegram,
+    format_sensor_recovered_telegram,
+    format_sensor_push,
+    format_sensor_recovered_push,
+    format_node_offline_telegram,
+    format_node_online_telegram,
+    format_node_offline_push,
+    format_node_online_push,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -106,7 +120,9 @@ async def poll_node(node_id: str, channels: list, db_session):
         "created_at": latest_ts
     }
 
-    
+    if latest_ts and extracted_data:
+        append_node_telemetry(node_id, {"created_at": latest_ts, **extracted_data})
+
     await manager.broadcast(node_id, payload)
     await manager.broadcast("dashboard", payload)
     
@@ -130,39 +146,49 @@ async def poll_node(node_id: str, channels: list, db_session):
                 
                 if (is_high or is_low) and not currently_alerting:
                     # Trigger alert
-                    alert_type = 'High' if is_high else 'Low'
-                    limit = s.max_threshold if is_high else s.min_threshold
-                    msg = f"⚠️ <b>Threshold Alert</b>\nNode <code>{node.name}</code>\nSensor <b>{s.name}</b> is {alert_type}: {val}{s.unit} (Limit: {limit}{s.unit})"
-                    await send_telegram_alert(db_session, msg)
-                    await kirim_push(
-                        db_session,
-                        f"{s.name} {'terlalu tinggi' if is_high else 'terlalu rendah'}",
-                        f"{node.name} — {val} {s.unit} (batas {limit} {s.unit})",
-                        "/dashboard",
+                    msg = format_sensor_alert_telegram(
+                        node_name=node.name,
+                        sensor_name=s.name,
+                        val=val,
+                        unit=s.unit or "",
+                        is_high=is_high,
+                        min_thresh=s.min_threshold,
+                        max_thresh=s.max_threshold
                     )
-                    await event_log_repo.create(db_session, EventLogCreate(level="WARNING", message=f"{s.name} is {alert_type}: {val}{s.unit}", node_id=node.id))
+                    await send_telegram_alert(db_session, msg)
+                    
+                    push_judul, push_isi = format_sensor_push(
+                        node_name=node.name,
+                        sensor_name=s.name,
+                        val=val,
+                        unit=s.unit or "",
+                        is_high=is_high,
+                        min_thresh=s.min_threshold,
+                        max_thresh=s.max_threshold
+                    )
+                    await kirim_push(db_session, push_judul, push_isi, "/dashboard")
+                    
+                    status_str = "Tinggi" if is_high else "Rendah"
+                    await event_log_repo.create(db_session, EventLogCreate(level="WARNING", message=f"{s.name} ({status_str}): {val} {s.unit or ''}", node_id=node.id))
                     sensor_alert_state[sensor_id_str] = True
                 
                 elif not (is_high or is_low) and currently_alerting:
-                    # Recovered
-                    msg = f"✅ <b>Threshold Recovered</b>\nNode <code>{node.name}</code>\nSensor <b>{s.name}</b> returned to normal: {val}{s.unit}"
-                    await send_telegram_alert(db_session, msg)
-                    await event_log_repo.create(db_session, EventLogCreate(level="INFO", message=f"{s.name} returned to normal: {val}{s.unit}", node_id=node.id))
+                    # Sensor kembali normal - reset state tanpa kirim spam notifikasi
+                    await event_log_repo.create(db_session, EventLogCreate(level="INFO", message=f"{s.name} kembali normal: {val} {s.unit or ''}", node_id=node.id))
                     sensor_alert_state[sensor_id_str] = False
 
         await node_repo.update_last_seen(db_session, node)
 
-
-
-        
-
-        
         # Check if it was previously offline and just came back online
         was_online = node_online_state.get(node_id, True)
         if not was_online:
-            msg = f"🟢 <b>Node Online</b>\nNode <code>{node.name}</code> ({node_id}) is back online!"
+            msg = format_node_online_telegram(node_name=node.name, node_id=node_id)
             await send_telegram_alert(db_session, msg)
-            await event_log_repo.create(db_session, EventLogCreate(level="INFO", message=f"Node {node.name} is back online.", node_id=node.id))
+            
+            p_judul, p_isi = format_node_online_push(node_name=node.name)
+            await kirim_push(db_session, p_judul, p_isi, "/dashboard")
+            
+            await event_log_repo.create(db_session, EventLogCreate(level="INFO", message=f"Node {node.name} kembali online.", node_id=node.id))
         
         node_online_state[node_id] = True
 
@@ -171,15 +197,24 @@ async def check_offline_nodes(db_session):
     active_nodes = [n for n in nodes if n.is_active]
     now = datetime.utcnow()
     
+    # Read dynamic offline threshold from database
+    result = await db_session.execute(select(SystemConfig).filter_by(id=1))
+    config = result.scalars().first()
+    offline_thresh_mins = config.offline_threshold_mins if (config and config.offline_threshold_mins) else settings.OFFLINE_THRESHOLD_MINUTES
+    
     for node in active_nodes:
         if node.last_seen:
             diff_minutes = (now - node.last_seen).total_seconds() / 60.0
             is_currently_online = node_online_state.get(node.node_id, True)
             
-            if diff_minutes > settings.OFFLINE_THRESHOLD_MINUTES and is_currently_online:
-                msg = f"🔴 <b>Node Offline Alert</b>\nNode <code>{node.name}</code> ({node.node_id}) has not sent data for {int(diff_minutes)} minutes!"
+            if diff_minutes > offline_thresh_mins and is_currently_online:
+                msg = format_node_offline_telegram(node_name=node.name, node_id=node.node_id, minutes=int(diff_minutes))
                 await send_telegram_alert(db_session, msg)
-                await event_log_repo.create(db_session, EventLogCreate(level="ERROR", message=f"Node {node.name} went offline. No data for >{settings.OFFLINE_THRESHOLD_MINUTES}m.", node_id=node.id))
+                
+                p_judul, p_isi = format_node_offline_push(node_name=node.name, minutes=int(diff_minutes))
+                await kirim_push(db_session, p_judul, p_isi, "/dashboard")
+                
+                await event_log_repo.create(db_session, EventLogCreate(level="ERROR", message=f"Node {node.name} offline (> {int(diff_minutes)} menit tanpa data).", node_id=node.id))
                 node_online_state[node.node_id] = False
 
 async def polling_loop(app):

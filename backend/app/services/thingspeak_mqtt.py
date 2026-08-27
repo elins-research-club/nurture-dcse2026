@@ -1,4 +1,4 @@
-﻿import asyncio
+import asyncio
 import json
 import logging
 from typing import Dict, Any, Optional
@@ -13,6 +13,18 @@ from app.repositories.event_log_repo import event_log_repo
 from app.schemas.event_log import EventLogCreate
 from app.services.websocket_manager import manager
 from app.services.telegram_service import send_telegram_alert
+from app.services.telemetry_buffer import append_node_telemetry
+from app.services.webpush_service import kirim_push
+from app.services.alert_formatter import (
+    format_sensor_alert_telegram,
+    format_sensor_recovered_telegram,
+    format_sensor_push,
+    format_sensor_recovered_push,
+    format_node_offline_telegram,
+    format_node_online_telegram,
+    format_node_offline_push,
+    format_node_online_push,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -68,6 +80,9 @@ async def process_thingspeak_payload(channel_str_id: str, data: Dict[str, Any]):
                 "created_at": created_at
             }
 
+            if created_at and merged_data:
+                append_node_telemetry(node.node_id, {"created_at": created_at, **merged_data})
+
             # Broadcast combined multi-channel data instantly to frontend WebSockets
             await manager.broadcast(node.node_id, payload)
             await manager.broadcast("dashboard", payload)
@@ -88,17 +103,35 @@ async def process_thingspeak_payload(channel_str_id: str, data: Dict[str, Any]):
                     is_low = s.min_threshold is not None and val < s.min_threshold
 
                     if (is_high or is_low) and not currently_alerting:
-                        alert_type = 'High' if is_high else 'Low'
-                        limit = s.max_threshold if is_high else s.min_threshold
-                        msg = f"⚠️ <b>Threshold Alert</b>\nNode <code>{node.name}</code>\nSensor <b>{s.name}</b> is {alert_type}: {val}{s.unit} (Limit: {limit}{s.unit})"
+                        msg = format_sensor_alert_telegram(
+                            node_name=node.name,
+                            sensor_name=s.name,
+                            val=val,
+                            unit=s.unit or "",
+                            is_high=is_high,
+                            min_thresh=s.min_threshold,
+                            max_thresh=s.max_threshold
+                        )
                         await send_telegram_alert(db, msg)
-                        await event_log_repo.create(db, EventLogCreate(level="WARNING", message=f"{s.name} is {alert_type}: {val}{s.unit}", node_id=node.id))
+                        
+                        push_judul, push_isi = format_sensor_push(
+                            node_name=node.name,
+                            sensor_name=s.name,
+                            val=val,
+                            unit=s.unit or "",
+                            is_high=is_high,
+                            min_thresh=s.min_threshold,
+                            max_thresh=s.max_threshold
+                        )
+                        await kirim_push(db, push_judul, push_isi, "/dashboard")
+
+                        status_str = "Tinggi" if is_high else "Rendah"
+                        await event_log_repo.create(db, EventLogCreate(level="WARNING", message=f"{s.name} ({status_str}): {val} {s.unit or ''}", node_id=node.id))
                         sensor_alert_state[sensor_id_str] = True
 
                     elif not (is_high or is_low) and currently_alerting:
-                        msg = f"✅ <b>Threshold Recovered</b>\nNode <code>{node.name}</code>\nSensor <b>{s.name}</b> returned to normal: {val}{s.unit}"
-                        await send_telegram_alert(db, msg)
-                        await event_log_repo.create(db, EventLogCreate(level="INFO", message=f"{s.name} returned to normal: {val}{s.unit}", node_id=node.id))
+                        # Sensor kembali normal - reset state tanpa kirim spam notifikasi
+                        await event_log_repo.create(db, EventLogCreate(level="INFO", message=f"{s.name} kembali normal: {val} {s.unit or ''}", node_id=node.id))
                         sensor_alert_state[sensor_id_str] = False
 
             # Update last_seen in DB
@@ -107,9 +140,13 @@ async def process_thingspeak_payload(channel_str_id: str, data: Dict[str, Any]):
             # Check online transition
             was_online = node_online_state.get(node.node_id, True)
             if not was_online:
-                msg = f"🟢 <b>Node Online</b>\nNode <code>{node.name}</code> ({node.node_id}) is back online!"
+                msg = format_node_online_telegram(node_name=node.name, node_id=node.node_id)
                 await send_telegram_alert(db, msg)
-                await event_log_repo.create(db, EventLogCreate(level="INFO", message=f"Node {node.name} is back online.", node_id=node.id))
+                
+                p_judul, p_isi = format_node_online_push(node_name=node.name)
+                await kirim_push(db, p_judul, p_isi, "/dashboard")
+                
+                await event_log_repo.create(db, EventLogCreate(level="INFO", message=f"Node {node.name} kembali online.", node_id=node.id))
 
             node_online_state[node.node_id] = True
             logger.info(f"[MQTT] Processed live data for node {node.node_id} (channel {channel_str_id}) -> {len(merged_data)} combined fields")
