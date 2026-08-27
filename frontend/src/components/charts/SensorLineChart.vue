@@ -236,20 +236,117 @@ const option = computed(() => {
 </script>
 
 <template>
-  <div class="relative w-full h-full min-h-[300px] flex-1 flex flex-col">
-    <div v-if="isLoading" class="absolute inset-0 z-10 flex items-center justify-center bg-white/70 backdrop-blur-sm rounded-xl">
-      <div class="flex items-center gap-2 text-sm text-primary font-medium animate-pulse">
-        <svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+  <div class="relative w-full h-full min-h-[320px] flex-1 flex flex-col">
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- BEAUTIFUL ANIMATED CHART SKELETON LOADER -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <div 
+      v-if="isLoading" 
+      class="absolute inset-0 z-20 flex flex-col justify-between p-4 bg-white/95 dark:bg-card/95 backdrop-blur-md rounded-2xl animate-pulse select-none"
+    >
+      <!-- 1. Top Legend Skeleton Pills -->
+      <div class="flex flex-wrap items-center justify-center gap-4 sm:gap-6 pt-1">
+        <div class="flex items-center gap-2">
+          <div class="w-3 h-3 rounded-full bg-emerald-500/40 animate-ping duration-1000"></div>
+          <div class="h-3.5 w-24 sm:w-28 rounded-md bg-slate-200 dark:bg-slate-800"></div>
+        </div>
+        <div class="flex items-center gap-2">
+          <div class="w-3 h-3 rounded-full bg-blue-500/40"></div>
+          <div class="h-3.5 w-28 sm:w-32 rounded-md bg-slate-200 dark:bg-slate-800"></div>
+        </div>
+        <div class="flex items-center gap-2">
+          <div class="w-3 h-3 rounded-full bg-purple-500/40"></div>
+          <div class="h-3.5 w-24 sm:w-28 rounded-md bg-slate-200 dark:bg-slate-800"></div>
+        </div>
+      </div>
+
+      <!-- 2. Chart Grid & Wave Silhouette Skeleton -->
+      <div class="relative flex-1 my-3 flex flex-col justify-between border-l border-b border-slate-200 dark:border-slate-800 pl-2 pb-1 overflow-hidden min-h-[190px]">
+        <!-- Horizontal Guide Lines with Y-Axis Tick Skeletons -->
+        <div class="w-full flex items-center gap-2">
+          <span class="text-[10px] text-slate-300 dark:text-slate-700 font-mono -ml-6 w-5 text-right">80</span>
+          <div class="flex-1 border-b border-dashed border-slate-200 dark:border-slate-800"></div>
+        </div>
+        <div class="w-full flex items-center gap-2">
+          <span class="text-[10px] text-slate-300 dark:text-slate-700 font-mono -ml-6 w-5 text-right">60</span>
+          <div class="flex-1 border-b border-dashed border-slate-200 dark:border-slate-800"></div>
+        </div>
+        <div class="w-full flex items-center gap-2">
+          <span class="text-[10px] text-slate-300 dark:text-slate-700 font-mono -ml-6 w-5 text-right">40</span>
+          <div class="flex-1 border-b border-dashed border-slate-200 dark:border-slate-800"></div>
+        </div>
+        <div class="w-full flex items-center gap-2">
+          <span class="text-[10px] text-slate-300 dark:text-slate-700 font-mono -ml-6 w-5 text-right">20</span>
+          <div class="flex-1 border-b border-dashed border-slate-200 dark:border-slate-800"></div>
+        </div>
+        <div class="w-full flex items-center gap-2">
+          <span class="text-[10px] text-slate-300 dark:text-slate-700 font-mono -ml-6 w-5 text-right">0</span>
+          <div class="flex-1 border-b border-slate-200 dark:border-slate-800"></div>
+        </div>
+
+        <!-- Animated Shimmer Wave Curves (SVG) -->
+        <svg class="absolute inset-0 w-full h-full pointer-events-none opacity-30 dark:opacity-20 pl-2" viewBox="0 0 600 200" preserveAspectRatio="none">
+          <!-- Wave 1 (Emerald Wave) -->
+          <path 
+            d="M 0,140 Q 90,50 180,100 T 360,70 T 500,120 T 600,60" 
+            fill="none" 
+            stroke="#10b981" 
+            stroke-width="3.5" 
+            stroke-linecap="round"
+            stroke-dasharray="8 4"
+          />
+          <!-- Wave 2 (Blue Wave) -->
+          <path 
+            d="M 0,100 Q 120,160 240,80 T 420,130 T 600,90" 
+            fill="none" 
+            stroke="#3b82f6" 
+            stroke-width="3" 
+            stroke-linecap="round"
+          />
+          <!-- Wave 3 (Purple Wave) -->
+          <path 
+            d="M 0,160 Q 150,110 300,140 T 480,90 T 600,120" 
+            fill="none" 
+            stroke="#8b5cf6" 
+            stroke-width="2.5" 
+            stroke-linecap="round"
+            stroke-dasharray="4 4"
+          />
         </svg>
-        <span>Memuat data historis...</span>
+
+        <!-- Centered Floating Frosted Loader Pill -->
+        <div class="absolute inset-0 flex items-center justify-center">
+          <div class="px-4 py-2 rounded-xl bg-white/95 dark:bg-slate-900/95 border border-slate-200 dark:border-slate-700 shadow-lg flex items-center gap-2.5 text-xs sm:text-sm font-bold text-foreground">
+            <svg class="animate-spin h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span>Menghubungkan data telemetri...</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. Bottom X-Axis Time Pill Skeletons & DataZoom Bar -->
+      <div class="space-y-2 pt-0.5">
+        <div class="flex justify-between items-center px-2">
+          <div class="h-2.5 w-14 sm:w-16 rounded bg-slate-200 dark:bg-slate-800"></div>
+          <div class="h-2.5 w-14 sm:w-16 rounded bg-slate-200 dark:bg-slate-800"></div>
+          <div class="h-2.5 w-14 sm:w-16 rounded bg-slate-200 dark:bg-slate-800"></div>
+          <div class="h-2.5 w-14 sm:w-16 rounded bg-slate-200 dark:bg-slate-800"></div>
+          <div class="h-2.5 w-14 sm:w-16 rounded bg-slate-200 dark:bg-slate-800"></div>
+        </div>
+        <!-- DataZoom Slider Bar Skeleton -->
+        <div class="h-3 w-full rounded-md bg-slate-100 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/60"></div>
       </div>
     </div>
+
+    <!-- Empty State (No Telemetry Data) -->
     <div v-else-if="!data || data.length === 0" class="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground gap-2">
       <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="opacity-30"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
       <p class="text-xs opacity-60">Belum ada data telemetri untuk rentang ini</p>
     </div>
+
+    <!-- Live ECharts Canvas -->
     <v-chart 
       ref="vChartRef" 
       class="w-full h-full flex-1" 

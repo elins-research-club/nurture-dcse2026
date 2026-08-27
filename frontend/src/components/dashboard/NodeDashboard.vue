@@ -13,7 +13,8 @@ import { Input } from '@/components/ui/input'
 import { 
   Calendar, Clock, Check, Layers, MapPin, 
   Thermometer, Droplet, Sparkles, TrendingUp, 
-  TrendingDown, Minus, Info, Activity, AlertTriangle
+  TrendingDown, Minus, Info, Activity, AlertTriangle,
+  ChevronDown
 } from 'lucide-vue-next'
 import L from 'leaflet'
 
@@ -28,6 +29,62 @@ const telemetryStore = useTelemetryStore()
 const isLoading = ref(true)
 const isInitialLoaded = ref(false)
 const selectedCategory = ref<'all' | 'npk' | 'soil' | 'environment'>('npk')
+const isCategoryDropdownOpen = ref(false)
+const categoryDropdownRef = ref<HTMLElement | null>(null)
+
+const categoryOptions = [
+  {
+    id: 'npk' as const,
+    label: 'NPK',
+    fullLabel: 'Unsur Hara NPK',
+    desc: 'Nitrogen (N), Fosfor (P), Kalium (K)',
+    icon: '/npk-icon.svg',
+    isLucide: false,
+    activeColor: 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10'
+  },
+  {
+    id: 'soil' as const,
+    label: 'Tanah',
+    fullLabel: 'Kondisi Tanah',
+    desc: 'pH Tanah, Multi-Probe Kelembapan, EC, Suhu',
+    icon: '/soil-icon.svg',
+    isLucide: false,
+    activeColor: 'text-amber-600 dark:text-amber-400 bg-amber-500/10'
+  },
+  {
+    id: 'environment' as const,
+    label: 'IoT & Iklim',
+    fullLabel: 'IoT & Mikroklimat',
+    desc: 'Suhu Casing/Box, Kelembaban & Suhu Udara',
+    icon: '/iot-icon.svg',
+    isLucide: false,
+    activeColor: 'text-blue-600 dark:text-blue-400 bg-blue-500/10'
+  },
+  {
+    id: 'all' as const,
+    label: 'Semua',
+    fullLabel: 'Semua Domain Sensor',
+    desc: 'Agregasi seluruh telemetri multi-domain',
+    icon: null,
+    isLucide: true,
+    activeColor: 'text-primary bg-primary/10'
+  }
+]
+
+const currentCategoryMeta = computed(() => {
+  return categoryOptions.find(c => c.id === selectedCategory.value) || categoryOptions[0]
+})
+
+const selectCategory = (catId: 'all' | 'npk' | 'soil' | 'environment') => {
+  selectedCategory.value = catId
+  isCategoryDropdownOpen.value = false
+}
+
+const handleClickOutsideCategory = (e: MouseEvent) => {
+  if (categoryDropdownRef.value && !categoryDropdownRef.value.contains(e.target as Node)) {
+    isCategoryDropdownOpen.value = false
+  }
+}
 const selectedRange = ref<'1d' | '1w' | '1M' | 'custom'>('1d')
 const customStartDate = ref('')
 const customEndDate = ref('')
@@ -352,12 +409,14 @@ const initMiniMap = (lat: number, lng: number) => {
       dragging: false, 
       scrollWheelZoom: false, 
       attributionControl: false,
-      zoomSnap: 0.5
+      zoomSnap: 1,
+      zoomDelta: 1
     }).setView([lat, lng], 19)
 
     L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', { 
-      maxZoom: 21,
-      subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+      maxZoom: 20,
+      subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+      keepBuffer: 4
     }).addTo(miniMap)
 
     const icon = L.divIcon({
@@ -450,13 +509,13 @@ const analyticsData = computed(() => {
       }
     }
 
-    const current = rawVals[rawVals.length - 1]
-    const min = Math.min(...rawVals)
-    const max = Math.max(...rawVals)
+    const current = rawVals.length ? Number(rawVals[rawVals.length - 1].toFixed(1)) : null
+    const min = rawVals.length ? Number(Math.min(...rawVals).toFixed(1)) : null
+    const max = rawVals.length ? Number(Math.max(...rawVals).toFixed(1)) : null
     const sum = rawVals.reduce((a: number, b: number) => a + b, 0)
-    const avg = Number((sum / rawVals.length).toFixed(1))
+    const avg = rawVals.length ? Number((sum / rawVals.length).toFixed(1)) : null
     const first = rawVals[0]
-    const delta = Number((current - first).toFixed(1))
+    const delta = (current != null && first != null) ? Number((current - first).toFixed(1)) : 0
     const trend = delta > 0.3 ? 'up' : (delta < -0.3 ? 'down' : 'stable')
 
     return {
@@ -478,14 +537,14 @@ const analyticsData = computed(() => {
     const pStat = sensorStats.find((s: any) => s.name.toLowerCase().includes('phosphor') || s.name.toLowerCase().includes('p'))
     const kStat = sensorStats.find((s: any) => s.name.toLowerCase().includes('potassium') || s.name.toLowerCase().includes('kalium') || s.name.toLowerCase().includes('k'))
     
-    const nVal = nStat?.current ?? 0
-    const pVal = pStat?.current ?? 0
-    const kVal = kStat?.current ?? 0
+    const nVal = Number((nStat?.current ?? nStat?.avg ?? 0).toFixed(1))
+    const pVal = Number((pStat?.current ?? pStat?.avg ?? 0).toFixed(1))
+    const kVal = Number((kStat?.current ?? kStat?.avg ?? 0).toFixed(1))
     const total = (nVal + pVal + kVal) || 1
 
     const distributionWidget = {
       title: 'Rasio Keseimbangan NPK',
-      subtitle: `${nVal}:${pVal}:${kVal}`,
+      subtitle: `${nVal} : ${pVal} : ${kVal}`,
       segments: [
         { label: `N: ${Math.round((nVal / total) * 100)}%`, percent: Math.round((nVal / total) * 100), color: 'bg-emerald-500', textClass: 'text-emerald-600 dark:text-emerald-400' },
         { label: `P: ${Math.round((pVal / total) * 100)}%`, percent: Math.round((pVal / total) * 100), color: 'bg-blue-500', textClass: 'text-blue-600 dark:text-blue-400' },
@@ -495,7 +554,7 @@ const analyticsData = computed(() => {
 
     let badgeText = 'Status Seimbang'
     let badgeColor = 'bg-emerald-500/15 border-emerald-500/30 text-emerald-700 dark:text-emerald-400'
-    let insightText = `Keseimbangan NPK dalam rentang ${rangeLabel.value} terpantau stabil. Rasio N:P:K (${nVal}:${pVal}:${kVal}) mendukung fase metabolisme & vegetatif tanaman.`
+    let insightText = `Keseimbangan NPK dalam rentang ${rangeLabel.value} terpantau stabil. Rasio N:P:K (${nVal} : ${pVal} : ${kVal}) mendukung fase metabolisme & vegetatif tanaman.`
 
     if (nVal > 0 && nVal < 25) {
       badgeText = 'Defisit Nutrisi N'
@@ -524,9 +583,9 @@ const analyticsData = computed(() => {
       ? Number((moistProbes.reduce((sum: number, p: any) => sum + (p.avg ?? p.current ?? 0), 0) / moistProbes.length).toFixed(1))
       : null
 
-    const p1 = moistProbes[0]?.current ?? moistProbes[0]?.avg ?? 33
-    const p2 = moistProbes[1]?.current ?? moistProbes[1]?.avg ?? 33
-    const p3 = moistProbes[2]?.current ?? moistProbes[2]?.avg ?? 34
+    const p1 = Number((moistProbes[0]?.current ?? moistProbes[0]?.avg ?? 33).toFixed(1))
+    const p2 = Number((moistProbes[1]?.current ?? moistProbes[1]?.avg ?? 33).toFixed(1))
+    const p3 = Number((moistProbes[2]?.current ?? moistProbes[2]?.avg ?? 34).toFixed(1))
     const pTotal = (p1 + p2 + p3) || 1
 
     const distributionWidget = {
@@ -566,8 +625,8 @@ const analyticsData = computed(() => {
     const encStat = sensorStats.find((s: any) => s.name.toLowerCase().includes('suhu dalam') || s.name.toLowerCase().includes('enclosure') || s.name.toLowerCase().includes('box'))
     const airStat = sensorStats.find((s: any) => s.name.toLowerCase().includes('suhu luar') || s.name.toLowerCase().includes('air'))
     
-    const encVal = encStat?.current ?? encStat?.avg ?? 35
-    const airVal = airStat?.current ?? airStat?.avg ?? 28
+    const encVal = Number((encStat?.current ?? encStat?.avg ?? 35).toFixed(1))
+    const airVal = Number((airStat?.current ?? airStat?.avg ?? 28).toFixed(1))
     const tTotal = (encVal + airVal) || 1
 
     const distributionWidget = {
@@ -626,6 +685,7 @@ const analyticsData = computed(() => {
 
 onMounted(() => {
   fetchNodeCoords()
+  window.addEventListener('click', handleClickOutsideCategory)
 })
 
 onUnmounted(() => {
@@ -633,6 +693,7 @@ onUnmounted(() => {
     miniMap.remove()
     miniMap = null
   }
+  window.removeEventListener('click', handleClickOutsideCategory)
 })
 </script>
 
@@ -789,36 +850,73 @@ onUnmounted(() => {
               <!-- Chart Header: Category Pills + Time Range -->
               <div class="flex flex-wrap items-center justify-between gap-2.5 pb-2 border-b border-border/40">
                 
-                <!-- Category Pills (Enlarged) -->
-                <div class="flex flex-wrap items-center gap-1.5">
+                <!-- Category Dropdown Selector -->
+                <div class="relative" ref="categoryDropdownRef">
                   <button
-                    @click="selectedCategory = 'npk'"
-                    :class="['px-3 py-1.5 rounded-full text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer', selectedCategory === 'npk' ? 'bg-emerald-500/15 text-emerald-600 border border-emerald-500/30' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-foreground border border-transparent']"
+                    type="button"
+                    @click.stop="isCategoryDropdownOpen = !isCategoryDropdownOpen"
+                    class="h-8.5 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200/80 dark:hover:bg-slate-700/80 border border-slate-200/90 dark:border-slate-700/90 text-foreground text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer shadow-2xs select-none"
+                    :title="`Kategori: ${currentCategoryMeta.fullLabel}`"
                   >
-                    <img src="/npk-icon.svg" alt="NPK" class="w-4 h-4 object-contain dark:invert shrink-0" />
-                    <span>NPK</span>
+                    <!-- Icon -->
+                    <img 
+                      v-if="!currentCategoryMeta.isLucide" 
+                      :src="currentCategoryMeta.icon!" 
+                      :alt="currentCategoryMeta.label" 
+                      class="w-4 h-4 object-contain dark:invert shrink-0" 
+                    />
+                    <Layers v-else class="w-4 h-4 text-primary shrink-0" />
+
+                    <!-- Selected Category Label -->
+                    <span class="tracking-tight">{{ currentCategoryMeta.fullLabel }}</span>
+
+                    <!-- Chevron -->
+                    <ChevronDown 
+                      class="w-3.5 h-3.5 text-muted-foreground transition-transform duration-200" 
+                      :class="isCategoryDropdownOpen ? 'rotate-180 text-foreground' : ''" 
+                    />
                   </button>
-                  <button
-                    @click="selectedCategory = 'soil'"
-                    :class="['px-3 py-1.5 rounded-full text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer', selectedCategory === 'soil' ? 'bg-amber-500/15 text-amber-600 border border-amber-500/30' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-foreground border border-transparent']"
+
+                  <!-- Dropdown Menu Popover -->
+                  <div
+                    v-if="isCategoryDropdownOpen"
+                    class="absolute left-0 top-full mt-1.5 w-60 z-50 rounded-2xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200/90 dark:border-slate-800 shadow-2xl p-1.5 flex flex-col gap-1 animate-in fade-in zoom-in-95 duration-150 select-none"
                   >
-                    <img src="/soil-icon.svg" alt="Tanah" class="w-4 h-4 object-contain dark:invert shrink-0" />
-                    <span>Tanah</span>
-                  </button>
-                  <button
-                    @click="selectedCategory = 'environment'"
-                    :class="['px-3 py-1.5 rounded-full text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer', selectedCategory === 'environment' ? 'bg-blue-500/15 text-blue-600 border border-blue-500/30' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-foreground border border-transparent']"
-                  >
-                    <img src="/iot-icon.svg" alt="IoT" class="w-4 h-4 object-contain dark:invert shrink-0" />
-                    <span>IoT & Iklim</span>
-                  </button>
-                  <button
-                    @click="selectedCategory = 'all'"
-                    :class="['px-3 py-1.5 rounded-full text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer', selectedCategory === 'all' ? 'bg-primary/15 text-primary border border-primary/30' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-foreground border border-transparent']"
-                  >
-                    <Layers class="w-4 h-4 text-primary shrink-0" />
-                    <span>Semua</span>
-                  </button>
+                    <div class="px-2.5 py-1 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                      Pilih Domain Sensor
+                    </div>
+
+                    <button
+                      v-for="cat in categoryOptions"
+                      :key="cat.id"
+                      type="button"
+                      @click="selectCategory(cat.id)"
+                      :class="[
+                        'w-full px-2.5 py-2 rounded-xl text-left flex items-center justify-between gap-2.5 transition-all cursor-pointer text-xs sm:text-sm',
+                        selectedCategory === cat.id 
+                          ? `${cat.activeColor} font-black border border-border/40 shadow-xs` 
+                          : 'text-foreground hover:bg-slate-100/80 dark:hover:bg-slate-800/80 border border-transparent font-medium'
+                      ]"
+                    >
+                      <div class="flex items-center gap-2.5 min-w-0">
+                        <div class="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 border border-slate-200/60 dark:border-slate-700/60">
+                          <img 
+                            v-if="!cat.isLucide" 
+                            :src="cat.icon!" 
+                            :alt="cat.label" 
+                            class="w-4 h-4 object-contain dark:invert" 
+                          />
+                          <Layers v-else class="w-4 h-4 text-primary" />
+                        </div>
+                        <div class="truncate">
+                          <div class="font-extrabold text-foreground leading-tight">{{ cat.fullLabel }}</div>
+                          <div class="text-[10px] text-muted-foreground truncate">{{ cat.desc }}</div>
+                        </div>
+                      </div>
+
+                      <Check v-if="selectedCategory === cat.id" class="w-4 h-4 shrink-0 stroke-[2.5]" />
+                    </button>
+                  </div>
                 </div>
 
                 <!-- Time Range Selector (Enlarged) -->
@@ -894,7 +992,7 @@ onUnmounted(() => {
                   :data="chartData" 
                   :title="`Tren ${selectedCategory === 'npk' ? 'Unsur Hara NPK' : (selectedCategory === 'soil' ? 'Kondisi Tanah' : (selectedCategory === 'environment' ? 'Kondisi IoT' : 'Sensor'))}`" 
                   :sensors="activeCategorySensors" 
-                  :is-loading="isArchiveLoading"
+                  :is-loading="isArchiveLoading || isLoading || (!isInitialLoaded && chartData.length === 0)"
                 />
               </div>
             </CardContent>
@@ -905,18 +1003,15 @@ onUnmounted(() => {
             <div class="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-transparent to-primary/5 pointer-events-none"></div>
             <CardContent class="p-4 sm:p-4.5 relative z-10 flex flex-col justify-between gap-3 flex-1 h-full">
               
-              <!-- Header: Title & Status Badge -->
-              <div class="flex items-start justify-between gap-2 pb-2.5 border-b border-border/40">
+              <!-- Header: Title (Badge removed, icon color neutral/black) -->
+              <div class="pb-2.5 border-b border-border/40">
                 <div class="space-y-0.5">
                   <div class="flex items-center gap-2">
-                    <Sparkles class="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <Sparkles class="w-5 h-5 text-foreground shrink-0" />
                     <h4 class="text-base sm:text-lg font-extrabold text-foreground tracking-tight">{{ analyticsData.summaryTitle }}</h4>
                   </div>
                   <p class="text-xs sm:text-sm text-muted-foreground font-medium">Periode {{ rangeLabel }} ({{ analyticsData.dataPoints }} data)</p>
                 </div>
-                <span :class="['text-xs sm:text-sm font-extrabold px-3 py-1 rounded-full border whitespace-nowrap shrink-0', analyticsData.badgeColor]">
-                  {{ analyticsData.badgeText }}
-                </span>
               </div>
 
               <!-- Unified Distribution Bar (Present in ALL categories: NPK, Tanah, IoT, Semua) -->
@@ -964,8 +1059,8 @@ onUnmounted(() => {
                   <!-- Min / Max & Trend Badge -->
                   <div class="flex items-center gap-2.5 text-right shrink-0">
                     <div class="text-xs sm:text-sm text-muted-foreground leading-tight font-semibold">
-                      <div>Min: <span class="font-extrabold text-foreground">{{ stat.min ?? '--' }}</span></div>
-                      <div>Max: <span class="font-extrabold text-foreground">{{ stat.max ?? '--' }}</span></div>
+                      <div>Min: <span class="font-extrabold text-foreground">{{ stat.min != null ? (typeof stat.min === 'number' ? Number(stat.min.toFixed(1)) : stat.min) : '--' }}</span></div>
+                      <div>Max: <span class="font-extrabold text-foreground">{{ stat.max != null ? (typeof stat.max === 'number' ? Number(stat.max.toFixed(1)) : stat.max) : '--' }}</span></div>
                     </div>
                     <div 
                       :class="[
