@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useTelemetryStore } from '@/stores/telemetry'
 import SensorCard from '@/components/dashboard/SensorCard.vue'
@@ -9,7 +9,10 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Calendar, Clock, Check, Layers, Sprout, CloudSun, Leaf, Zap, MapPin } from 'lucide-vue-next'
+import { 
+  Calendar, Clock, Check, Layers, Sprout, CloudSun, Leaf, Zap, MapPin, 
+  Cpu, Thermometer, Droplet
+} from 'lucide-vue-next'
 import L from 'leaflet'
 
 const props = defineProps<{
@@ -52,6 +55,8 @@ watch(() => props.nodeId, () => {
     miniMap = null
     miniMapReady.value = false
   }
+  nodeCoords.value = null
+  fetchNodeCoords()
 })
 
 // Categorize sensors intelligently
@@ -81,7 +86,6 @@ const activeCategorySensors = computed(() => {
     return nonActuators
   }
   const filtered = nonActuators.filter(s => getSensorCategory(s) === selectedCategory.value)
-  // Fallback to all if category has no sensors
   return filtered.length > 0 ? filtered : nonActuators
 })
 
@@ -170,39 +174,99 @@ const formattedLastSeen = computed(() => {
   }
 })
 
-// Grouped sensors by category for bento layout
+// Grouped sensors
 const npkSensors = computed(() => sensors.value.filter(s => getSensorCategory(s) === 'npk'))
-const soilSensors = computed(() => sensors.value.filter(s => getSensorCategory(s) === 'soil'))
-const envSensors = computed(() => sensors.value.filter(s => getSensorCategory(s) === 'environment'))
 
-// Helper to get sensor value
+// Helper to get raw sensor value by exact sensor object
 const getSensorValue = (sensor: any) => {
-  if (!latestTelemetry.value) return null
+  if (!sensor || !latestTelemetry.value) return null
   return latestTelemetry.value[`${sensor.channel_id}_${sensor.thingspeak_field}`]
 }
 
-// Mini-map
+// Helper to find value by keyword matching
+const getValueByKeywords = (keywords: string[]) => {
+  const sensor = sensors.value.find(s => {
+    const name = (s.name || '').toLowerCase()
+    const type = (s.type || '').toLowerCase()
+    return keywords.some(k => name.includes(k) || type.includes(k))
+  })
+  if (!sensor || !latestTelemetry.value) return null
+  return latestTelemetry.value[`${sensor.channel_id}_${sensor.thingspeak_field}`]
+}
+
+// Specific Sensor Values for Soil Portlet
+const phValue = computed(() => getValueByKeywords(['ph']))
+const soilTempValue = computed(() => getValueByKeywords(['soil temp', 'suhu tanah', 'temp tanah']))
+const soilEcValue = computed(() => getValueByKeywords(['ec', 'conductivity', 'daya hantar']))
+const moistureAvgValue = computed(() => getValueByKeywords(['avg', 'rata-rata', 'soil moisture avg']))
+
+const probe1Value = computed(() => getValueByKeywords(['probe 1', 'moisture 1', 'analog 1', 'analog probe 1']))
+const probe2Value = computed(() => getValueByKeywords(['probe 2', 'moisture 2', 'analog 2', 'analog probe 2']))
+const probe3Value = computed(() => getValueByKeywords(['probe 3', 'moisture 3', 'analog 3', 'analog probe 3']))
+
+// Specific Sensor Values for IoT & Ambient Portlet
+const enclosureTempValue = computed(() => getValueByKeywords(['enclosure', 'panel', 'dalam box', 'box temp', 'suhu panel', 'suhu box']))
+const airTempValue = computed(() => getValueByKeywords(['air temp', 'suhu luar', 'suhu udara', 'ambient', 'temp luar']))
+const airHumidityValue = computed(() => getValueByKeywords(['air humidity', 'kelembaban udara', 'humidity', 'kelembaban luar', 'kelembapan']))
+const modbusCodeValue = computed(() => getValueByKeywords(['modbus', 'status modbus', 'modbus code']))
+
+// Dynamic Soil pH Status badge
+const phStatus = computed(() => {
+  const v = phValue.value
+  if (v == null) return { text: 'Netral', bg: 'bg-slate-100', border: 'border-slate-200', textClass: 'text-slate-600' }
+  const num = Number(v)
+  if (num < 6.0) return { text: 'Asam', bg: 'bg-rose-500/10', border: 'border-rose-500/30', textClass: 'text-rose-600' }
+  if (num <= 7.5) return { text: 'Optimal', bg: 'bg-emerald-500/10', border: 'border-emerald-500/30', textClass: 'text-emerald-600' }
+  return { text: 'Basa', bg: 'bg-amber-500/10', border: 'border-amber-500/30', textClass: 'text-amber-600' }
+})
+
+// Dynamic IoT Thermal Status badge
+const thermalStatus = computed(() => {
+  const v = enclosureTempValue.value
+  if (v == null) return { text: 'Normal', badgeClass: 'border-slate-200 bg-slate-100 text-slate-600', dotClass: 'bg-slate-500' }
+  const num = Number(v)
+  if (num < 40) return { text: 'Normal', badgeClass: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600', dotClass: 'bg-emerald-500' }
+  if (num <= 50) return { text: 'Hangat', badgeClass: 'border-amber-500/30 bg-amber-500/10 text-amber-600', dotClass: 'bg-amber-500' }
+  return { text: 'Overheat', badgeClass: 'border-rose-500/30 bg-rose-500/10 text-rose-600', dotClass: 'bg-rose-500 animate-pulse' }
+})
+
+// Mini-map logic with reactive watch & 1:1 square ratio
 const miniMapContainer = ref<HTMLElement | null>(null)
 const miniMapReady = ref(false)
+const nodeCoords = ref<{ lat: number; lng: number } | null>(null)
 let miniMap: L.Map | null = null
 
 const initMiniMap = (lat: number, lng: number) => {
   if (!miniMapContainer.value || miniMap) return
-  miniMap = L.map(miniMapContainer.value, { zoomControl: false, dragging: false, scrollWheelZoom: false, attributionControl: false })
-    .setView([lat, lng], 18)
-  L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', { 
-    maxZoom: 21,
-    subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
-  }).addTo(miniMap)
-  const icon = L.divIcon({
-    html: `<div style="width:16px;height:22px"><svg width="16" height="22" viewBox="0 0 24 32" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 0C5.373 0 0 5.373 0 12c0 9 12 20 12 20s12-11 12-20C24 5.373 18.627 0 12 0z" fill="#2563eb"/><circle cx="12" cy="12" r="5" fill="white"/></svg></div>`,
-    className: '', iconSize: [16, 22], iconAnchor: [8, 22],
-  })
-  L.marker([lat, lng], { icon }).addTo(miniMap)
-  miniMapReady.value = true
+  try {
+    miniMap = L.map(miniMapContainer.value, { 
+      zoomControl: false, 
+      dragging: false, 
+      scrollWheelZoom: false, 
+      attributionControl: false 
+    }).setView([lat, lng], 18)
+
+    L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', { 
+      maxZoom: 21,
+      subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+    }).addTo(miniMap)
+
+    const icon = L.divIcon({
+      html: `<div style="width:20px;height:26px"><svg width="20" height="26" viewBox="0 0 24 32" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 0C5.373 0 0 5.373 0 12c0 9 12 20 12 20s12-11 12-20C24 5.373 18.627 0 12 0z" fill="#2563eb"/><circle cx="12" cy="12" r="5" fill="white"/></svg></div>`,
+      className: '', iconSize: [20, 26], iconAnchor: [10, 26],
+    })
+    L.marker([lat, lng], { icon }).addTo(miniMap)
+    miniMapReady.value = true
+
+    setTimeout(() => {
+      miniMap?.invalidateSize()
+    }, 150)
+  } catch (err) {
+    console.error('[NodeDashboard] Failed to initialize mini-map:', err)
+  }
 }
 
-// Fetch node coords and init mini-map
+// Fetch node coords and set state
 const API_BASE_URL = '/api/v1'
 const fetchNodeCoords = async () => {
   try {
@@ -212,13 +276,33 @@ const fetchNodeCoords = async () => {
     if (!res.ok) return
     const node = await res.json()
     if (node.latitude != null && node.longitude != null) {
-      setTimeout(() => initMiniMap(node.latitude, node.longitude), 100)
+      nodeCoords.value = { lat: node.latitude, lng: node.longitude }
     }
   } catch { /* no coords, skip */ }
 }
 
-onMounted(() => fetchNodeCoords())
-onUnmounted(() => { miniMap?.remove(); miniMap = null })
+// Watch both container and coords so map initializes as soon as DOM container is mounted
+watch(
+  [miniMapContainer, nodeCoords],
+  async ([container, coords]) => {
+    if (container && coords && !miniMap) {
+      await nextTick()
+      initMiniMap(coords.lat, coords.lng)
+    }
+  },
+  { flush: 'post', immediate: true }
+)
+
+onMounted(() => {
+  fetchNodeCoords()
+})
+
+onUnmounted(() => {
+  if (miniMap) {
+    miniMap.remove()
+    miniMap = null
+  }
+})
 </script>
 
 <template>
@@ -239,205 +323,80 @@ onUnmounted(() => { miniMap?.remove(); miniMap = null })
       No sensors configured. Add sensors in Settings.
     </div>
 
-    <!-- ═══════════════ BENTO GRID ═══════════════ -->
-    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 auto-rows-auto">
+    <!-- ═══════════════ BENTO GRID: FLAT WHITE CARDS ON #F1F5F9 CANVAS ═══════════════ -->
+    <div v-else class="grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-start">
       
-      <!-- ═══ ROW 1: Hero Status + Mini Map ═══ -->
-      
-      <!-- Hero Status Card -->
-      <Card class="lg:col-span-3 relative overflow-hidden">
-        <div class="absolute inset-0 bg-gradient-to-br from-emerald-500/8 via-transparent to-primary/5 pointer-events-none"></div>
-        <CardContent class="p-5 relative z-10">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div class="flex flex-col gap-1.5">
-              <div class="flex items-center gap-3">
-                <h2 class="text-xl sm:text-2xl font-bold tracking-tight">{{ nodeName || nodeId }}</h2>
-                <StatusBadge :is-active="isNodeActive" :last-seen="lastSeen" />
+      <!-- ═══════════════════════════════════════════════════════════════════════════ -->
+      <!-- SISI KIRI (lg:col-span-3 / ~25%): HARDWARE, IDENTITY & CONTROL HUB (COMPACT) -->
+      <!-- ═══════════════════════════════════════════════════════════════════════════ -->
+      <div class="lg:col-span-3 flex flex-col gap-3.5">
+        
+        <!-- CARD 1: Compact Node Identity & Status Card -->
+        <Card class="relative overflow-hidden border border-border/80 bg-white shadow-none">
+          <div class="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-transparent to-primary/5 pointer-events-none"></div>
+          <CardContent class="p-3.5 sm:p-4 relative z-10 flex flex-col gap-2.5">
+            <!-- Node Title & Status Badge -->
+            <div class="flex items-start justify-between gap-2">
+              <div class="space-y-0.5">
+                <h2 class="text-base sm:text-lg font-bold tracking-tight">{{ nodeName || nodeId }}</h2>
+                <p class="text-[11px] text-muted-foreground font-mono">ID: {{ nodeId }}</p>
               </div>
-              <div class="flex items-center gap-4 text-sm text-muted-foreground">
-                <span class="flex items-center gap-1.5">
-                  <Clock class="w-3.5 h-3.5" />
-                  Terakhir diperbarui: {{ formattedLastSeen }}
-                </span>
+
+              <!-- Single Node Status Badge on top-right -->
+              <StatusBadge :is-active="isNodeActive" :last-seen="lastSeen" class="shrink-0" />
+            </div>
+
+            <!-- Footer: Last seen & GPS Coordinates -->
+            <div class="flex flex-col gap-1 pt-2 border-t border-border/40 text-[11px] text-muted-foreground">
+              <div class="flex items-center gap-1.5">
+                <Clock class="w-3 h-3 text-primary shrink-0" />
+                <span>Update: <strong class="text-foreground">{{ formattedLastSeen }}</strong></span>
+              </div>
+              <div v-if="nodeCoords" class="flex items-center gap-1.5">
+                <MapPin class="w-3 h-3 text-blue-500 shrink-0" />
+                <span class="font-mono text-[10px]">{{ nodeCoords.lat.toFixed(5) }}, {{ nodeCoords.lng.toFixed(5) }}</span>
               </div>
             </div>
-            <!-- Live Connection Indicator -->
-            <div class="flex items-center gap-2 text-sm font-medium">
-              <div :class="['w-2.5 h-2.5 rounded-full', isConnected ? 'bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 'bg-red-500']"></div>
-              <span class="text-muted-foreground">{{ isConnected ? 'Live Connection' : 'Disconnected' }}</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
-      <!-- Mini Map Card (row-span-2) -->
-      <Card class="lg:row-span-2 relative overflow-hidden" style="min-height: 200px">
-        <div ref="miniMapContainer" class="w-full h-full absolute inset-0" style="min-height: 200px" />
-        <div v-if="!miniMapReady" class="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground gap-2 bg-muted/30">
-          <MapPin class="w-8 h-8 opacity-30" />
-          <p class="text-xs opacity-50">Lokasi belum diatur</p>
-          <a href="/map" class="text-xs text-primary hover:underline opacity-70">Atur di Halaman Maps →</a>
-        </div>
-      </Card>
-
-      <!-- ═══ ROW 2: NPK Highlight Cards ═══ -->
-      <template v-if="npkSensors.length > 0">
-        <SensorCard
-          v-for="sensor in npkSensors"
-          :key="sensor.id"
-          :title="sensor.name"
-          :value="getSensorValue(sensor)"
-          :unit="sensor.unit"
-          type="npk"
-          size="lg"
-          accent-gradient="linear-gradient(135deg, rgba(16,185,129,0.08) 0%, transparent 60%)"
-        />
-      </template>
-      <!-- Fill remaining cols if NPK < 3 -->
-      <template v-if="npkSensors.length > 0 && npkSensors.length < 3">
-        <div v-for="_ in (3 - npkSensors.length)" :key="'npk-fill-' + _" />
-      </template>
-
-      <!-- ═══ ROW 3: Chart + Soil Condition ═══ -->
-
-      <!-- Chart Card (col-span-2, row-span-2) -->
-      <Card class="md:col-span-2 lg:col-span-2 lg:row-span-2 relative overflow-hidden flex flex-col">
-        <div class="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-50 pointer-events-none"></div>
-        <CardContent class="p-4 relative z-10 flex flex-col gap-3 flex-1">
+        <!-- CARD 2: Mini Map (1:1 Ratio Square Card) -->
+        <Card class="relative overflow-hidden w-full aspect-square border border-border/80 shadow-none flex flex-col group rounded-xl bg-white">
+          <div ref="miniMapContainer" class="w-full h-full absolute inset-0 z-0" />
           
-          <!-- Header: Category Pills + Time Range -->
-          <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5 pb-2.5 border-b border-border/40">
-            
-            <!-- Category Pills -->
-            <div class="flex items-center gap-1 overflow-x-auto pb-1 lg:pb-0 scrollbar-none">
-              <button
-                @click="selectedCategory = 'npk'"
-                :class="['px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all', selectedCategory === 'npk' ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 shadow-xs' : 'bg-muted/40 text-muted-foreground hover:text-foreground border border-transparent']"
-              >
-                <Leaf class="w-3.5 h-3.5 text-emerald-500" />
-                <span>Unsur Hara (NPK)</span>
-              </button>
-              <button
-                @click="selectedCategory = 'soil'"
-                :class="['px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all', selectedCategory === 'soil' ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 shadow-xs' : 'bg-muted/40 text-muted-foreground hover:text-foreground border border-transparent']"
-              >
-                <Sprout class="w-3.5 h-3.5 text-amber-500" />
-                <span>Kondisi Tanah</span>
-              </button>
-              <button
-                @click="selectedCategory = 'environment'"
-                :class="['px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all', selectedCategory === 'environment' ? 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30 shadow-xs' : 'bg-muted/40 text-muted-foreground hover:text-foreground border border-transparent']"
-              >
-                <CloudSun class="w-3.5 h-3.5 text-blue-500" />
-                <span>Lingkungan</span>
-              </button>
-              <button
-                @click="selectedCategory = 'all'"
-                :class="['px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all', selectedCategory === 'all' ? 'bg-primary/15 text-primary border border-primary/30 shadow-xs' : 'bg-muted/40 text-muted-foreground hover:text-foreground border border-transparent']"
-              >
-                <Layers class="w-3.5 h-3.5" />
-                <span>Semua</span>
-              </button>
-            </div>
-
-            <!-- Time Range Selector -->
-            <div class="flex items-center self-end lg:self-auto bg-muted/60 p-0.5 rounded-lg border border-border/40 text-xs">
-              <button
-                @click="changeRange('1d')"
-                :class="['px-2 py-0.5 rounded-md font-medium transition-all flex items-center gap-1', selectedRange === '1d' ? 'bg-background text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground']"
-                title="Live stream 24 jam terakhir"
-              >
-                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                24J
-              </button>
-              <button
-                @click="changeRange('1w')"
-                :class="['px-2 py-0.5 rounded-md font-medium transition-all', selectedRange === '1w' ? 'bg-background text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground']"
-                title="Arsip 7 hari terakhir"
-              >
-                7H
-              </button>
-              <button
-                @click="changeRange('1M')"
-                :class="['px-2 py-0.5 rounded-md font-medium transition-all', selectedRange === '1M' ? 'bg-background text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground']"
-                title="Arsip 30 hari terakhir (agregasi 1 jam)"
-              >
-                30H
-              </button>
-              <button
-                @click="selectedRange = 'custom'"
-                :class="['px-2 py-0.5 rounded-md font-medium transition-all flex items-center gap-1', selectedRange === 'custom' ? 'bg-background text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground']"
-                title="Pilih tanggal khusus"
-              >
-                <Calendar class="w-3 h-3" />
-              </button>
-            </div>
+          <!-- Map Overlay Link to Full Map Page -->
+          <div v-if="miniMapReady" class="absolute bottom-2.5 right-2.5 z-10">
+            <a 
+              href="/map" 
+              class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-white/90 backdrop-blur-md text-foreground border border-border/70 hover:bg-white flex items-center gap-1.5 transition-all hover:scale-105"
+            >
+              <MapPin class="w-3.5 h-3.5 text-primary" />
+              <span>Buka Peta →</span>
+            </a>
           </div>
 
-          <!-- Custom Date Picker -->
-          <div v-if="selectedRange === 'custom'" class="flex flex-wrap items-center gap-2 p-2 bg-muted/30 border border-border/40 rounded-lg text-xs animate-slide-up">
-            <div class="flex items-center gap-1.5">
-              <span class="text-muted-foreground">Dari:</span>
-              <Input type="date" v-model="customStartDate" class="h-7 text-xs w-32 px-2 py-0 bg-background" />
-            </div>
-            <div class="flex items-center gap-1.5">
-              <span class="text-muted-foreground">Sampai:</span>
-              <Input type="date" v-model="customEndDate" class="h-7 text-xs w-32 px-2 py-0 bg-background" />
-            </div>
-            <Button size="sm" variant="default" class="h-7 text-xs px-2.5" @click="applyCustomDate" :disabled="!customStartDate">
-              <Check class="w-3 h-3 mr-1" />
-              Terapkan
-            </Button>
+          <div v-if="!miniMapReady" class="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground gap-1 bg-slate-50 p-3 text-center z-10">
+            <MapPin class="w-6 h-6 opacity-40 text-primary" />
+            <p class="text-xs font-semibold opacity-70">Lokasi belum diset</p>
+            <a href="/map" class="text-xs text-primary hover:underline font-bold mt-0.5">Atur di Maps →</a>
           </div>
+        </Card>
 
-          <!-- Chart -->
-          <div class="flex-1 min-h-[300px]">
-            <SensorLineChart 
-              :data="chartData" 
-              :title="`Tren ${selectedCategory === 'npk' ? 'Unsur Hara NPK' : (selectedCategory === 'soil' ? 'Kondisi Tanah' : (selectedCategory === 'environment' ? 'Lingkungan & Iklim' : 'Sensor'))}`" 
-              :sensors="activeCategorySensors" 
-              :is-loading="isArchiveLoading"
-            />
-          </div>
-        </CardContent>
-      </Card>
+        <!-- CARD 3: Compact Actuator Control Status -->
+        <Card v-if="aktuator" class="relative overflow-hidden border border-border/80 bg-white shadow-none hover:border-amber-500/30 transition-all">
+          <div class="p-3 flex flex-col gap-2">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-1.5">
+                <div class="w-5 h-5 rounded bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-600">
+                  <Zap class="w-3 h-3" />
+                </div>
+                <h4 class="text-xs font-bold tracking-tight">Status Aktuator</h4>
+              </div>
+              <span class="text-[9px] text-muted-foreground">3 Relay</span>
+            </div>
 
-      <!-- Soil Condition Cards (col-span-2) -->
-      <div v-if="soilSensors.length > 0" class="md:col-span-2 lg:col-span-2 grid grid-cols-2 gap-3">
-        <SensorCard
-          v-for="sensor in soilSensors"
-          :key="sensor.id"
-          :title="sensor.name"
-          :value="getSensorValue(sensor)"
-          :unit="sensor.unit"
-          type="soil"
-          accent-gradient="linear-gradient(135deg, rgba(245,158,11,0.06) 0%, transparent 60%)"
-        />
-      </div>
-
-      <!-- Environment Cards (col-span-2) -->
-      <div v-if="envSensors.length > 0" class="md:col-span-2 lg:col-span-2 grid grid-cols-2 gap-3">
-        <SensorCard
-          v-for="sensor in envSensors"
-          :key="sensor.id"
-          :title="sensor.name"
-          :value="getSensorValue(sensor)"
-          :unit="sensor.unit"
-          type="temperature"
-          accent-gradient="linear-gradient(135deg, rgba(59,130,246,0.06) 0%, transparent 60%)"
-        />
-      </div>
-
-      <!-- ═══ ROW BOTTOM: Actuator Status ═══ -->
-      <div v-if="aktuator" class="col-span-full">
-        <Card>
-          <CardContent class="p-4">
-            <h3 class="text-sm font-semibold mb-3 flex items-center gap-2">
-              <Zap class="w-4 h-4 text-amber-500" />
-              Status Aktuator
-            </h3>
-
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <!-- 3 Inline State Chips -->
+            <div class="grid grid-cols-3 gap-1">
               <div 
                 v-for="a in [
                   { nama: 'Kipas', aktif: aktuator.kipas },
@@ -445,16 +404,346 @@ onUnmounted(() => { miniMap?.remove(); miniMap = null })
                   { nama: 'Valve', aktif: aktuator.valve },
                 ]" 
                 :key="a.nama"
-                class="flex items-center justify-between p-3 rounded-xl bg-muted/30 border border-border/40"
+                :class="[
+                  'p-1.5 rounded-md text-[10px] font-medium border flex flex-col items-center justify-center gap-0.5 transition-all text-center',
+                  a.aktif 
+                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 font-semibold' 
+                    : 'bg-slate-50 border-slate-200 text-slate-500'
+                ]"
               >
-                <span class="font-medium text-sm">{{ a.nama }}</span>
-                <Badge :variant="a.aktif ? 'success' : 'destructive'">
-                  {{ a.aktif ? 'ON' : 'OFF' }}
-                </Badge>
+                <div class="flex items-center gap-1">
+                  <div :class="['w-1.5 h-1.5 rounded-full', a.aktif ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400']"></div>
+                  <span class="font-bold">{{ a.nama }}</span>
+                </div>
+                <span class="text-[9px] font-bold">{{ a.aktif ? 'ON' : 'OFF' }}</span>
               </div>
+            </div>
+          </div>
+        </Card>
+
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════════════════════════════ -->
+      <!-- SISI KANAN (lg:col-span-9 / ~75%): NPK, CHART & DOMAIN PORTLETS -->
+      <!-- ═══════════════════════════════════════════════════════════════════════════ -->
+      <div class="lg:col-span-9 flex flex-col gap-3.5">
+        
+        <!-- ROW 1: 3 NPK Highlight Cards (Original Compact Rectangular Size!) -->
+        <div v-if="npkSensors.length > 0" class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <SensorCard
+            v-for="sensor in npkSensors"
+            :key="sensor.id"
+            :title="sensor.name"
+            :value="getSensorValue(sensor)"
+            :unit="sensor.unit"
+            type="npk"
+            size="default"
+            :min-threshold="sensor.min_threshold"
+            :max-threshold="sensor.max_threshold"
+          />
+        </div>
+
+        <!-- ROW 2: Wide Sensor Trends Line Chart -->
+        <Card class="relative overflow-hidden flex flex-col border border-border/80 bg-white dark:bg-card shadow-none">
+          <div class="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-30 pointer-events-none"></div>
+          <CardContent class="p-4 relative z-10 flex flex-col gap-3 flex-1">
+            
+            <!-- Chart Header: Category Pills + Time Range -->
+            <div class="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-border/40">
+              
+              <!-- Category Pills -->
+              <div class="flex flex-wrap items-center gap-1">
+                <button
+                  @click="selectedCategory = 'npk'"
+                  :class="['px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer', selectedCategory === 'npk' ? 'bg-emerald-500/15 text-emerald-600 border border-emerald-500/30' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-foreground border border-transparent']"
+                >
+                  <Leaf class="w-3.5 h-3.5 text-emerald-500" />
+                  <span>NPK</span>
+                </button>
+                <button
+                  @click="selectedCategory = 'soil'"
+                  :class="['px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer', selectedCategory === 'soil' ? 'bg-amber-500/15 text-amber-600 border border-amber-500/30' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-foreground border border-transparent']"
+                >
+                  <Sprout class="w-3.5 h-3.5 text-amber-500" />
+                  <span>Tanah</span>
+                </button>
+                <button
+                  @click="selectedCategory = 'environment'"
+                  :class="['px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer', selectedCategory === 'environment' ? 'bg-blue-500/15 text-blue-600 border border-blue-500/30' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-foreground border border-transparent']"
+                >
+                  <CloudSun class="w-3.5 h-3.5 text-blue-500" />
+                  <span>IoT & Iklim</span>
+                </button>
+                <button
+                  @click="selectedCategory = 'all'"
+                  :class="['px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer', selectedCategory === 'all' ? 'bg-primary/15 text-primary border border-primary/30' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-foreground border border-transparent']"
+                >
+                  <Layers class="w-3.5 h-3.5 text-primary" />
+                  <span>Semua</span>
+                </button>
+              </div>
+
+              <!-- Time Range Selector -->
+              <div class="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200/80 dark:border-slate-700/80 text-xs">
+                <button
+                  @click="changeRange('1d')"
+                  :class="[
+                    'px-2 py-1 rounded-md font-semibold transition-all cursor-pointer flex items-center gap-1 text-xs',
+                    selectedRange === '1d' 
+                      ? 'bg-white dark:bg-card text-foreground border border-border/80 shadow-none' 
+                      : 'text-muted-foreground hover:text-foreground'
+                  ]"
+                >
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                  24J
+                </button>
+                <button
+                  @click="changeRange('1w')"
+                  :class="[
+                    'px-2 py-1 rounded-md font-semibold transition-all cursor-pointer text-xs',
+                    selectedRange === '1w' 
+                      ? 'bg-white dark:bg-card text-foreground border border-border/80 shadow-none' 
+                      : 'text-muted-foreground hover:text-foreground'
+                  ]"
+                >
+                  7H
+                </button>
+                <button
+                  @click="changeRange('1M')"
+                  :class="[
+                    'px-2 py-1 rounded-md font-semibold transition-all cursor-pointer text-xs',
+                    selectedRange === '1M' 
+                      ? 'bg-white dark:bg-card text-foreground border border-border/80 shadow-none' 
+                      : 'text-muted-foreground hover:text-foreground'
+                  ]"
+                >
+                  30H
+                </button>
+                <button
+                  @click="selectedRange = 'custom'"
+                  :class="[
+                    'px-1.5 py-1 rounded-md font-semibold transition-all cursor-pointer text-xs',
+                    selectedRange === 'custom' 
+                      ? 'bg-white dark:bg-card text-foreground border border-border/80 shadow-none' 
+                      : 'text-muted-foreground hover:text-foreground'
+                  ]"
+                  title="Rentang Kustom"
+                >
+                  <Calendar class="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+
+            <!-- Custom Date Picker -->
+            <div v-if="selectedRange === 'custom'" class="flex flex-wrap items-center gap-2 p-2 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg text-xs animate-slide-up">
+              <div class="flex items-center gap-1.5">
+                <span class="text-slate-500 dark:text-slate-400">Dari:</span>
+                <Input type="date" v-model="customStartDate" class="h-7 text-xs w-32 px-2 py-0 bg-white dark:bg-slate-800" />
+              </div>
+              <div class="flex items-center gap-1.5">
+                <span class="text-slate-500 dark:text-slate-400">Sampai:</span>
+                <Input type="date" v-model="customEndDate" class="h-7 text-xs w-32 px-2 py-0 bg-white dark:bg-slate-800" />
+              </div>
+              <Button size="sm" variant="default" class="h-7 text-xs px-2.5 shadow-none" @click="applyCustomDate" :disabled="!customStartDate">
+                <Check class="w-3 h-3 mr-1" />
+                Terapkan
+              </Button>
+            </div>
+
+            <!-- Chart Visual Canvas -->
+            <div class="h-[350px] w-full">
+              <SensorLineChart 
+                :data="chartData" 
+                :title="`Tren ${selectedCategory === 'npk' ? 'Unsur Hara NPK' : (selectedCategory === 'soil' ? 'Kondisi Tanah' : (selectedCategory === 'environment' ? 'Kondisi IoT' : 'Sensor'))}`" 
+                :sensors="activeCategorySensors" 
+                :is-loading="isArchiveLoading"
+              />
             </div>
           </CardContent>
         </Card>
+
+        <!-- ROW 3: Dua Portlet Berdampingan (Kondisi Tanah & Kondisi IoT) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+          
+          <!-- PORTLET 1: KONDISI TANAH -->
+          <Card class="relative overflow-hidden border border-border/80 bg-white dark:bg-card shadow-none hover:border-amber-500/30 transition-all flex flex-col">
+            <div class="p-4 flex flex-col gap-3 flex-1 justify-between">
+              <!-- Portlet Header -->
+              <div class="flex items-center justify-between pb-2 border-b border-border/40">
+                <div class="flex items-center gap-2">
+                  <div class="w-7 h-7 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-600">
+                    <Sprout class="w-4 h-4" />
+                  </div>
+                  <h3 class="text-sm font-bold tracking-tight text-foreground">Kondisi Tanah</h3>
+                </div>
+              </div>
+
+              <!-- Multi-Probe Moisture Comparison Widget -->
+              <div class="bg-slate-50 dark:bg-slate-900/50 rounded-xl p-3 border border-slate-200/80 dark:border-slate-800 space-y-2">
+                <div class="flex items-center justify-between text-xs">
+                  <span class="font-semibold text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
+                    <Droplet class="w-3.5 h-3.5 text-blue-500" />
+                    Kelembaban Multi-Titik
+                  </span>
+                  <span v-if="moistureAvgValue != null" class="font-bold text-xs text-slate-900 dark:text-slate-100">
+                    Avg: <span class="text-blue-500 font-extrabold">{{ moistureAvgValue }}%</span>
+                  </span>
+                </div>
+
+                <!-- Probe Bars -->
+                <div class="space-y-1.5 pt-0.5">
+                  <div class="space-y-0.5">
+                    <div class="flex justify-between text-[11px]">
+                      <span class="text-slate-500 dark:text-slate-400 font-medium">Probe 1 (Titik A)</span>
+                      <span class="font-bold text-foreground">{{ probe1Value ?? '--' }}%</span>
+                    </div>
+                    <div class="h-1.5 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                      <div 
+                        class="h-full bg-gradient-to-r from-blue-400 to-blue-600 rounded-full transition-all duration-500" 
+                        :style="{ width: `${Math.min(Math.max(Number(probe1Value || 0), 0), 100)}%` }"
+                      />
+                    </div>
+                  </div>
+
+                  <div class="space-y-0.5">
+                    <div class="flex justify-between text-[11px]">
+                      <span class="text-slate-500 dark:text-slate-400 font-medium">Probe 2 (Titik B)</span>
+                      <span class="font-bold text-foreground">{{ probe2Value ?? '--' }}%</span>
+                    </div>
+                    <div class="h-1.5 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                      <div 
+                        class="h-full bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full transition-all duration-500" 
+                        :style="{ width: `${Math.min(Math.max(Number(probe2Value || 0), 0), 100)}%` }"
+                      />
+                    </div>
+                  </div>
+
+                  <div class="space-y-0.5">
+                    <div class="flex justify-between text-[11px]">
+                      <span class="text-slate-500 dark:text-slate-400 font-medium">Probe 3 (Titik C)</span>
+                      <span class="font-bold text-foreground">{{ probe3Value ?? '--' }}%</span>
+                    </div>
+                    <div class="h-1.5 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                      <div 
+                        class="h-full bg-gradient-to-r from-teal-400 to-cyan-500 rounded-full transition-all duration-500" 
+                        :style="{ width: `${Math.min(Math.max(Number(probe3Value || 0), 0), 100)}%` }"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Compact Mini Metrics: pH, Suhu Tanah, EC -->
+              <div class="grid grid-cols-3 gap-2">
+                <!-- pH Tanah Card -->
+                <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 flex flex-col justify-between min-h-[58px]">
+                  <div class="flex items-center justify-between gap-1">
+                    <span class="text-[11px] font-medium text-slate-500 dark:text-slate-400 truncate">pH</span>
+                    <span :class="['text-[9px] font-bold px-1.5 py-0.2 rounded-full border whitespace-nowrap', phStatus.border, phStatus.bg, phStatus.textClass]">
+                      {{ phStatus.text }}
+                    </span>
+                  </div>
+                  <div class="mt-1">
+                    <span class="text-base sm:text-lg font-bold tracking-tight text-slate-900 dark:text-slate-100">{{ phValue ?? '--' }}</span>
+                    <span class="text-[10px] text-slate-500 dark:text-slate-400 ml-1">pH</span>
+                  </div>
+                </div>
+
+                <!-- Suhu Tanah Card -->
+                <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 flex flex-col justify-between min-h-[58px]">
+                  <span class="text-[11px] font-medium text-slate-500 dark:text-slate-400 truncate">Suhu Tanah</span>
+                  <div class="mt-1">
+                    <span class="text-base sm:text-lg font-bold tracking-tight text-slate-900 dark:text-slate-100">{{ soilTempValue ?? '--' }}</span>
+                    <span class="text-[10px] text-slate-500 dark:text-slate-400 ml-1">°C</span>
+                  </div>
+                </div>
+
+                <!-- EC (Electrical Conductivity) Card -->
+                <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 flex flex-col justify-between min-h-[58px]">
+                  <span class="text-[11px] font-medium text-slate-500 dark:text-slate-400 truncate">EC Tanah</span>
+                  <div class="mt-1">
+                    <span class="text-base sm:text-lg font-bold tracking-tight text-slate-900 dark:text-slate-100">{{ soilEcValue ?? '--' }}</span>
+                    <span class="text-[10px] text-slate-500 dark:text-slate-400 ml-1 font-sans">µS/cm</span>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </Card>
+
+          <!-- PORTLET 2: KONDISI IOT -->
+          <Card class="relative overflow-hidden border border-border/80 bg-white dark:bg-card shadow-none hover:border-blue-500/30 transition-all flex flex-col">
+            <div class="p-4 flex flex-col gap-3 flex-1 justify-between">
+              <!-- Portlet Header -->
+              <div class="flex items-center justify-between pb-2 border-b border-border/40">
+                <div class="flex items-center gap-2">
+                  <div class="w-7 h-7 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-600">
+                    <Cpu class="w-4 h-4" />
+                  </div>
+                  <h3 class="text-sm font-bold tracking-tight text-foreground">Kondisi IoT</h3>
+                </div>
+              </div>
+
+              <!-- Highlight Suhu Dalam Panel (Enclosure) & Thermal Status -->
+              <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                  <div class="w-9 h-9 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-orange-500 shadow-none">
+                    <Thermometer class="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Suhu Dalam Panel (Box)</p>
+                    <div class="flex items-baseline gap-1">
+                      <span class="text-lg sm:text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100">{{ enclosureTempValue ?? '--' }}</span>
+                      <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">°C</span>
+                    </div>
+                  </div>
+                </div>
+                <!-- Thermal status badge -->
+                <div class="text-right">
+                  <span :class="['text-[11px] font-semibold px-2.5 py-1 rounded-full border flex items-center gap-1.5 shadow-none', thermalStatus.badgeClass]">
+                    <span :class="['w-1.5 h-1.5 rounded-full', thermalStatus.dotClass]"></span>
+                    {{ thermalStatus.text }}
+                  </span>
+                  <p class="text-[10px] text-muted-foreground mt-0.5">Status Termal</p>
+                </div>
+              </div>
+
+              <!-- Mini Grid: Suhu Luar (Ambient), Kelembaban Udara, Status Modbus -->
+              <div class="grid grid-cols-3 gap-2">
+                <!-- Suhu Luar / Ambient -->
+                <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 flex flex-col justify-between min-h-[58px]">
+                  <span class="text-[11px] font-medium text-slate-500 dark:text-slate-400 truncate">Suhu Luar</span>
+                  <div class="mt-1">
+                    <span class="text-base sm:text-lg font-bold tracking-tight text-slate-900 dark:text-slate-100">{{ airTempValue ?? '--' }}</span>
+                    <span class="text-[10px] text-slate-500 dark:text-slate-400 ml-1">°C</span>
+                  </div>
+                </div>
+
+                <!-- Kelembaban Udara -->
+                <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 flex flex-col justify-between min-h-[58px]">
+                  <span class="text-[11px] font-medium text-slate-500 dark:text-slate-400 truncate">Kelembaban</span>
+                  <div class="mt-1">
+                    <span class="text-base sm:text-lg font-bold tracking-tight text-slate-900 dark:text-slate-100">{{ airHumidityValue ?? '--' }}</span>
+                    <span class="text-[10px] text-slate-500 dark:text-slate-400 ml-1">%</span>
+                  </div>
+                </div>
+
+                <!-- Modbus Status -->
+                <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 flex flex-col justify-between min-h-[58px]">
+                  <span class="text-[11px] font-medium text-slate-500 dark:text-slate-400 truncate">Modbus Code</span>
+                  <div class="mt-1 flex items-center">
+                    <span class="text-xs font-bold font-mono bg-slate-200 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200">
+                      {{ modbusCodeValue != null ? `Code ${modbusCodeValue}` : 'OK (0)' }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </Card>
+
+        </div>
+
       </div>
 
     </div>

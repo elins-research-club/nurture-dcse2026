@@ -70,7 +70,7 @@ const option = computed(() => {
         return val != null && val !== '' ? parseFloat(val) : null
       }),
       itemStyle: { color },
-      lineStyle: { width: 2 }
+      lineStyle: { width: 2.5 }
     }
   })
 
@@ -80,29 +80,29 @@ const option = computed(() => {
       left: 'center',
       top: 0,
       textStyle: {
-        color: '#64748b',
+        color: '#475569',
         fontSize: 13,
-        fontWeight: 500
+        fontWeight: 600
       }
     },
     tooltip: {
       trigger: 'axis',
-      backgroundColor: 'rgba(15, 23, 42, 0.95)',
+      backgroundColor: 'rgba(15, 23, 42, 0.92)',
       borderColor: '#334155',
       textStyle: { color: '#f8fafc', fontSize: 12 },
       axisPointer: {
         type: 'cross',
         label: {
-          backgroundColor: '#334155'
+          backgroundColor: '#475569'
         }
       }
     },
     legend: {
       type: 'scroll',
       top: 24,
-      textStyle: { color: '#94a3b8', fontSize: 11 },
+      textStyle: { color: '#64748b', fontSize: 11 },
       pageIconColor: '#3b82f6',
-      pageTextStyle: { color: '#94a3b8' }
+      pageTextStyle: { color: '#64748b' }
     },
     grid: {
       left: '3%',
@@ -115,13 +115,13 @@ const option = computed(() => {
       type: 'category',
       boundaryGap: false,
       data: feeds.map(item => formatXAxisTime(item.created_at || item.timestamp)),
-      axisLine: { lineStyle: { color: '#334155' } },
+      axisLine: { lineStyle: { color: '#cbd5e1' } },
       axisLabel: { color: '#64748b', fontSize: 11 }
     },
     yAxis: {
       type: 'value',
       scale: true,
-      splitLine: { lineStyle: { color: '#334155', type: 'dashed', opacity: 0.3 } },
+      splitLine: { lineStyle: { color: '#e2e8f0', type: 'dashed' } },
       axisLabel: { color: '#64748b', fontSize: 11 }
     },
     dataZoom: [
@@ -136,7 +136,7 @@ const option = computed(() => {
         bottom: 0,
         height: 18,
         borderColor: 'transparent',
-        backgroundColor: 'rgba(255,255,255,0.03)',
+        backgroundColor: 'rgba(241,245,249,0.8)',
         fillerColor: 'rgba(59, 130, 246, 0.15)',
         handleStyle: { color: '#3b82f6' },
         textStyle: { color: '#64748b', fontSize: 10 }
@@ -148,8 +148,8 @@ const option = computed(() => {
 </script>
 
 <template>
-  <div class="relative w-full h-full min-h-[350px]">
-    <div v-if="isLoading" class="absolute inset-0 z-10 flex items-center justify-center bg-card/60 backdrop-blur-sm rounded-xl">
+  <div class="relative w-full h-[350px] min-h-[350px]">
+    <div v-if="isLoading" class="absolute inset-0 z-10 flex items-center justify-center bg-white/70 backdrop-blur-sm rounded-xl">
       <div class="flex items-center gap-2 text-sm text-primary font-medium animate-pulse">
         <svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -162,6 +162,6 @@ const option = computed(() => {
       <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="opacity-30"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
       <p class="text-xs opacity-60">Belum ada data telemetri untuk rentang ini</p>
     </div>
-    <v-chart class="w-full h-full min-h-[350px]" :option="option" autoresize />
+    <v-chart class="w-full h-[350px]" style="height: 350px; width: 100%;" :option="option" autoresize />
   </div>
 </template>

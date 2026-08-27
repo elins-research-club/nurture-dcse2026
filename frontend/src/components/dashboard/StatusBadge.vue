@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { Badge } from '@/components/ui/badge'
 
 const props = defineProps<{
   isActive: boolean
@@ -20,12 +19,29 @@ const status = computed(() => {
   return 'online'
 })
 
-const variant = computed(() => {
+const badgeClass = computed(() => {
   switch (status.value) {
-    case 'online': return 'success'
-    case 'warning': return 'warning'
-    case 'offline': return 'destructive'
-    default: return 'secondary'
+    case 'online':
+      return 'bg-emerald-500/15 border-emerald-500/30 text-emerald-700 dark:text-emerald-400'
+    case 'warning':
+      return 'bg-amber-500/15 border-amber-500/30 text-amber-700 dark:text-amber-400'
+    case 'offline':
+      return 'bg-rose-500/15 border-rose-500/30 text-rose-700 dark:text-rose-400'
+    default:
+      return 'bg-slate-100 border-slate-200 text-slate-600'
+  }
+})
+
+const dotClass = computed(() => {
+  switch (status.value) {
+    case 'online':
+      return 'bg-emerald-500 animate-pulse'
+    case 'warning':
+      return 'bg-amber-500'
+    case 'offline':
+      return 'bg-rose-500'
+    default:
+      return 'bg-slate-400'
   }
 })
 
@@ -40,5 +56,8 @@ const label = computed(() => {
 </script>
 
 <template>
-  <Badge :variant="variant">{{ label }}</Badge>
+  <div :class="['inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border transition-colors shadow-none', badgeClass]">
+    <div :class="['w-1.5 h-1.5 rounded-full', dotClass]" />
+    <span>{{ label }}</span>
+  </div>
 </template>
