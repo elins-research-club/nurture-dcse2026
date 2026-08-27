@@ -114,6 +114,56 @@
   #app {
     @apply bg-background text-foreground;
   }
+
+  /* Ultra-smooth Theme Transition (Light <-> Dark Mode) */
+  html,
+  body,
+  #app,
+  header,
+  nav,
+  aside,
+  main,
+  div,
+  span,
+  p,
+  h1, h2, h3, h4, h5, h6,
+  button,
+  input,
+  select,
+  textarea,
+  section,
+  article,
+  footer {
+    transition-property: background-color, border-color, color, fill, stroke, box-shadow;
+    transition-duration: 350ms;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Exclude elements where transition would cause jitter or interfere with live map rendering */
+  .leaflet-container,
+  .leaflet-container *,
+  .animate-spin,
+  .animate-pulse,
+  .no-theme-transition {
+    transition: none !important;
+  }
+
+  /* Fix Leaflet Map Tile Seams & Gridlines */
+  .leaflet-tile-pane {
+    image-rendering: -webkit-optimize-contrast;
+  }
+  .leaflet-tile {
+    border: none !important;
+    outline: none !important;
+    box-shadow: 0 0 1px rgba(0, 0, 0, 0.02);
+  }
+  .leaflet-container img.leaflet-tile {
+    max-width: none !important;
+    max-height: none !important;
+    border: 0 !important;
+    padding: 0 !important;
+  }
+
   input,
   button,
   select,
@@ -135,4 +185,15 @@
 @keyframes pulse-glow {
   0%, 100% { opacity: 1; filter: drop-shadow(0 0 8px rgba(0, 230, 0, 0.6)); }
   50% { opacity: 0.7; filter: drop-shadow(0 0 2px rgba(0, 230, 0, 0.3)); }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SMART FARMING CANVAS BASE
+   ═══════════════════════════════════════════════════════════════ */
+.bg-agro-canvas {
+  background-color: #F8FAF9;
+}
+
+.dark .bg-agro-canvas {
+  background-color: #060B09;
 }
