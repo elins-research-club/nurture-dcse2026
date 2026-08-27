@@ -66,9 +66,9 @@ const thresholdStatus = computed(() => {
       status: 'low',
       label: 'Rendah',
       icon: ArrowDownRight,
-      // Soft, dreamy Sky Blue / Periwinkle gradient (inspired directly by the reference)
-      gradient: 'linear-gradient(135deg, #BAE6FD 0%, #7DD3FC 30%, #38BDF8 65%, #0284C7 100%)',
-      shadowClass: 'shadow-md shadow-sky-500/15 hover:shadow-lg hover:shadow-sky-500/25'
+      // Bright Vibrant Sky Blue gradient
+      gradient: 'linear-gradient(135deg, #38BDF8 0%, #0EA5E9 45%, #0284C7 100%)',
+      shadowClass: 'shadow-md shadow-sky-400/20 hover:shadow-lg hover:shadow-sky-400/30'
     }
   }
   if (max != null && val > max) {
@@ -76,18 +76,18 @@ const thresholdStatus = computed(() => {
       status: 'high',
       label: 'Tinggi',
       icon: ArrowUpRight,
-      // Soft, velvety Peach-Rose / Coral gradient
-      gradient: 'linear-gradient(135deg, #FECDD3 0%, #FDA4AF 30%, #FB7185 65%, #E11D48 100%)',
-      shadowClass: 'shadow-md shadow-rose-500/15 hover:shadow-lg hover:shadow-rose-500/25'
+      // Bright Vibrant Coral Rose gradient
+      gradient: 'linear-gradient(135deg, #FB7185 0%, #F43F5E 45%, #E11D48 100%)',
+      shadowClass: 'shadow-md shadow-rose-400/20 hover:shadow-lg hover:shadow-rose-400/30'
     }
   }
   return {
     status: 'ideal',
     label: 'Ideal',
     icon: Check,
-    // Soft, soothing Mint-Emerald / Sage gradient
-    gradient: 'linear-gradient(135deg, #A7F3D0 0%, #6EE7B7 30%, #34D399 65%, #059669 100%)',
-    shadowClass: 'shadow-md shadow-emerald-500/15 hover:shadow-lg hover:shadow-emerald-500/25'
+    // Bright & Fresh Emerald Green gradient
+    gradient: 'linear-gradient(135deg, #34D399 0%, #10B981 45%, #059669 100%)',
+    shadowClass: 'shadow-md shadow-emerald-400/20 hover:shadow-lg hover:shadow-emerald-400/30'
   }
 })
 </script>
@@ -104,24 +104,24 @@ const thresholdStatus = computed(() => {
   >
     <!-- Soft Glass Inner Glow / Lighting Reflection -->
     <div 
-      class="absolute inset-0 pointer-events-none opacity-50"
-      style="background: radial-gradient(circle at 85% 15%, rgba(255, 255, 255, 0.45) 0%, transparent 60%);"
+      class="absolute inset-0 pointer-events-none opacity-20"
+      style="background: radial-gradient(circle at 85% 15%, rgba(255, 255, 255, 0.4) 0%, transparent 60%);"
     ></div>
     
     <div class="flex items-center justify-between relative z-10">
       <div>
-        <p class="font-medium text-xs sm:text-sm text-white/95 tracking-wide drop-shadow-[0_1px_1px_rgba(0,0,0,0.1)]">{{ title }}</p>
-        <div class="flex items-baseline gap-1 mt-1">
-          <h3 class="font-extrabold tracking-tight text-white text-2xl sm:text-3xl drop-shadow-[0_1px_2px_rgba(0,0,0,0.15)]">
+        <p class="font-semibold text-sm sm:text-base text-white tracking-wide drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]">{{ title }}</p>
+        <div class="flex items-baseline gap-1.5 mt-0.5">
+          <h3 class="font-black tracking-tight text-white text-3xl sm:text-4xl drop-shadow-[0_1.5px_3px_rgba(0,0,0,0.4)]">
             {{ value !== null && value !== undefined ? value : '--' }}
           </h3>
-          <span class="text-white/90 font-semibold text-xs sm:text-sm ml-1 drop-shadow-[0_1px_1px_rgba(0,0,0,0.1)]">{{ unit }}</span>
+          <span class="text-white/95 font-bold text-sm drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]">{{ unit }}</span>
         </div>
       </div>
 
-      <!-- Translucent Frosted Glass Status Capsule (Seamless Borderless) -->
-      <div class="px-3 py-1.5 rounded-full bg-white/25 hover:bg-white/30 backdrop-blur-md text-white flex items-center gap-1.5 text-xs font-bold shrink-0 border-0">
-        <component :is="thresholdStatus.icon" class="w-3.5 h-3.5 stroke-[2.5] text-white" />
+      <!-- Bright Frosted Glass Status Capsule -->
+      <div class="px-3.5 py-1.5 rounded-full bg-white/30 hover:bg-white/35 backdrop-blur-md text-white flex items-center gap-1.5 text-xs sm:text-sm font-bold shrink-0 border border-white/50 shadow-sm">
+        <component :is="thresholdStatus.icon" class="w-4 h-4 stroke-[2.5] text-white" />
         <span class="tracking-wide">{{ thresholdStatus.label }}</span>
       </div>
     </div>
@@ -134,15 +134,15 @@ const thresholdStatus = computed(() => {
   >
     <CardContent :class="['flex items-center justify-between relative z-10', isLg ? 'p-5' : 'p-4']">
       <div>
-        <p :class="['font-medium text-muted-foreground group-hover:text-foreground/80 transition-colors', isLg ? 'text-sm' : 'text-sm']">{{ title }}</p>
+        <p :class="['font-medium text-muted-foreground group-hover:text-foreground/80 transition-colors', isLg ? 'text-base' : 'text-sm sm:text-base']">{{ title }}</p>
         <div class="flex items-baseline gap-1 mt-1">
           <h3 :class="[
             'font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-br from-foreground to-foreground/70',
-            isLg ? 'text-3xl' : 'text-2xl'
+            isLg ? 'text-4xl' : 'text-3xl'
           ]">
             {{ value !== null && value !== undefined ? value : '--' }}
           </h3>
-          <span :class="['text-muted-foreground font-medium ml-1', isLg ? 'text-sm' : 'text-xs']">{{ unit }}</span>
+          <span :class="['text-muted-foreground font-medium ml-1', isLg ? 'text-base' : 'text-sm']">{{ unit }}</span>
         </div>
       </div>
 
