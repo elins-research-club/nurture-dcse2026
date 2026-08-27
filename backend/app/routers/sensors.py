@@ -1,8 +1,9 @@
 from uuid import UUID
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
-from app.dependencies.auth import get_current_user, require_admin
+from app.dependencies.auth import get_current_user, get_optional_current_user, require_admin
 from app.models.user import User
 from app.schemas.sensor import SensorResponse, SensorCreate, SensorUpdate
 from app.repositories import sensor_repo, node_repo, channel_repo
@@ -10,7 +11,7 @@ from app.repositories import sensor_repo, node_repo, channel_repo
 router = APIRouter(prefix="/nodes")
 
 @router.get("/{node_id}/sensors/", response_model=list[SensorResponse])
-async def list_sensors(node_id: str, skip: int = 0, limit: int = 100, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
+async def list_sensors(node_id: str, skip: int = 0, limit: int = 100, db: AsyncSession = Depends(get_db), current_user: Optional[User] = Depends(get_optional_current_user)):
     node = await node_repo.get_by_node_id(db, node_id)
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
