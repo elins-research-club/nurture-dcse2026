@@ -10,16 +10,15 @@ export function useNodes() {
   const queryClient = useQueryClient()
 
   const fetchNodes = async (): Promise<NodeDeviceWithData[]> => {
-    if (!authStore.token) throw new Error('Not authenticated')
+    const headers: Record<string, string> = {}
+    if (authStore.token) {
+      headers['Authorization'] = `Bearer ${authStore.token}`
+    }
     
-    const response = await fetch(`${API_BASE_URL}/nodes/`, {
-      headers: {
-        'Authorization': `Bearer ${authStore.token}`
-      }
-    })
+    const response = await fetch(`${API_BASE_URL}/nodes/`, { headers })
     
     if (!response.ok) {
-      if (response.status === 401) {
+      if (response.status === 401 && authStore.token) {
         authStore.logout()
         throw new Error('Session expired')
       }
@@ -32,7 +31,7 @@ export function useNodes() {
   const nodesQuery = useQuery({
     queryKey: ['nodes'],
     queryFn: fetchNodes,
-    enabled: computed(() => !!authStore.token),
+    enabled: true,
     refetchInterval: 30000 // Refetch every 30s as fallback to WS
   })
 

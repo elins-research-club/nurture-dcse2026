@@ -2,6 +2,7 @@
 import { ref, watch } from 'vue'
 import DashboardLayout from '@/components/layout/DashboardLayout.vue'
 import NodeDashboard from '@/components/dashboard/NodeDashboard.vue'
+import DashboardPreloader from '@/components/ui/DashboardPreloader.vue'
 import { useNodes } from '@/composables/useNodes'
 import type { NodeDeviceWithData } from '@/types'
 
@@ -28,19 +29,17 @@ const getActiveNodeData = () => {
 <template>
   <DashboardLayout>
     <div class="flex flex-col space-y-3">
-      <!-- Loading State -->
-      <div v-if="nodesQuery.isLoading.value" class="py-12 text-center text-muted-foreground">
-        Loading nodes data...
-      </div>
+      <!-- Loading State Preloader -->
+      <DashboardPreloader v-if="nodesQuery.isLoading.value || nodesQuery.isPending.value || (!nodes.length && !nodesQuery.isError.value)" />
       
       <!-- Error State -->
       <div v-else-if="nodesQuery.isError.value" class="py-12 text-center text-destructive">
-        Failed to load data. Please check connection.
+        Gagal memuat data. Silakan periksa koneksi jaringan.
       </div>
       
       <!-- No Data State -->
       <div v-else-if="!nodes.length" class="py-12 text-center text-muted-foreground border border-dashed rounded-xl">
-        No nodes found. Add a node to get started.
+        Tidak ada node ditemukan. Tambahkan node untuk memulai pemantauan.
       </div>
       
       <template v-else>
