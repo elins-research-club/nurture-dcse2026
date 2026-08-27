@@ -41,13 +41,18 @@ const toggleTheme = useToggle(isDarkMode)
       <div class="absolute -bottom-32 -right-32 w-[750px] h-[650px] rounded-full bg-slate-200/40 dark:bg-slate-800/30 blur-[150px] pointer-events-none"></div>
 
       <!-- 2. High-Density Mathematical Topographic SVG -->
-      <!-- We load the perfectly generated SVG via mask or img -->
-      <img 
-        src="/topography.svg" 
-        alt=""
-        class="w-full h-full object-cover opacity-[0.25] dark:opacity-[0.15] text-slate-500 dark:text-slate-400 mix-blend-multiply dark:mix-blend-screen"
-        style="min-width: 100vw; min-height: 100vh;"
-      />
+      <!-- We use mask-image so we can easily colorize the SVG in both light and dark modes -->
+      <div 
+        class="absolute inset-0 w-full h-full bg-slate-500 dark:bg-slate-400 opacity-[0.15] dark:opacity-[0.15]"
+        style="
+          mask-image: url('/topography.svg'); 
+          mask-size: cover; 
+          mask-position: center; 
+          -webkit-mask-image: url('/topography.svg'); 
+          -webkit-mask-size: cover; 
+          -webkit-mask-position: center;
+        "
+      ></div>
     </div>
 
     <!-- Foreground UI Container with relative z-10 -->
