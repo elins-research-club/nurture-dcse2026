@@ -244,7 +244,7 @@ const aktuator = computed(() => {
   }
 })
 
-// Dynamic 3D Rendered Animated Actuator List for Actuator Status Card
+// Dynamic Animated Actuator List for Actuator Status Card
 const actuatorList = computed(() => {
   if (!aktuator.value) return []
   return [
@@ -252,30 +252,30 @@ const actuatorList = computed(() => {
       id: 'kipas',
       nama: 'Kipas',
       aktif: aktuator.value.kipas,
-      image3d: '/actuators/fan_3d.webp',
-      activeClass: 'animate-spin [animation-duration:1s] drop-shadow-[0_0_12px_rgba(16,185,129,0.5)]',
-      inactiveClass: 'grayscale opacity-35 filter scale-95',
-      activeBg: 'bg-emerald-500/10 dark:bg-emerald-950/30 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 shadow-sm',
+      icon: Fan,
+      iconActiveClass: 'text-emerald-500 animate-spin [animation-duration:0.8s]',
+      iconInactiveClass: 'text-slate-400 dark:text-slate-500',
+      activeBg: 'bg-emerald-500/10 dark:bg-emerald-950/30 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 shadow-xs',
       badgeActiveClass: 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-black',
     },
     {
       id: 'lampu',
       nama: 'Lampu',
       aktif: aktuator.value.lampu,
-      image3d: '/actuators/bulb_3d.webp',
-      activeClass: 'animate-pulse drop-shadow-[0_0_14px_rgba(245,158,11,0.85)] brightness-110',
-      inactiveClass: 'grayscale opacity-35 filter scale-95',
-      activeBg: 'bg-amber-500/10 dark:bg-amber-950/30 border-amber-500/30 text-amber-600 dark:text-amber-400 shadow-sm',
+      icon: Lightbulb,
+      iconActiveClass: 'text-amber-500 fill-amber-400/50 drop-shadow-[0_0_8px_rgba(245,158,11,0.7)] animate-pulse',
+      iconInactiveClass: 'text-slate-400 dark:text-slate-500',
+      activeBg: 'bg-amber-500/10 dark:bg-amber-950/30 border-amber-500/30 text-amber-600 dark:text-amber-400 shadow-xs',
       badgeActiveClass: 'bg-amber-500/20 text-amber-700 dark:text-amber-300 font-black',
     },
     {
       id: 'valve',
       nama: 'Valve',
       aktif: aktuator.value.valve,
-      image3d: '/actuators/valve_3d.webp',
-      activeClass: 'animate-bounce [animation-duration:1.6s] drop-shadow-[0_0_12px_rgba(14,165,233,0.7)]',
-      inactiveClass: 'grayscale opacity-35 filter scale-95',
-      activeBg: 'bg-sky-500/10 dark:bg-sky-950/30 border-sky-500/30 text-sky-600 dark:text-sky-400 shadow-sm',
+      icon: Droplets,
+      iconActiveClass: 'text-sky-500 drop-shadow-[0_0_6px_rgba(14,165,233,0.6)] animate-bounce [animation-duration:1.2s]',
+      iconInactiveClass: 'text-slate-400 dark:text-slate-500',
+      activeBg: 'bg-sky-500/10 dark:bg-sky-950/30 border-sky-500/30 text-sky-600 dark:text-sky-400 shadow-xs',
       badgeActiveClass: 'bg-sky-500/20 text-sky-700 dark:text-sky-300 font-black',
     },
   ]
@@ -1014,48 +1014,40 @@ onUnmounted(() => {
               <h4 class="text-base sm:text-lg font-bold tracking-tight text-foreground">Status Aktuator</h4>
             </div>
 
-            <!-- 3 Expanded State Chips with 3D Actuator Objects (Vertical Stack: 3D Object -> Name -> Badge) -->
+            <!-- 3 Expanded State Chips with Actuator Animations (Vertical Stack: Icon -> Name -> Badge) -->
             <div class="grid grid-cols-3 gap-2">
               <div 
                 v-for="a in actuatorList" 
                 :key="a.id"
                 :class="[
-                  'py-3.5 px-2 rounded-2xl text-xs sm:text-sm font-medium border flex flex-col items-center justify-between gap-2 transition-all text-center min-h-[110px] sm:min-h-[120px] relative overflow-hidden group shadow-2xs hover:shadow-xs',
+                  'py-3 px-2 rounded-xl text-xs sm:text-sm font-medium border flex flex-col items-center justify-center gap-2 transition-all text-center min-h-[96px] sm:min-h-[105px]',
                   a.aktif 
                     ? a.activeBg 
-                    : 'bg-slate-50/90 dark:bg-slate-900/50 border-slate-200/80 dark:border-slate-800 text-slate-500 dark:text-slate-400'
+                    : 'bg-slate-50 dark:bg-slate-900/50 border-slate-200/80 dark:border-slate-800 text-slate-500 dark:text-slate-400'
                 ]"
               >
-                <!-- 1. Large 3D Rendered Object with CSS GPU Animation -->
-                <div class="flex items-center justify-center w-11 h-11 sm:w-13 sm:h-13 relative shrink-0 my-auto">
-                  <img 
-                    :src="a.image3d" 
-                    :alt="a.nama" 
-                    :class="[
-                      'w-full h-full object-contain transition-all duration-500 pointer-events-none select-none',
-                      a.aktif ? a.activeClass : a.inactiveClass
-                    ]" 
+                <!-- 1. Large Animated Icon on Top (Centered Horizontal) -->
+                <div class="flex items-center justify-center h-8 sm:h-9">
+                  <component 
+                    :is="a.icon" 
+                    :class="['w-7 h-7 sm:w-8 sm:h-8 transition-all', a.aktif ? a.iconActiveClass : a.iconInactiveClass]" 
                   />
                 </div>
 
-                <!-- 2. Actuator Name & ON/OFF Pill Stack -->
-                <div class="space-y-1.5 w-full flex flex-col items-center">
-                  <span class="text-xs sm:text-sm font-extrabold text-foreground tracking-tight leading-none block">
-                    {{ a.nama }}
-                  </span>
-                  
-                  <!-- ON / OFF Pill Badge -->
-                  <span 
-                    :class="[
-                      'text-[10px] sm:text-xs font-black tracking-wider px-2.5 py-0.5 rounded-md leading-tight uppercase transition-all shadow-2xs',
-                      a.aktif 
-                        ? a.badgeActiveClass 
-                        : 'bg-slate-200/70 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-bold'
-                    ]"
-                  >
-                    {{ a.aktif ? 'ON' : 'OFF' }}
-                  </span>
-                </div>
+                <!-- 2. Actuator Name in the Middle -->
+                <span class="text-xs sm:text-sm font-extrabold text-foreground tracking-tight leading-tight -mt-0.5">{{ a.nama }}</span>
+                
+                <!-- 3. ON / OFF Pill Badge at the Bottom -->
+                <span 
+                  :class="[
+                    'text-[10px] sm:text-xs font-black tracking-wider px-2.5 py-0.5 rounded-md leading-tight uppercase',
+                    a.aktif 
+                      ? a.badgeActiveClass 
+                      : 'bg-slate-200/70 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-bold'
+                  ]"
+                >
+                  {{ a.aktif ? 'ON' : 'OFF' }}
+                </span>
               </div>
             </div>
           </div>
