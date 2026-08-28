@@ -535,6 +535,19 @@ const analyticsData = computed(() => {
     }
   })
 
+  // Helper for precise sensor type recognition without false substring matches
+  const checkPH = (n: string) => {
+    if (n.includes('phosphor') || n.includes('fosfor') || n.includes('photo')) return false
+    return n === 'ph' || n.startsWith('ph ') || n.endsWith(' ph') || n.includes(' ph ') || n.includes('(ph)') || n.includes('keasaman')
+  }
+  const checkNitrogen = (n: string) => n.includes('nitrogen') || n.includes('nitrat') || n === 'n'
+  const checkPhosphorus = (n: string) => n.includes('phosphor') || n.includes('fosfor') || n.includes('phosphat') || n === 'p'
+  const checkPotassium = (n: string) => n.includes('potassium') || n.includes('kalium') || n === 'k'
+  const checkEnclosureTemp = (n: string) => n.includes('dalam') || n.includes('enclosure') || n.includes('box') || n.includes('casing')
+  const checkAirTemp = (n: string) => (n.includes('suhu') || n.includes('temp')) && (n.includes('luar') || n.includes('udara') || n.includes('ambient'))
+  const checkSoilMoisture = (n: string) => (n.includes('tanah') || n.includes('soil') || n.includes('probe')) && (n.includes('lembab') || n.includes('moist'))
+  const checkAirHumidity = (n: string) => (n.includes('udara') || n.includes('air') || n.includes('ambient') || n.includes('humidity')) && !n.includes('tanah') && !n.includes('soil')
+
   // Universal Sensor Anomaly & Threshold Evaluator
   const anomalies: { sensor: any; severity: 'critical' | 'warning'; message: string }[] = []
 
@@ -566,7 +579,7 @@ const analyticsData = computed(() => {
     }
 
     // 2. Intelligent Agronomic & Hardware Standard Fallbacks
-    if (sName.includes('ph')) {
+    if (checkPH(sName)) {
       if (stat.avg != null && (stat.avg < 5.0 || stat.avg > 8.5)) {
         anomalies.push({
           sensor: stat,
@@ -580,37 +593,49 @@ const analyticsData = computed(() => {
           message: `Nilai pH rata-rata (${stat.avg}) berada di luar ambang netral ideal 6.0–7.0 pada periode ${rangeLabel.value}.`
         })
       }
-    } else if (sName.includes('nitrogen') || sName.includes('nitrat')) {
+    } else if (checkNitrogen(sName)) {
       if (val < 20) {
         anomalies.push({
           sensor: stat,
           severity: 'warning',
           message: `Kadar Nitrogen rata-rata berada di bawah target (${val} mg/kg). Pertimbangkan pemupukan N pada siklus berikutnya.`
         })
-      } else if (val > 70) {
+      } else if (val > 80) {
         anomalies.push({
           sensor: stat,
           severity: 'warning',
           message: `Kadar Nitrogen rata-rata tinggi (${val} mg/kg). Hindari akumulasi pupuk berlebih.`
         })
       }
-    } else if (sName.includes('phosphor') || sName.includes('fosfor')) {
+    } else if (checkPhosphorus(sName)) {
       if (val < 15) {
         anomalies.push({
           sensor: stat,
           severity: 'warning',
           message: `Kadar Fosfor rata-rata (${val} mg/kg) di bawah target optimal untuk perkembangan akar.`
         })
+      } else if (val > 60) {
+        anomalies.push({
+          sensor: stat,
+          severity: 'warning',
+          message: `Kadar Fosfor rata-rata (${val} mg/kg) tergolong tinggi.`
+        })
       }
-    } else if (sName.includes('potassium') || sName.includes('kalium')) {
+    } else if (checkPotassium(sName)) {
       if (val < 20) {
         anomalies.push({
           sensor: stat,
           severity: 'warning',
           message: `Kadar Kalium rata-rata (${val} mg/kg) di bawah target untuk ketahanan tanaman.`
         })
+      } else if (val > 60) {
+        anomalies.push({
+          sensor: stat,
+          severity: 'warning',
+          message: `Kadar Kalium rata-rata (${val} mg/kg) tergolong tinggi.`
+        })
       }
-    } else if (sName.includes('suhu dalam') || sName.includes('enclosure') || sName.includes('box')) {
+    } else if (checkEnclosureTemp(sName)) {
       if (stat.max != null && stat.max > 45) {
         anomalies.push({
           sensor: stat,
@@ -624,7 +649,7 @@ const analyticsData = computed(() => {
           message: `Suhu box panel IoT sempat menghangat hingga ${stat.max}°C pada rentang ${rangeLabel.value}.`
         })
       }
-    } else if (sName.includes('suhu') || sName.includes('temp')) {
+    } else if (checkAirTemp(sName)) {
       if (stat.max != null && stat.max > 38) {
         anomalies.push({
           sensor: stat,
@@ -632,23 +657,21 @@ const analyticsData = computed(() => {
           message: `Suhu udara lingkungan sempat menyentuh ${stat.max}°C pada periode ${rangeLabel.value}.`
         })
       }
-    } else if (sName.includes('lembab') || sName.includes('moisture') || sName.includes('humidity')) {
-      if (sName.includes('tanah') || sName.includes('probe')) {
-        if (stat.min != null && stat.min < 25) {
-          anomalies.push({
-            sensor: stat,
-            severity: 'warning',
-            message: `Kelembaban tanah sempat turun hingga ${stat.min}%. Rekomendasikan pengairan/irigasi.`
-          })
-        }
-      } else {
-        if (stat.min != null && stat.min < 35) {
-          anomalies.push({
-            sensor: stat,
-            severity: 'warning',
-            message: `Kelembaban udara lingkungan rendah (${stat.min}%). Kondisi cenderung kering.`
-          })
-        }
+    } else if (checkSoilMoisture(sName)) {
+      if (stat.min != null && stat.min < 25) {
+        anomalies.push({
+          sensor: stat,
+          severity: 'warning',
+          message: `Kelembaban tanah sempat turun hingga ${stat.min}%. Rekomendasikan pengairan/irigasi.`
+        })
+      }
+    } else if (checkAirHumidity(sName)) {
+      if (stat.min != null && stat.min < 35) {
+        anomalies.push({
+          sensor: stat,
+          severity: 'warning',
+          message: `Kelembaban udara lingkungan rendah (${stat.min}%). Kondisi cenderung kering.`
+        })
       }
     }
   })
