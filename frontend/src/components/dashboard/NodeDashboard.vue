@@ -951,7 +951,7 @@ onUnmounted(() => {
       <div class="lg:col-span-3 flex flex-col gap-3.5">
         
         <!-- CARD 1: Compact Node Identity & Status Card -->
-        <Card class="relative overflow-hidden border border-border/80 bg-white dark:bg-card shadow-[inset_0_1px_1px_rgba(255,255,255,0.9),0_4px_20px_-4px_rgba(0,0,0,0.03)] hover:-translate-y-0.5 hover:shadow-xs transition-all duration-300">
+        <Card class="relative overflow-hidden border border-border/80 bg-white shadow-none">
           <div class="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-transparent to-primary/5 pointer-events-none"></div>
           <CardContent class="p-3.5 sm:p-4 relative z-10 flex flex-col gap-2.5">
             <!-- Node Title & Status Badge -->
@@ -984,14 +984,14 @@ onUnmounted(() => {
         </Card>
 
         <!-- CARD 2: Mini Map (1:1 Ratio Square Card) -->
-        <Card class="relative overflow-hidden w-full aspect-square border border-border/80 shadow-[inset_0_1px_1px_rgba(255,255,255,0.9),0_4px_20px_-4px_rgba(0,0,0,0.03)] hover:-translate-y-0.5 hover:shadow-xs transition-all duration-300 flex flex-col group rounded-xl bg-white dark:bg-card">
+        <Card class="relative overflow-hidden w-full aspect-square border border-border/80 shadow-none flex flex-col group rounded-xl bg-white">
           <div ref="miniMapContainer" class="w-full h-full absolute inset-0 z-0" />
           
           <!-- Map Overlay Link to Full Map Page -->
           <div v-if="miniMapReady" class="absolute bottom-2.5 right-2.5 z-10">
             <a 
               href="/map" 
-              class="px-2.5 py-1 rounded-lg text-xs font-bold bg-white/90 dark:bg-card/90 backdrop-blur-md text-foreground border border-border/70 hover:bg-white flex items-center gap-1.5 transition-all hover:scale-105 shadow-xs"
+              class="px-2.5 py-1 rounded-lg text-xs font-bold bg-white/90 backdrop-blur-md text-foreground border border-border/70 hover:bg-white flex items-center gap-1.5 transition-all hover:scale-105"
             >
               <MapPin class="w-3.5 h-3.5 text-primary" />
               <span>Buka Peta →</span>
@@ -1006,7 +1006,7 @@ onUnmounted(() => {
         </Card>
 
         <!-- CARD 3: Compact Actuator Control Status (Enlarged Height & Typography) -->
-        <Card v-if="aktuator" class="relative overflow-hidden border border-border/80 bg-white dark:bg-card shadow-[inset_0_1px_1px_rgba(255,255,255,0.9),0_4px_20px_-4px_rgba(0,0,0,0.03)] hover:-translate-y-0.5 hover:shadow-xs hover:border-amber-500/30 transition-all duration-300">
+        <Card v-if="aktuator" class="relative overflow-hidden border border-border/80 bg-white dark:bg-card shadow-none hover:border-amber-500/30 transition-all">
           <div class="p-4 sm:p-4.5 flex flex-col gap-3.5">
             <!-- Header: Title, Icon -->
             <div class="flex items-center gap-2">
@@ -1087,7 +1087,7 @@ onUnmounted(() => {
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-stretch">
           
           <!-- LEFT COL (lg:col-span-8): Wide Sensor Trends Line Chart -->
-          <Card class="lg:col-span-8 relative overflow-hidden flex flex-col border border-border/80 bg-white dark:bg-card shadow-[inset_0_1px_1px_rgba(255,255,255,0.9),0_4px_20px_-4px_rgba(0,0,0,0.03)] hover:-translate-y-0.5 hover:shadow-xs transition-all duration-300 min-h-[460px]">
+          <Card class="lg:col-span-8 relative overflow-hidden flex flex-col border border-border/80 bg-white dark:bg-card shadow-none min-h-[460px]">
             <div class="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-30 pointer-events-none"></div>
             <CardContent class="p-4 relative z-10 flex flex-col gap-2 flex-1">
               
@@ -1243,7 +1243,7 @@ onUnmounted(() => {
           </Card>
 
           <!-- RIGHT COL (lg:col-span-4): Dynamic Category-Aware Analytics & Insights Card (Enlarged Typography) -->
-          <Card class="lg:col-span-4 relative overflow-hidden flex flex-col border border-border/80 bg-white dark:bg-card shadow-[inset_0_1px_1px_rgba(255,255,255,0.9),0_4px_20px_-4px_rgba(0,0,0,0.03)] hover:-translate-y-0.5 hover:shadow-xs transition-all duration-300 min-h-[460px]">
+          <Card class="lg:col-span-4 relative overflow-hidden flex flex-col border border-border/80 bg-white dark:bg-card shadow-none min-h-[460px]">
             <div class="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-transparent to-primary/5 pointer-events-none"></div>
             <CardContent class="p-4 sm:p-4.5 relative z-10 flex flex-col justify-between gap-3 flex-1 h-full">
               
@@ -1345,41 +1345,39 @@ onUnmounted(() => {
         <!-- ROW 3: Dua Portlet Berdampingan (Kondisi Tanah & Kondisi IoT) -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
           
-          <!-- PORTLET 1: KONDISI TANAH (3D Enhanced & Tactile Strata) -->
-          <Card class="relative overflow-hidden border border-border/80 bg-white dark:bg-card shadow-[inset_0_1px_1px_rgba(255,255,255,0.9),0_4px_20px_-4px_rgba(0,0,0,0.03)] hover:border-amber-500/35 transition-all duration-300 flex flex-col hover:-translate-y-0.5 hover:shadow-xs">
-            <div class="p-4 flex flex-col gap-3.5 flex-1 justify-between">
-              <!-- Portlet Header with 3D Soil Strata Badge -->
+          <!-- PORTLET 1: KONDISI TANAH -->
+          <Card class="relative overflow-hidden border border-border/80 bg-white dark:bg-card shadow-none hover:border-amber-500/30 transition-all flex flex-col">
+            <div class="p-4 flex flex-col gap-3 flex-1 justify-between">
+              <!-- Portlet Header -->
               <div class="flex items-center justify-between pb-2 border-b border-border/40">
-                <div class="flex items-center gap-2.5">
-                  <div class="w-8 h-8 rounded-xl bg-amber-500/10 dark:bg-amber-500/20 border border-amber-500/25 flex items-center justify-center p-0.5 shrink-0 shadow-2xs">
-                    <img src="/3d/soil_strata_3d.webp" alt="Kondisi Tanah" class="w-full h-full object-contain pointer-events-none" />
-                  </div>
-                  <h4 class="text-base sm:text-lg font-extrabold tracking-tight text-foreground">Kondisi Tanah</h4>
+                <div class="flex items-center gap-2">
+                  <img src="/soil-icon.svg" alt="Kondisi Tanah" class="w-5 h-5 object-contain dark:invert shrink-0" />
+                  <h4 class="text-base sm:text-lg font-bold tracking-tight text-foreground">Kondisi Tanah</h4>
                 </div>
               </div>
 
-              <!-- Multi-Probe Moisture Comparison Widget with Liquid Cylindrical Bar & Tactile styling -->
-              <div class="bg-gradient-to-br from-amber-50/40 via-slate-50 to-slate-50 dark:from-slate-900/70 dark:to-slate-900/40 rounded-2xl p-3.5 border border-slate-200/80 dark:border-slate-800 space-y-2.5 shadow-2xs">
+              <!-- Multi-Probe Moisture Comparison Widget -->
+              <div class="bg-slate-50 dark:bg-slate-900/50 rounded-xl p-3 border border-slate-200/80 dark:border-slate-800 space-y-2">
                 <div class="flex items-center justify-between text-sm">
-                  <span class="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                    <Droplet class="w-4 h-4 text-blue-500 drop-shadow-xs" />
+                  <span class="font-semibold text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
+                    <Droplet class="w-4 h-4 text-blue-500" />
                     {{ avgMoistureMetric?.name || 'Kelembaban Multi-Titik' }}
                   </span>
-                  <span v-if="getLiveVal(avgMoistureMetric) != null" class="font-extrabold text-xs sm:text-sm text-slate-900 dark:text-slate-100 bg-blue-500/10 dark:bg-blue-500/20 border border-blue-500/25 px-2.5 py-0.5 rounded-lg">
-                    Avg: <span class="text-blue-600 dark:text-blue-400 font-extrabold">{{ getLiveVal(avgMoistureMetric) }}{{ avgMoistureMetric?.unit || '%' }}</span>
+                  <span v-if="getLiveVal(avgMoistureMetric) != null" class="font-bold text-sm text-slate-900 dark:text-slate-100">
+                    Avg: <span class="text-blue-500 font-extrabold">{{ getLiveVal(avgMoistureMetric) }}{{ avgMoistureMetric?.unit || '%' }}</span>
                   </span>
                 </div>
 
-                <!-- Probe Bars with Liquid Tube Gradient & Glow -->
-                <div class="space-y-2 pt-0.5">
-                  <div v-for="probe in soilProbes" :key="probe.id" class="space-y-1">
+                <!-- Probe Bars -->
+                <div class="space-y-1.5 pt-0.5">
+                  <div v-for="probe in soilProbes" :key="probe.id" class="space-y-0.5">
                     <div class="flex justify-between text-xs">
-                      <span class="text-slate-600 dark:text-slate-400 font-semibold">{{ probe.name }}</span>
-                      <span class="font-extrabold text-foreground font-mono">{{ getLiveVal(probe) ?? '--' }}{{ probe.unit || '%' }}</span>
+                      <span class="text-slate-500 dark:text-slate-400 font-medium">{{ probe.name }}</span>
+                      <span class="font-bold text-foreground">{{ getLiveVal(probe) ?? '--' }}{{ probe.unit || '%' }}</span>
                     </div>
-                    <div class="h-2 w-full bg-slate-200/90 dark:bg-slate-800 rounded-full overflow-hidden p-0.5 border border-slate-300/40 dark:border-slate-700/50 shadow-inner">
+                    <div class="h-1.5 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
                       <div 
-                        class="h-full bg-gradient-to-r from-sky-400 via-blue-500 to-indigo-600 rounded-full transition-all duration-500 shadow-[0_0_8px_rgba(56,189,248,0.35)]" 
+                        class="h-full bg-gradient-to-r from-blue-400 to-blue-600 rounded-full transition-all duration-500" 
                         :style="{ width: `${Math.min(Math.max(Number(getLiveVal(probe) || 0), 0), 100)}%` }"
                       />
                     </div>
@@ -1390,34 +1388,34 @@ onUnmounted(() => {
               <!-- Compact Mini Metrics: pH, Suhu Tanah, EC -->
               <div class="grid grid-cols-3 gap-2">
                 <!-- pH Tanah Card -->
-                <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 flex flex-col justify-between min-h-[62px] shadow-2xs hover:border-amber-500/30 transition-colors">
+                <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 flex flex-col justify-between min-h-[62px]">
                   <div class="flex items-center justify-between gap-1">
-                    <span class="text-xs font-bold text-slate-600 dark:text-slate-400 truncate">{{ phMetric?.name || 'pH' }}</span>
-                    <span :class="['text-[10px] font-black px-1.5 py-0.5 rounded-full border whitespace-nowrap', phStatus.border, phStatus.bg, phStatus.textClass]">
+                    <span class="text-xs font-semibold text-slate-500 dark:text-slate-400 truncate">{{ phMetric?.name || 'pH' }}</span>
+                    <span :class="['text-[10px] font-bold px-1.5 py-0.5 rounded-full border whitespace-nowrap', phStatus.border, phStatus.bg, phStatus.textClass]">
                       {{ phStatus.text }}
                     </span>
                   </div>
                   <div class="mt-1">
-                    <span class="text-lg sm:text-xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100">{{ getLiveVal(phMetric) ?? '--' }}</span>
-                    <span class="text-xs text-slate-500 dark:text-slate-400 ml-1 font-semibold">{{ phMetric?.unit || 'pH' }}</span>
+                    <span class="text-lg sm:text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100">{{ getLiveVal(phMetric) ?? '--' }}</span>
+                    <span class="text-xs text-slate-500 dark:text-slate-400 ml-1">{{ phMetric?.unit || 'pH' }}</span>
                   </div>
                 </div>
 
                 <!-- Suhu Tanah Card -->
-                <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 flex flex-col justify-between min-h-[62px] shadow-2xs hover:border-amber-500/30 transition-colors">
-                  <span class="text-xs font-bold text-slate-600 dark:text-slate-400 truncate">{{ soilTempMetric?.name || 'Suhu Tanah' }}</span>
+                <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 flex flex-col justify-between min-h-[62px]">
+                  <span class="text-xs font-semibold text-slate-500 dark:text-slate-400 truncate">{{ soilTempMetric?.name || 'Suhu Tanah' }}</span>
                   <div class="mt-1">
-                    <span class="text-lg sm:text-xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100">{{ getLiveVal(soilTempMetric) ?? '--' }}</span>
-                    <span class="text-xs text-slate-500 dark:text-slate-400 ml-1 font-semibold">{{ soilTempMetric?.unit || '°C' }}</span>
+                    <span class="text-lg sm:text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100">{{ getLiveVal(soilTempMetric) ?? '--' }}</span>
+                    <span class="text-xs text-slate-500 dark:text-slate-400 ml-1">{{ soilTempMetric?.unit || '°C' }}</span>
                   </div>
                 </div>
 
                 <!-- EC (Electrical Conductivity) Card -->
-                <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 flex flex-col justify-between min-h-[62px] shadow-2xs hover:border-amber-500/30 transition-colors">
-                  <span class="text-xs font-bold text-slate-600 dark:text-slate-400 truncate">{{ ecMetric?.name || 'eC' }}</span>
+                <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 flex flex-col justify-between min-h-[62px]">
+                  <span class="text-xs font-semibold text-slate-500 dark:text-slate-400 truncate">{{ ecMetric?.name || 'eC' }}</span>
                   <div class="mt-1">
-                    <span class="text-lg sm:text-xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100">{{ getLiveVal(ecMetric) ?? '--' }}</span>
-                    <span class="text-xs text-slate-500 dark:text-slate-400 ml-1 font-mono font-semibold">{{ ecMetric?.unit || 'µS/cm' }}</span>
+                    <span class="text-lg sm:text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100">{{ getLiveVal(ecMetric) ?? '--' }}</span>
+                    <span class="text-xs text-slate-500 dark:text-slate-400 ml-1 font-sans">{{ ecMetric?.unit || 'µS/cm' }}</span>
                   </div>
                 </div>
               </div>
@@ -1425,22 +1423,20 @@ onUnmounted(() => {
             </div>
           </Card>
 
-          <!-- PORTLET 2: KONDISI IOT (3D Enhanced & Tactile Hardware Station) -->
-          <Card class="relative overflow-hidden border border-border/80 bg-white dark:bg-card shadow-[inset_0_1px_1px_rgba(255,255,255,0.9),0_4px_20px_-4px_rgba(0,0,0,0.03)] hover:border-blue-500/35 transition-all duration-300 flex flex-col hover:-translate-y-0.5 hover:shadow-xs">
-            <div class="p-4 flex flex-col gap-3.5 flex-1 justify-between">
-              <!-- Portlet Header with 3D IoT Station Badge -->
+          <!-- PORTLET 2: KONDISI IOT -->
+          <Card class="relative overflow-hidden border border-border/80 bg-white dark:bg-card shadow-none hover:border-blue-500/30 transition-all flex flex-col">
+            <div class="p-4 flex flex-col gap-3 flex-1 justify-between">
+              <!-- Portlet Header -->
               <div class="flex items-center justify-between pb-2 border-b border-border/40">
-                <div class="flex items-center gap-2.5">
-                  <div class="w-8 h-8 rounded-xl bg-blue-500/10 dark:bg-blue-500/20 border border-blue-500/25 flex items-center justify-center p-0.5 shrink-0 shadow-2xs">
-                    <img src="/3d/iot_station_3d.webp" alt="Kondisi IoT" class="w-full h-full object-contain pointer-events-none" />
-                  </div>
-                  <h4 class="text-base sm:text-lg font-extrabold tracking-tight text-foreground">Kondisi IoT</h4>
+                <div class="flex items-center gap-2">
+                  <img src="/iot-icon.svg" alt="Kondisi IoT" class="w-5 h-5 object-contain dark:invert shrink-0" />
+                  <h4 class="text-base sm:text-lg font-bold tracking-tight text-foreground">Kondisi IoT</h4>
                 </div>
               </div>
 
               <!-- Highlight Suhu Dalam Panel (Enclosure) & Dynamic Thermal Safety Card (NPK Style - Expanded Height) -->
               <div 
-                class="relative overflow-hidden p-4 sm:p-4.5 rounded-2xl transition-all duration-300 flex-1 flex flex-col justify-between gap-3 text-white border-0 min-h-[135px] shadow-sm"
+                class="relative overflow-hidden p-4 sm:p-4.5 rounded-2xl transition-all duration-300 flex-1 flex flex-col justify-between gap-3 text-white border-0 min-h-[135px]"
                 :class="thermalStatus.shadowClass"
                 :style="{ background: thermalStatus.gradient }"
               >

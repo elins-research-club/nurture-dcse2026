@@ -98,7 +98,7 @@ const thresholdStatus = computed(() => {
   <div 
     v-if="thresholdStatus"
     :class="[
-      'relative overflow-hidden rounded-2xl p-4 transition-all duration-300 select-none text-white border-0 shadow-[inset_0_1px_1.5px_rgba(255,255,255,0.5),0_4px_20px_-4px_rgba(0,0,0,0.12)] hover:-translate-y-0.5 hover:shadow-md cursor-default',
+      'relative overflow-hidden rounded-2xl p-4 transition-all duration-300 select-none text-white border-0 shadow-none',
       thresholdStatus.shadowClass
     ]"
     :style="{ background: thresholdStatus.gradient }"
