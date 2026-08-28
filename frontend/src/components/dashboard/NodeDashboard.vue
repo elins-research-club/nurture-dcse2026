@@ -485,6 +485,9 @@ const analyticsData = computed(() => {
       summaryTitle: 'Analisis Sensor',
       badgeText: 'Memuat...',
       badgeColor: 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700',
+      boxClass: 'bg-slate-500/10 dark:bg-slate-900/40 border-slate-500/20 text-slate-700 dark:text-slate-300',
+      iconClass: 'text-slate-500 dark:text-slate-400',
+      icon: Info,
       metrics: [],
       insightText: 'Menghubungkan data telemetri historis untuk periode ini...',
       npkRatio: null
@@ -555,11 +558,17 @@ const analyticsData = computed(() => {
 
     let badgeText = 'Status Seimbang'
     let badgeColor = 'bg-emerald-500/15 border-emerald-500/30 text-emerald-700 dark:text-emerald-400'
+    let boxClass = 'bg-emerald-500/10 dark:bg-emerald-950/30 border-emerald-500/20 text-emerald-900 dark:text-emerald-300'
+    let iconClass = 'text-emerald-600 dark:text-emerald-400'
+    let icon = Info
     let insightText = `Keseimbangan NPK dalam rentang ${rangeLabel.value} terpantau stabil. Rasio N:P:K (${nVal} : ${pVal} : ${kVal}) mendukung fase metabolisme & vegetatif tanaman.`
 
     if (nVal > 0 && nVal < 25) {
       badgeText = 'Defisit Nutrisi N'
       badgeColor = 'bg-amber-500/15 border-amber-500/30 text-amber-700 dark:text-amber-400'
+      boxClass = 'bg-amber-500/10 dark:bg-amber-950/30 border-amber-500/25 text-amber-900 dark:text-amber-300'
+      iconClass = 'text-amber-600 dark:text-amber-400'
+      icon = AlertTriangle
       insightText = `Kadar Nitrogen rata-rata berada di bawah target (${nStat?.avg ?? nVal} mg/kg). Pertimbangkan penambahan pupuk N pada siklus berikutnya.`
     }
 
@@ -569,6 +578,9 @@ const analyticsData = computed(() => {
       summaryTitle: 'Analisis Nutrisi NPK',
       badgeText,
       badgeColor,
+      boxClass,
+      iconClass,
+      icon,
       metrics: sensorStats,
       insightText,
       distributionWidget
@@ -601,11 +613,17 @@ const analyticsData = computed(() => {
 
     let badgeText = 'Media Tanah Prima'
     let badgeColor = 'bg-emerald-500/15 border-emerald-500/30 text-emerald-700 dark:text-emerald-400'
+    let boxClass = 'bg-emerald-500/10 dark:bg-emerald-950/30 border-emerald-500/20 text-emerald-900 dark:text-emerald-300'
+    let iconClass = 'text-emerald-600 dark:text-emerald-400'
+    let icon = Info
     let insightText = `Kelembaban rata-rata perakaran (${avgMoist ?? '--'}%) terjaga stabil sepanjang ${rangeLabel.value}. Daya hantar listrik (EC) optimal tanpa akumulasi garam berlebih.`
 
     if (phStat?.avg != null && (phStat.avg < 5.8 || phStat.avg > 7.5)) {
       badgeText = 'pH Perlu Perhatian'
       badgeColor = 'bg-amber-500/15 border-amber-500/30 text-amber-700 dark:text-amber-400'
+      boxClass = 'bg-amber-500/10 dark:bg-amber-950/30 border-amber-500/25 text-amber-900 dark:text-amber-300'
+      iconClass = 'text-amber-600 dark:text-amber-400'
+      icon = AlertTriangle
       insightText = `Nilai pH rata-rata (${phStat.avg}) berada di luar ambang netral ideal 6.0–7.0 pada periode ${rangeLabel.value}.`
     }
 
@@ -615,6 +633,9 @@ const analyticsData = computed(() => {
       summaryTitle: 'Analisis Kondisi Tanah',
       badgeText,
       badgeColor,
+      boxClass,
+      iconClass,
+      icon,
       metrics: sensorStats,
       insightText,
       distributionWidget
@@ -641,11 +662,17 @@ const analyticsData = computed(() => {
 
     let badgeText = 'Termal & Uptime Aman'
     let badgeColor = 'bg-emerald-500/15 border-emerald-500/30 text-emerald-700 dark:text-emerald-400'
+    let boxClass = 'bg-emerald-500/10 dark:bg-emerald-950/30 border-emerald-500/20 text-emerald-900 dark:text-emerald-300'
+    let iconClass = 'text-emerald-600 dark:text-emerald-400'
+    let icon = Info
     let insightText = `Suhu operasional box panel (${encStat?.avg ?? '--'}°C) berada di bawah batas aman. Manajemen termal perangkat stabil selama ${rangeLabel.value}.`
 
     if (encStat?.max != null && encStat.max > 45) {
       badgeText = 'Peringatan Termal'
       badgeColor = 'bg-rose-500/15 border-rose-500/30 text-rose-700 dark:text-rose-400'
+      boxClass = 'bg-rose-500/10 dark:bg-rose-950/30 border-rose-500/25 text-rose-900 dark:text-rose-300'
+      iconClass = 'text-rose-600 dark:text-rose-400'
+      icon = AlertTriangle
       insightText = `Suhu box panel sempat menyentuh puncak ${encStat.max}°C pada rentang ${rangeLabel.value}. Pastikan kipas beroperasi optimal.`
     }
 
@@ -655,6 +682,9 @@ const analyticsData = computed(() => {
       summaryTitle: 'Analisis IoT & Mikroklimat',
       badgeText,
       badgeColor,
+      boxClass,
+      iconClass,
+      icon,
       metrics: sensorStats,
       insightText,
       distributionWidget
@@ -678,6 +708,9 @@ const analyticsData = computed(() => {
     summaryTitle: 'Ikhtisar Seluruh Telemetri',
     badgeText: `${sensorStats.length} Kanal Sensor`,
     badgeColor: 'bg-primary/15 border-primary/30 text-primary',
+    boxClass: 'bg-sky-500/10 dark:bg-sky-950/30 border-sky-500/20 text-sky-900 dark:text-sky-300',
+    iconClass: 'text-sky-600 dark:text-sky-400',
+    icon: Info,
     metrics: sensorStats.slice(0, 3),
     insightText: `Berhasil mengagregasi ${feeds.length} titik data telemetri untuk seluruh domain sensor pada rentang ${rangeLabel.value}.`,
     distributionWidget
@@ -1083,8 +1116,16 @@ onUnmounted(() => {
               </div>
 
               <!-- Contextual Agronomy Insight Box -->
-              <div class="p-3 rounded-xl bg-emerald-500/10 dark:bg-emerald-950/30 border border-emerald-500/20 text-xs sm:text-sm text-emerald-900 dark:text-emerald-300 flex items-start gap-2.5 leading-relaxed min-h-[64px]">
-                <Info class="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+              <div 
+                :class="[
+                  'p-3 rounded-xl border text-xs sm:text-sm flex items-start gap-2.5 leading-relaxed min-h-[64px] transition-colors duration-200',
+                  analyticsData.boxClass || 'bg-emerald-500/10 dark:bg-emerald-950/30 border-emerald-500/20 text-emerald-900 dark:text-emerald-300'
+                ]"
+              >
+                <component 
+                  :is="analyticsData.icon || Info" 
+                  :class="['w-5 h-5 shrink-0 mt-0.5', analyticsData.iconClass || 'text-emerald-600 dark:text-emerald-400']" 
+                />
                 <p class="text-xs sm:text-sm font-semibold">{{ analyticsData.insightText }}</p>
               </div>
 
