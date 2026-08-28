@@ -1014,31 +1014,33 @@ onUnmounted(() => {
               <h4 class="text-base sm:text-lg font-bold tracking-tight text-foreground">Status Aktuator</h4>
             </div>
 
-            <!-- 3 Expanded State Chips with Actuator Animations -->
+            <!-- 3 Expanded State Chips with Actuator Animations (Vertical Stack: Icon -> Name -> Badge) -->
             <div class="grid grid-cols-3 gap-2">
               <div 
                 v-for="a in actuatorList" 
                 :key="a.id"
                 :class="[
-                  'py-3 px-2 rounded-xl text-xs sm:text-sm font-medium border flex flex-col items-center justify-center gap-1.5 transition-all text-center min-h-[72px] sm:min-h-[78px]',
+                  'py-3 px-2 rounded-xl text-xs sm:text-sm font-medium border flex flex-col items-center justify-center gap-2 transition-all text-center min-h-[96px] sm:min-h-[105px]',
                   a.aktif 
                     ? a.activeBg 
                     : 'bg-slate-50 dark:bg-slate-900/50 border-slate-200/80 dark:border-slate-800 text-slate-500 dark:text-slate-400'
                 ]"
               >
-                <!-- Actuator Name & Animated Icon -->
-                <div class="flex items-center gap-1.5">
+                <!-- 1. Large Animated Icon on Top (Centered Horizontal) -->
+                <div class="flex items-center justify-center h-8 sm:h-9">
                   <component 
                     :is="a.icon" 
-                    :class="['w-4 h-4 shrink-0 transition-all', a.aktif ? a.iconActiveClass : a.iconInactiveClass]" 
+                    :class="['w-7 h-7 sm:w-8 sm:h-8 transition-all', a.aktif ? a.iconActiveClass : a.iconInactiveClass]" 
                   />
-                  <span class="text-xs sm:text-sm font-extrabold text-foreground tracking-tight">{{ a.nama }}</span>
                 </div>
+
+                <!-- 2. Actuator Name in the Middle -->
+                <span class="text-xs sm:text-sm font-extrabold text-foreground tracking-tight leading-tight -mt-0.5">{{ a.nama }}</span>
                 
-                <!-- ON / OFF Pill Badge -->
+                <!-- 3. ON / OFF Pill Badge at the Bottom -->
                 <span 
                   :class="[
-                    'text-[11px] sm:text-xs font-black tracking-wider px-2.5 py-0.5 rounded-md leading-tight uppercase',
+                    'text-[10px] sm:text-xs font-black tracking-wider px-2.5 py-0.5 rounded-md leading-tight uppercase',
                     a.aktif 
                       ? a.badgeActiveClass 
                       : 'bg-slate-200/70 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-bold'
