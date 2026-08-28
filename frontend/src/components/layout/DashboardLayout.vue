@@ -32,18 +32,17 @@ const toggleTheme = useToggle(isDarkMode)
 <template>
   <div class="min-h-screen relative flex flex-col font-sans">
     <!-- ═══════════════════════════════════════════════════════════════ -->
-    <!-- TOPOGRAPHIC CONTOUR ELEVATION (ISOLINES) - NEUTRAL GRAY -->
+    <!-- TOPOGRAPHIC CONTOUR ELEVATION (ISOLINES) - SOFT GREEN CANVAS -->
     <!-- (High-Density Mathematical Contour Vector Artwork) -->
     <!-- ═══════════════════════════════════════════════════════════════ -->
-    <div class="fixed inset-0 pointer-events-none z-0 overflow-hidden select-none bg-[#F8FAFC] dark:bg-[#0B0F17]">
-      <!-- 1. Ambient Neutral Glows -->
-      <div class="absolute -top-32 -left-32 w-[700px] h-[600px] rounded-full bg-slate-200/50 dark:bg-slate-800/30 blur-[140px] pointer-events-none"></div>
-      <div class="absolute -bottom-32 -right-32 w-[750px] h-[650px] rounded-full bg-slate-200/40 dark:bg-slate-800/30 blur-[150px] pointer-events-none"></div>
+    <div class="fixed inset-0 pointer-events-none z-0 overflow-hidden select-none bg-[#F2F7F4] dark:bg-[#07130C]">
+      <!-- 1. Ambient Soft Green & Mint Glows -->
+      <div class="absolute -top-32 -left-32 w-[700px] h-[600px] rounded-full bg-emerald-200/50 dark:bg-emerald-950/40 blur-[140px] pointer-events-none"></div>
+      <div class="absolute -bottom-32 -right-32 w-[750px] h-[650px] rounded-full bg-teal-200/40 dark:bg-green-950/30 blur-[150px] pointer-events-none"></div>
 
-      <!-- 2. High-Density Mathematical Topographic SVG -->
-      <!-- We use mask-image so we can easily colorize the SVG in both light and dark modes -->
+      <!-- 2. High-Density Mathematical Topographic SVG with Soft Emerald Tint -->
       <div 
-        class="absolute inset-0 w-full h-full bg-slate-500 dark:bg-slate-400 opacity-[0.15] dark:opacity-[0.15]"
+        class="absolute inset-0 w-full h-full bg-emerald-700/15 dark:bg-emerald-500/15"
         style="
           mask-image: url('/topography.svg'); 
           mask-size: cover; 
