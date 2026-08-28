@@ -3,15 +3,20 @@ import { ref, computed, watch } from 'vue'
 import DashboardLayout from '@/components/layout/DashboardLayout.vue'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { useEventLogs } from '@/composables/useEventLogs'
+import { useEventLogs, type EventLog } from '@/composables/useEventLogs'
+import { useAuthStore } from '@/stores/auth'
+import ExcelIcon from '@/components/icons/ExcelIcon.vue'
 import { 
   Info, AlertTriangle, XCircle, Clock, ChevronLeft, ChevronRight, 
-  ChevronsLeft, ChevronsRight, Bell, RefreshCw
+  ChevronsLeft, ChevronsRight, Bell, RefreshCw, Download, Loader2
 } from 'lucide-vue-next'
 
 const currentPage = ref(1)
 const pageSize = ref<number>(25)
 const selectedLevel = ref<string | undefined>(undefined)
+const isExporting = ref(false)
+
+const authStore = useAuthStore()
 
 const pageSizeOptions = [25, 50, 100]
 
@@ -83,6 +88,77 @@ const visiblePages = computed(() => {
   }
   return pages
 })
+
+const exportToCSV = async () => {
+  if (isExporting.value) return
+  isExporting.value = true
+  try {
+    const params = new URLSearchParams()
+    params.set('skip', '0')
+    params.set('limit', String(Math.max(totalCount.value || 1000, 1000)))
+    if (selectedLevel.value) {
+      params.set('level', selectedLevel.value)
+    }
+
+    const response = await fetch(`/api/v1/event-logs/?${params.toString()}`, {
+      headers: {
+        'Authorization': `Bearer ${authStore.token}`
+      }
+    })
+
+    if (!response.ok) {
+      throw new Error('Gagal mengambil data event logs')
+    }
+
+    const data: EventLog[] = await response.json()
+    if (!data.length) {
+      alert('Tidak ada data log untuk diekspor.')
+      return
+    }
+
+    // CSV Headers
+    const headers = ['No', 'Waktu (WIB)', 'Tingkat (Level)', 'Kode Stasiun', 'Nama Stasiun', 'Pesan Log']
+    
+    // CSV Rows
+    const rows = data.map((log, index) => {
+      const formattedTime = formatDate(log.created_at)
+      const level = log.level || 'INFO'
+      const nodeCode = log.node_code || '-'
+      const nodeName = log.node_name || '-'
+      const message = `"${(log.message || '').replace(/"/g, '""')}"`
+      
+      return [
+        index + 1,
+        `"${formattedTime}"`,
+        `"${level}"`,
+        `"${nodeCode}"`,
+        `"${nodeName}"`,
+        message
+      ].join(',')
+    })
+
+    // Prepend UTF-8 BOM (\uFEFF) for Excel compatibility
+    const csvContent = '\uFEFF' + [headers.join(','), ...rows].join('\r\n')
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    
+    const link = document.createElement('a')
+    const now = new Date()
+    const timestampStr = now.toISOString().slice(0, 10) + '_' + String(now.getHours()).padStart(2, '0') + '-' + String(now.getMinutes()).padStart(2, '0')
+    const filterTag = selectedLevel.value ? selectedLevel.value.toLowerCase() : 'all'
+    link.setAttribute('href', url)
+    link.setAttribute('download', `gconnect_event_logs_${filterTag}_${timestampStr}.csv`)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  } catch (err) {
+    console.error('Export CSV error:', err)
+    alert('Terjadi kesalahan saat mengunduh CSV. Silakan coba lagi.')
+  } finally {
+    isExporting.value = false
+  }
+}
 </script>
 
 <template>
@@ -93,60 +169,76 @@ const visiblePages = computed(() => {
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">Alerts & Event Logs</h2>
+          <p class="text-xs sm:text-sm text-muted-foreground font-medium mt-1">Riwayat notifikasi, log sistem, dan anomali parameter lapangan.</p>
         </div>
 
-        <!-- ═══════════════ MICRO-ANIMATION 1: INTERACTIVE FILTER PILLS ═══════════════ -->
-        <div class="flex items-center bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl border border-border/80 text-sm gap-1 shadow-2xs">
-          <button
-            @click="selectedLevel = undefined"
-            :class="[
-              'px-3.5 py-1.5 rounded-xl font-bold transition-all duration-200 cursor-pointer flex items-center gap-1.5 text-xs sm:text-sm hover:-translate-y-0.5 active:scale-95 group',
-              selectedLevel === undefined 
-                ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border border-slate-300/90 dark:border-slate-700 shadow-xs' 
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
-            ]"
-          >
-            <span class="group-hover:scale-105 transition-transform duration-200">Semua</span>
-          </button>
+        <div class="flex items-center gap-2.5 flex-wrap">
+          <!-- Filter Pills -->
+          <div class="flex items-center bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl border border-border/80 text-sm gap-1 shadow-2xs">
+            <button
+              @click="selectedLevel = undefined"
+              :class="[
+                'px-3.5 py-1.5 rounded-xl font-bold transition-all duration-200 cursor-pointer flex items-center gap-1.5 text-xs sm:text-sm hover:-translate-y-0.5 active:scale-95 group',
+                selectedLevel === undefined 
+                  ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border border-slate-300/90 dark:border-slate-700 shadow-xs' 
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
+              ]"
+            >
+              <span class="group-hover:scale-105 transition-transform duration-200">Semua</span>
+            </button>
 
-          <button
-            @click="selectedLevel = 'INFO'"
-            :class="[
-              'px-3.5 py-1.5 rounded-xl font-bold transition-all duration-200 cursor-pointer flex items-center gap-1.5 text-xs sm:text-sm hover:-translate-y-0.5 active:scale-95 group',
-              selectedLevel === 'INFO' 
-                ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 border border-slate-300/90 dark:border-slate-700 shadow-xs' 
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
-            ]"
-          >
-            <Info class="w-4 h-4 text-blue-500 transition-transform duration-200 group-hover:rotate-12 group-hover:scale-110" />
-            <span>Info</span>
-          </button>
+            <button
+              @click="selectedLevel = 'INFO'"
+              :class="[
+                'px-3.5 py-1.5 rounded-xl font-bold transition-all duration-200 cursor-pointer flex items-center gap-1.5 text-xs sm:text-sm hover:-translate-y-0.5 active:scale-95 group',
+                selectedLevel === 'INFO' 
+                  ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 border border-slate-300/90 dark:border-slate-700 shadow-xs' 
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
+              ]"
+            >
+              <Info class="w-4 h-4 text-blue-500 transition-transform duration-200 group-hover:rotate-12 group-hover:scale-110" />
+              <span>Info</span>
+            </button>
 
-          <button
-            @click="selectedLevel = 'WARNING'"
-            :class="[
-              'px-3.5 py-1.5 rounded-xl font-bold transition-all duration-200 cursor-pointer flex items-center gap-1.5 text-xs sm:text-sm hover:-translate-y-0.5 active:scale-95 group',
-              selectedLevel === 'WARNING' 
-                ? 'bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 border border-slate-300/90 dark:border-slate-700 shadow-xs' 
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
-            ]"
-          >
-            <AlertTriangle class="w-4 h-4 text-amber-500 transition-transform duration-200 group-hover:-rotate-12 group-hover:scale-110" />
-            <span>Warning</span>
-          </button>
+            <button
+              @click="selectedLevel = 'WARNING'"
+              :class="[
+                'px-3.5 py-1.5 rounded-xl font-bold transition-all duration-200 cursor-pointer flex items-center gap-1.5 text-xs sm:text-sm hover:-translate-y-0.5 active:scale-95 group',
+                selectedLevel === 'WARNING' 
+                  ? 'bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 border border-slate-300/90 dark:border-slate-700 shadow-xs' 
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
+              ]"
+            >
+              <AlertTriangle class="w-4 h-4 text-amber-500 transition-transform duration-200 group-hover:-rotate-12 group-hover:scale-110" />
+              <span>Warning</span>
+            </button>
 
-          <button
-            @click="selectedLevel = 'ERROR'"
-            :class="[
-              'px-3.5 py-1.5 rounded-xl font-bold transition-all duration-200 cursor-pointer flex items-center gap-1.5 text-xs sm:text-sm hover:-translate-y-0.5 active:scale-95 group',
-              selectedLevel === 'ERROR' 
-                ? 'bg-white dark:bg-slate-900 text-rose-600 dark:text-rose-400 border border-slate-300/90 dark:border-slate-700 shadow-xs' 
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
-            ]"
+            <button
+              @click="selectedLevel = 'ERROR'"
+              :class="[
+                'px-3.5 py-1.5 rounded-xl font-bold transition-all duration-200 cursor-pointer flex items-center gap-1.5 text-xs sm:text-sm hover:-translate-y-0.5 active:scale-95 group',
+                selectedLevel === 'ERROR' 
+                  ? 'bg-white dark:bg-slate-900 text-rose-600 dark:text-rose-400 border border-slate-300/90 dark:border-slate-700 shadow-xs' 
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
+              ]"
+            >
+              <XCircle class="w-4 h-4 text-rose-500 transition-transform duration-200 group-hover:rotate-90 group-hover:scale-110" />
+              <span>Error</span>
+            </button>
+          </div>
+
+          <!-- Download CSV Button (Soft Tinted Green) -->
+          <Button
+            @click="exportToCSV"
+            :disabled="isExporting || totalCount === 0"
+            variant="outline"
+            class="h-10 px-4 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 font-bold text-xs sm:text-sm flex items-center gap-2 shadow-2xs border border-emerald-500/30 cursor-pointer hover:scale-[1.02] active:scale-95 transition-all"
+            title="Download log aktivitas dalam format CSV"
           >
-            <XCircle class="w-4 h-4 text-rose-500 transition-transform duration-200 group-hover:rotate-90 group-hover:scale-110" />
-            <span>Error</span>
-          </button>
+            <Loader2 v-if="isExporting" class="w-4 h-4 animate-spin text-emerald-600 dark:text-emerald-400" />
+            <ExcelIcon v-else />
+            <span>{{ isExporting ? 'Mengekspor...' : 'Export CSV' }}</span>
+          </Button>
         </div>
       </div>
       
