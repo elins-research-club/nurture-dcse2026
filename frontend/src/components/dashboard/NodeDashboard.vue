@@ -15,7 +15,7 @@ import {
   Calendar, Clock, Check, Layers, MapPin, 
   Thermometer, Droplet, Sparkles, TrendingUp, 
   TrendingDown, Minus, Info, Activity, AlertTriangle,
-  ChevronDown
+  ChevronDown, Fan, Lightbulb, Droplets
 } from 'lucide-vue-next'
 import L from 'leaflet'
 
@@ -242,6 +242,43 @@ const aktuator = computed(() => {
     lampu: !!(v & 0b0010),
     valve: !!(v & 0b0100),
   }
+})
+
+// Dynamic Animated Actuator List for Actuator Status Card
+const actuatorList = computed(() => {
+  if (!aktuator.value) return []
+  return [
+    {
+      id: 'kipas',
+      nama: 'Kipas',
+      aktif: aktuator.value.kipas,
+      icon: Fan,
+      iconActiveClass: 'text-emerald-500 animate-spin [animation-duration:0.8s]',
+      iconInactiveClass: 'text-slate-400 dark:text-slate-500',
+      activeBg: 'bg-emerald-500/10 dark:bg-emerald-950/30 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 shadow-xs',
+      badgeActiveClass: 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-black',
+    },
+    {
+      id: 'lampu',
+      nama: 'Lampu',
+      aktif: aktuator.value.lampu,
+      icon: Lightbulb,
+      iconActiveClass: 'text-amber-500 fill-amber-400/50 drop-shadow-[0_0_8px_rgba(245,158,11,0.7)] animate-pulse',
+      iconInactiveClass: 'text-slate-400 dark:text-slate-500',
+      activeBg: 'bg-amber-500/10 dark:bg-amber-950/30 border-amber-500/30 text-amber-600 dark:text-amber-400 shadow-xs',
+      badgeActiveClass: 'bg-amber-500/20 text-amber-700 dark:text-amber-300 font-black',
+    },
+    {
+      id: 'valve',
+      nama: 'Valve',
+      aktif: aktuator.value.valve,
+      icon: Droplets,
+      iconActiveClass: 'text-sky-500 drop-shadow-[0_0_6px_rgba(14,165,233,0.6)] animate-bounce [animation-duration:1.2s]',
+      iconInactiveClass: 'text-slate-400 dark:text-slate-500',
+      activeBg: 'bg-sky-500/10 dark:bg-sky-950/30 border-sky-500/30 text-sky-600 dark:text-sky-400 shadow-xs',
+      badgeActiveClass: 'bg-sky-500/20 text-sky-700 dark:text-sky-300 font-black',
+    },
+  ]
 })
 
 const isArchive = computed(() => selectedRange.value !== '1d')
@@ -977,25 +1014,24 @@ onUnmounted(() => {
               <h4 class="text-base sm:text-lg font-bold tracking-tight text-foreground">Status Aktuator</h4>
             </div>
 
-            <!-- 3 Expanded State Chips -->
+            <!-- 3 Expanded State Chips with Actuator Animations -->
             <div class="grid grid-cols-3 gap-2">
               <div 
-                v-for="a in [
-                  { nama: 'Kipas', aktif: aktuator.kipas },
-                  { nama: 'Lampu', aktif: aktuator.lampu },
-                  { nama: 'Valve', aktif: aktuator.valve },
-                ]" 
-                :key="a.nama"
+                v-for="a in actuatorList" 
+                :key="a.id"
                 :class="[
                   'py-3 px-2 rounded-xl text-xs sm:text-sm font-medium border flex flex-col items-center justify-center gap-1.5 transition-all text-center min-h-[72px] sm:min-h-[78px]',
                   a.aktif 
-                    ? 'bg-emerald-500/10 dark:bg-emerald-950/30 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 shadow-xs' 
+                    ? a.activeBg 
                     : 'bg-slate-50 dark:bg-slate-900/50 border-slate-200/80 dark:border-slate-800 text-slate-500 dark:text-slate-400'
                 ]"
               >
-                <!-- Actuator Name & Status Dot -->
+                <!-- Actuator Name & Animated Icon -->
                 <div class="flex items-center gap-1.5">
-                  <div :class="['w-2 h-2 rounded-full shrink-0', a.aktif ? 'bg-emerald-500 animate-pulse ring-2 ring-emerald-500/30' : 'bg-slate-400 dark:bg-slate-600']"></div>
+                  <component 
+                    :is="a.icon" 
+                    :class="['w-4 h-4 shrink-0 transition-all', a.aktif ? a.iconActiveClass : a.iconInactiveClass]" 
+                  />
                   <span class="text-xs sm:text-sm font-extrabold text-foreground tracking-tight">{{ a.nama }}</span>
                 </div>
                 
@@ -1004,7 +1040,7 @@ onUnmounted(() => {
                   :class="[
                     'text-[11px] sm:text-xs font-black tracking-wider px-2.5 py-0.5 rounded-md leading-tight uppercase',
                     a.aktif 
-                      ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-black' 
+                      ? a.badgeActiveClass 
                       : 'bg-slate-200/70 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-bold'
                   ]"
                 >
@@ -1081,7 +1117,7 @@ onUnmounted(() => {
                     class="absolute left-0 top-full mt-1.5 w-60 z-50 rounded-2xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200/90 dark:border-slate-800 shadow-2xl p-1.5 flex flex-col gap-1 animate-in fade-in zoom-in-95 duration-150 select-none"
                   >
                     <div class="px-2.5 py-1 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                      Pilih Domain Sensor
+                      Pilih Kategori
                     </div>
 
                     <button
