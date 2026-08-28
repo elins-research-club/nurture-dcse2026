@@ -33,7 +33,8 @@ const highlightedIndex = ref(0)
 // When API data loads, update local state
 watch(() => nodesQuery.data.value, (newData) => {
   if (newData) {
-    nodes.value = [...newData]
+    // Sort nodes by node_id ascending
+    nodes.value = [...newData].sort((a, b) => (a.node_id || '').localeCompare(b.node_id || ''))
     if (!selectedNodeId.value && nodes.value.length > 0) {
       selectedNodeId.value = nodes.value[0].id
     }

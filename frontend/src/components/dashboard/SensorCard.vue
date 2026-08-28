@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 import { computed } from 'vue'
 import { DotPattern } from '@/components/ui/dot-pattern'
 import { 
@@ -19,8 +19,79 @@ const props = withDefaults(defineProps<{
   size: 'default',
 })
 
-// Semantic gradient based on specific parameter identity
+// Determine threshold status (Rendah / Ideal / Tinggi) for the capsule badge
+const thresholdStatus = computed(() => {
+  if (props.value === null || props.value === undefined) return null
+
+  let min = props.minThreshold
+  let max = props.maxThreshold
+
+  // Default agronomic thresholds for NPK if not configured in DB
+  if (min == null && max == null && props.type === 'npk') {
+    const t = props.title.toLowerCase()
+    if (t.includes('nitrogen') || t.includes('nitrat')) {
+      min = 20
+      max = 60
+    } else if (t.includes('phosphorus') || t.includes('fosfor')) {
+      min = 20
+      max = 40
+    } else if (t.includes('potassium') || t.includes('kalium')) {
+      min = 20
+      max = 40
+    }
+  }
+
+  if (min == null && max == null) return null
+
+  const val = Number(props.value)
+  if (isNaN(val)) return null
+
+  if (min != null && val < min) {
+    return {
+      status: 'low',
+      label: 'Rendah',
+      icon: ArrowDownRight
+    }
+  }
+  if (max != null && val > max) {
+    return {
+      status: 'high',
+      label: 'Tinggi',
+      icon: ArrowUpRight
+    }
+  }
+  return {
+    status: 'ideal',
+    label: 'Ideal',
+    icon: Check
+  }
+})
+
+// Semantic gradient based on status, fallback to identity
 const semanticTheme = computed(() => {
+  const status = thresholdStatus.value?.status
+
+  if (status === 'low') {
+    return {
+      gradient: 'linear-gradient(135deg, #F59E0B 0%, #D97706 45%, #B45309 100%)', // Amber
+      shadowClass: 'shadow-md shadow-amber-500/20 hover:shadow-lg hover:shadow-amber-500/30'
+    }
+  }
+
+  if (status === 'high') {
+    return {
+      gradient: 'linear-gradient(135deg, #EF4444 0%, #DC2626 45%, #B91C1C 100%)', // Red
+      shadowClass: 'shadow-md shadow-red-500/20 hover:shadow-lg hover:shadow-red-500/30'
+    }
+  }
+
+  if (status === 'ideal') {
+    return {
+      gradient: 'linear-gradient(135deg, #00B200 0%, #008A00 45%, #006400 100%)', // Ideal Green
+      shadowClass: 'shadow-md shadow-[#00b200]/20 hover:shadow-lg hover:shadow-[#00b200]/30'
+    }
+  }
+
   const t = (props.title || '').toLowerCase()
   const type = (props.type || '').toLowerCase()
 
@@ -90,54 +161,6 @@ const semanticTheme = computed(() => {
   return {
     gradient: 'linear-gradient(135deg, #34D399 0%, #10B981 45%, #059669 100%)',
     shadowClass: 'shadow-md shadow-emerald-400/20'
-  }
-})
-
-// Determine threshold status (Rendah / Ideal / Tinggi) for the capsule badge
-const thresholdStatus = computed(() => {
-  if (props.value === null || props.value === undefined) return null
-
-  let min = props.minThreshold
-  let max = props.maxThreshold
-
-  // Default agronomic thresholds for NPK if not configured in DB
-  if (min == null && max == null && props.type === 'npk') {
-    const t = props.title.toLowerCase()
-    if (t.includes('nitrogen') || t.includes('nitrat')) {
-      min = 20
-      max = 60
-    } else if (t.includes('phosphorus') || t.includes('fosfor')) {
-      min = 20
-      max = 40
-    } else if (t.includes('potassium') || t.includes('kalium')) {
-      min = 20
-      max = 40
-    }
-  }
-
-  if (min == null && max == null) return null
-
-  const val = Number(props.value)
-  if (isNaN(val)) return null
-
-  if (min != null && val < min) {
-    return {
-      status: 'low',
-      label: 'Rendah',
-      icon: ArrowDownRight
-    }
-  }
-  if (max != null && val > max) {
-    return {
-      status: 'high',
-      label: 'Tinggi',
-      icon: ArrowUpRight
-    }
-  }
-  return {
-    status: 'ideal',
-    label: 'Ideal',
-    icon: Check
   }
 })
 </script>
