@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { LayoutDashboard, Network, Settings, LogOut, ChevronLeft, ChevronRight, Bell, MapPin } from 'lucide-vue-next'
+import { LayoutDashboard, Network, Settings, LogOut, ChevronLeft, ChevronRight, Bell, MapPin, BookmarkCheck, Trash2 } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import {
   Dialog,
@@ -9,10 +9,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogFooter,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { ref } from 'vue'
 
 const props = defineProps<{ collapsed: boolean }>()
 const emit = defineEmits(['update:collapsed'])
@@ -39,10 +37,14 @@ const navigate = (path: string) => {
   router.push(path)
 }
 
-const confirmLogout = () => {
+const handleSoftLogout = () => {
   isLogoutModalOpen.value = false
-  authStore.logout()
-  router.push('/dashboard')
+  authStore.logout(false)
+}
+
+const handleFullLogout = () => {
+  isLogoutModalOpen.value = false
+  authStore.logout(true)
 }
 
 const isActive = (path: string) => {
@@ -122,7 +124,7 @@ const isActive = (path: string) => {
 
   <!-- Logout Confirmation Dialog -->
   <Dialog :open="isLogoutModalOpen" @update:open="isLogoutModalOpen = $event">
-    <DialogContent class="sm:max-w-[380px] p-6 rounded-2xl border border-border/80 shadow-2xl bg-white dark:bg-card">
+    <DialogContent class="sm:max-w-[420px] p-6 rounded-2xl border border-border/80 shadow-2xl bg-white dark:bg-card">
       <div class="flex flex-col items-center pt-2">
         <!-- Large Centered Logout Icon with Soft Glow Ring -->
         <div class="w-16 h-16 sm:w-18 sm:h-18 rounded-2xl bg-rose-500/10 dark:bg-rose-500/20 border border-rose-500/20 flex items-center justify-center text-rose-600 dark:text-rose-400 mb-4 shadow-inner">
@@ -131,15 +133,58 @@ const isActive = (path: string) => {
 
         <DialogHeader class="text-center sm:text-center space-y-1.5 w-full">
           <DialogTitle class="text-lg sm:text-xl font-extrabold text-foreground tracking-tight text-center">
-            Konfirmasi Logout
+            {{ authStore.isRemembered ? 'Pilihan Keluar Sesi' : 'Konfirmasi Logout' }}
           </DialogTitle>
           <DialogDescription class="text-xs sm:text-sm text-muted-foreground text-center leading-relaxed font-medium">
-            Apakah Anda yakin ingin keluar dari sesi sistem monitoring <strong class="text-foreground font-bold">G-CONNECT</strong>?
+            <template v-if="authStore.isRemembered">
+              Akun Anda saat ini tersimpan di peramban ini. Silakan tentukan metode keluar sesi:
+            </template>
+            <template v-else>
+              Apakah Anda yakin ingin keluar dari sesi sistem monitoring <strong class="text-foreground font-bold">G-CONNECT</strong>?
+            </template>
           </DialogDescription>
         </DialogHeader>
 
-        <!-- Action Buttons -->
-        <div class="grid grid-cols-2 gap-3 w-full mt-6">
+        <!-- Remembered Session Action Choices -->
+        <div v-if="authStore.isRemembered" class="w-full space-y-2.5 mt-6">
+          <!-- Choice 1: Soft Logout (Keep Remembered) -->
+          <button
+            @click="handleSoftLogout"
+            class="w-full p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/5 hover:bg-emerald-500/10 dark:bg-emerald-500/10 dark:hover:bg-emerald-500/15 text-left transition-all cursor-pointer group flex items-center gap-3 active:scale-[0.99]"
+          >
+            <div class="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+              <BookmarkCheck class="w-4 h-4" />
+            </div>
+            <p class="text-xs sm:text-sm font-bold text-foreground group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+              Logout Saja (Tetap Ingat Saya)
+            </p>
+          </button>
+
+          <!-- Choice 2: Full Logout (Wipe All) -->
+          <button
+            @click="handleFullLogout"
+            class="w-full p-3 rounded-xl border border-rose-500/30 bg-rose-500/5 hover:bg-rose-500/10 dark:bg-rose-500/10 dark:hover:bg-rose-500/15 text-left transition-all cursor-pointer group flex items-center gap-3 active:scale-[0.99]"
+          >
+            <div class="w-8 h-8 rounded-lg bg-rose-500/20 flex items-center justify-center text-rose-600 dark:text-rose-400 shrink-0">
+              <Trash2 class="w-4 h-4" />
+            </div>
+            <p class="text-xs sm:text-sm font-bold text-rose-600 dark:text-rose-400">
+              Logout & Hapus Kredensial
+            </p>
+          </button>
+
+          <Button 
+            variant="ghost" 
+            size="sm"
+            class="w-full h-8 text-xs font-semibold text-muted-foreground hover:text-foreground cursor-pointer mt-1"
+            @click="isLogoutModalOpen = false"
+          >
+            Batal
+          </Button>
+        </div>
+
+        <!-- Normal Standard Logout Actions -->
+        <div v-else class="grid grid-cols-2 gap-3 w-full mt-6">
           <Button 
             variant="outline" 
             class="h-10 rounded-xl font-bold border-border/80 hover:bg-slate-100 dark:hover:bg-slate-800 text-foreground cursor-pointer text-xs sm:text-sm transition-all"
@@ -150,7 +195,7 @@ const isActive = (path: string) => {
           <Button 
             variant="destructive" 
             class="h-10 rounded-xl font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-sm cursor-pointer text-xs sm:text-sm gap-1.5 transition-all"
-            @click="confirmLogout"
+            @click="handleFullLogout"
           >
             <LogOut class="w-4 h-4" />
             <span>Logout</span>

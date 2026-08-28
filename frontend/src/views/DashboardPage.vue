@@ -173,46 +173,50 @@ onUnmounted(() => {
       </div>
       
       <template v-else>
-        <!-- Authenticated Admin Mode: In-Body Trigger Bar (Only shown when logged in and > 1 node) -->
-        <div v-if="authStore.isAuthenticated() && nodes.length > 1" class="flex items-center justify-between gap-3 flex-wrap">
+        <!-- Authenticated Admin Mode: Seamless Transparent Flex Container (No Outline, No Shadow, No Margin) -->
+        <div 
+          v-if="authStore.isAuthenticated() && nodes.length > 1" 
+          class="flex items-center justify-between gap-4 w-full bg-transparent"
+        >
+          <!-- Left: Station Switcher Button (Enlarged by 25%) -->
           <button 
             type="button"
             @click="openPalette"
-            class="inline-flex items-center gap-3 px-3.5 py-2 rounded-2xl bg-white dark:bg-card border border-border/90 hover:border-primary/50 hover:bg-slate-50 dark:hover:bg-slate-900/60 transition-all duration-200 cursor-pointer shadow-2xs group"
+            class="inline-flex items-center gap-3.5 px-4 py-2 sm:px-4.5 sm:py-2.5 rounded-xl bg-white dark:bg-card hover:bg-slate-50 dark:hover:bg-slate-900/80 border border-border/90 hover:border-primary/50 transition-all duration-200 cursor-pointer shadow-2xs group active:scale-[0.99]"
             title="Klik atau tekan Ctrl+K untuk beralih stasiun"
           >
             <!-- Station Live Indicator Dot -->
-            <div class="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-xs shadow-emerald-500/50 shrink-0"></div>
+            <div class="w-3.5 h-3.5 rounded-full bg-emerald-500 shadow-xs shadow-emerald-500/50 shrink-0"></div>
 
             <!-- Node Details -->
-            <div class="flex items-center gap-2 text-left">
-              <span class="font-extrabold text-sm text-foreground group-hover:text-primary transition-colors">
+            <div class="flex items-center gap-2.5 text-left">
+              <span class="font-extrabold text-sm sm:text-base text-foreground group-hover:text-primary transition-colors">
                 {{ activeNode?.name || 'Pilih Stasiun' }}
               </span>
               
-              <span v-if="activeNode?.node_id" class="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+              <span v-if="activeNode?.node_id" class="text-xs font-mono font-bold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
                 {{ activeNode.node_id }}
               </span>
 
-              <span v-if="activeNode?.location" class="hidden sm:inline-flex items-center gap-1 text-[11px] text-muted-foreground font-medium">
-                <MapPin class="w-3 h-3 text-muted-foreground/80" />
+              <span v-if="activeNode?.location" class="hidden sm:inline-flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
+                <MapPin class="w-3.5 h-3.5 text-muted-foreground/80" />
                 <span>{{ activeNode.location }}</span>
               </span>
             </div>
 
-            <ChevronDown class="w-3.5 h-3.5 text-muted-foreground group-hover:text-foreground transition-transform" />
+            <ChevronDown class="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-transform ml-0.5" />
 
             <!-- Shortcut Pill Badge -->
-            <div class="hidden sm:inline-flex items-center gap-1 ml-1 px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[10px] font-mono font-bold text-slate-500 dark:text-slate-400 group-hover:border-primary/40 group-hover:text-primary transition-colors">
+            <div class="hidden sm:inline-flex items-center gap-1 ml-1 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-mono font-bold text-slate-500 dark:text-slate-400 group-hover:border-primary/40 group-hover:text-primary transition-colors">
               <span>Ctrl</span>
               <span>K</span>
             </div>
           </button>
 
-          <!-- Subtitle / Total Nodes Counter -->
-          <div class="hidden md:flex items-center gap-2 text-xs text-muted-foreground font-medium">
-            <Radio class="w-3.5 h-3.5 text-primary" />
-            <span>{{ nodes.length }} Stasiun Terhubung di Lapangan</span>
+          <!-- Right: Station Connection Status Badge (Enlarged by 25%) -->
+          <div class="hidden md:flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-white/60 dark:bg-card/60 backdrop-blur-md border border-border/80 text-xs sm:text-sm text-muted-foreground font-medium">
+            <Radio class="w-4 h-4 text-emerald-500 shrink-0" />
+            <span class="font-semibold text-foreground/80">{{ nodes.length }} Stasiun Terhubung di Lapangan</span>
           </div>
         </div>
         
