@@ -123,34 +123,35 @@ onUnmounted(() => {
 
 <template>
   <DashboardLayout compactZoom>
-    <!-- Public Mode Navbar Slot: Node Switcher Pill in Top Navigation (Blended BG with outline & shadow) -->
+    <!-- Public Mode Navbar Slot: Node Switcher Pill in Top Navigation (Blended BG with outline & shadow - Enlarged by 25%) -->
     <template #header-center v-if="!authStore.isAuthenticated() && nodes.length > 1">
       <button 
         type="button"
         @click="openPalette"
-        class="inline-flex items-center justify-between gap-3 w-full max-w-sm sm:max-w-md px-4 py-1.5 rounded-xl bg-transparent hover:bg-slate-500/5 dark:hover:bg-white/5 border border-border/90 hover:border-primary/50 transition-all duration-200 cursor-pointer shadow-xs hover:shadow-sm group"
+        class="inline-flex items-center justify-between gap-3.5 w-full max-w-md sm:max-w-xl px-5 py-2 rounded-2xl bg-transparent hover:bg-slate-500/5 dark:hover:bg-white/5 border border-border/90 hover:border-primary/50 transition-all duration-200 cursor-pointer shadow-xs hover:shadow-sm group min-h-[42px]"
         title="Klik atau tekan Ctrl+K untuk beralih stasiun"
       >
-        <div class="flex items-center gap-2 min-w-0">
-          <div class="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-xs shrink-0"></div>
+        <div class="flex items-center gap-2.5 min-w-0">
+          <!-- Pulse Dot -->
+          <div class="w-3.5 h-3.5 rounded-full bg-emerald-500 shadow-xs shadow-emerald-500/50 shrink-0"></div>
           
-          <span class="font-extrabold text-xs sm:text-sm text-foreground group-hover:text-primary transition-colors truncate">
+          <span class="font-extrabold text-sm sm:text-base text-foreground group-hover:text-primary transition-colors truncate">
             {{ activeNode?.name || 'Pilih Stasiun' }}
           </span>
 
-          <span v-if="activeNode?.node_id" class="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded bg-slate-100/60 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700/80 shrink-0">
+          <span v-if="activeNode?.node_id" class="text-xs font-mono font-bold px-2 py-0.5 rounded-md bg-slate-100/80 dark:bg-slate-800/80 text-slate-700 dark:text-slate-200 border border-slate-200/90 dark:border-slate-700/90 shrink-0">
             {{ activeNode.node_id }}
           </span>
 
-          <span v-if="activeNode?.location" class="hidden lg:inline-flex items-center gap-1 text-[11px] text-muted-foreground font-medium shrink-0">
-            <MapPin class="w-3 h-3 text-muted-foreground/80" />
-            <span class="truncate max-w-[110px]">{{ activeNode.location }}</span>
+          <span v-if="activeNode?.location" class="hidden lg:inline-flex items-center gap-1.5 text-xs text-muted-foreground font-semibold shrink-0">
+            <MapPin class="w-3.5 h-3.5 text-muted-foreground/80" />
+            <span class="truncate max-w-[140px]">{{ activeNode.location }}</span>
           </span>
         </div>
 
-        <div class="flex items-center gap-1.5 shrink-0">
-          <ChevronDown class="w-3.5 h-3.5 text-muted-foreground group-hover:text-foreground transition-transform" />
-          <span class="hidden sm:inline-flex px-1.5 py-0.5 rounded bg-slate-100/60 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 text-[10px] font-mono font-bold text-slate-500 dark:text-slate-400 group-hover:border-primary/40 group-hover:text-primary transition-colors">
+        <div class="flex items-center gap-2 shrink-0">
+          <ChevronDown class="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-transform" />
+          <span class="hidden sm:inline-flex px-2 py-0.5 rounded-md bg-slate-100/80 dark:bg-slate-800/80 border border-slate-200/90 dark:border-slate-700/90 text-xs font-mono font-bold text-slate-600 dark:text-slate-300 group-hover:border-primary/40 group-hover:text-primary transition-colors">
             Ctrl K
           </span>
         </div>
