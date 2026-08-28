@@ -1,0 +1,59 @@
+﻿<script setup lang="ts">
+import { useId } from 'vue'
+import { cn } from '@/lib/utils'
+
+interface DotPatternProps {
+  width?: number
+  height?: number
+  x?: number
+  y?: number
+  cx?: number
+  cy?: number
+  cr?: number
+  class?: string
+}
+
+const props = withDefaults(defineProps<DotPatternProps>(), {
+  width: 16,
+  height: 16,
+  x: 0,
+  y: 0,
+  cx: 1,
+  cy: 1,
+  cr: 1,
+})
+
+const id = useId()
+</script>
+
+<template>
+  <svg
+    aria-hidden="true"
+    :class="
+      cn(
+        'pointer-events-none absolute inset-0 h-full w-full fill-current',
+        props.class,
+      )
+    "
+  >
+    <defs>
+      <pattern
+        :id="id"
+        :width="props.width"
+        :height="props.height"
+        patternUnits="userSpaceOnUse"
+        patternContentUnits="userSpaceOnUse"
+        :x="props.x"
+        :y="props.y"
+      >
+        <circle
+          :id="`${id}-pattern-circle`"
+          :cx="props.cx"
+          :cy="props.cy"
+          :r="props.cr"
+        />
+      </pattern>
+    </defs>
+    <rect width="100%" height="100%" stroke-width="0" :fill="`url(#${id})`" />
+  </svg>
+</template>

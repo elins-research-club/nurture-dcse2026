@@ -6,6 +6,7 @@ import SensorCard from '@/components/dashboard/SensorCard.vue'
 import StatusBadge from '@/components/dashboard/StatusBadge.vue'
 import SensorLineChart from '@/components/charts/SensorLineChart.vue'
 import DashboardPreloader from '@/components/ui/DashboardPreloader.vue'
+import { DotPattern } from '@/components/ui/dot-pattern'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -1196,8 +1197,15 @@ onUnmounted(() => {
                   style="background: radial-gradient(circle at 85% 15%, rgba(255, 255, 255, 0.4) 0%, transparent 60%);"
                 ></div>
 
-                <!-- Tactile Analog Grain / Noise Texture Overlay (No mix-blend-mode to prevent backdrop-blur compositor bug) -->
-                <div class="absolute inset-0 pointer-events-none opacity-80 bg-grain-texture"></div>
+                <!-- Inspira UI DotPattern Texture Overlay -->
+                <DotPattern 
+                  :width="12" 
+                  :height="12" 
+                  :cx="1" 
+                  :cy="1" 
+                  :cr="1" 
+                  class="text-white/20" 
+                />
 
                 <!-- Top: Thermometer Icon, Label, Main Value, and Min/Max Stats -->
                 <div class="flex items-center justify-between gap-2.5 relative z-10 my-auto">

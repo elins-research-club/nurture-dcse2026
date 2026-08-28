@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { Card, CardContent } from '@/components/ui/card'
+import { DotPattern } from '@/components/ui/dot-pattern'
 import { 
   Droplet, Thermometer, Sun, Beaker, Battery, 
   Check, ArrowDownRight, ArrowUpRight
@@ -108,8 +109,15 @@ const thresholdStatus = computed(() => {
       style="background: radial-gradient(circle at 85% 15%, rgba(255, 255, 255, 0.4) 0%, transparent 60%);"
     ></div>
 
-    <!-- Tactile Analog Grain / Noise Texture Overlay (No mix-blend-mode to prevent backdrop-blur compositor bug) -->
-    <div class="absolute inset-0 pointer-events-none opacity-80 bg-grain-texture"></div>
+    <!-- Inspira UI DotPattern Texture Overlay -->
+    <DotPattern 
+      :width="12" 
+      :height="12" 
+      :cx="1" 
+      :cy="1" 
+      :cr="1" 
+      class="text-white/20" 
+    />
     
     <div class="flex items-center justify-between relative z-10">
       <div>
