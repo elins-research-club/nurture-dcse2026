@@ -109,7 +109,7 @@ const thresholdStatus = computed(() => {
     ></div>
 
     <!-- Tactile Analog Grain / Noise Texture Overlay -->
-    <div class="absolute inset-0 pointer-events-none opacity-[0.85] bg-grain-texture"></div>
+    <div class="absolute inset-0 pointer-events-none opacity-80 mix-blend-overlay bg-grain-texture"></div>
     
     <div class="flex items-center justify-between relative z-10">
       <div>
