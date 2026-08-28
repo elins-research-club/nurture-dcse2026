@@ -769,24 +769,57 @@ const analyticsData = computed(() => {
 
   // 3. Kategori IoT & Iklim
   if (selectedCategory.value === 'environment') {
-    const encStat = sensorStats.find((s: any) => s.name.toLowerCase().includes('suhu dalam') || s.name.toLowerCase().includes('enclosure') || s.name.toLowerCase().includes('box'))
-    const airStat = sensorStats.find((s: any) => s.name.toLowerCase().includes('suhu luar') || s.name.toLowerCase().includes('air'))
-    
-    const encVal = Number((encStat?.current ?? encStat?.avg ?? 35).toFixed(1))
-    const airVal = Number((airStat?.current ?? airStat?.avg ?? 28).toFixed(1))
-    const tTotal = (encVal + airVal) || 1
+    // Find Box / Enclosure Temp
+    const encStat = sensorStats.find((s: any) => {
+      const n = (s.name || '').toLowerCase()
+      return n.includes('dalam') || n.includes('box') || n.includes('panel') || n.includes('enclosure') || n.includes('casing')
+    }) || sensorStats.find((s: any) => (s.name || '').toLowerCase().includes('suhu') || (s.name || '').toLowerCase().includes('temp'))
 
-    const distributionWidget = {
-      title: 'Perbandingan Suhu Box vs Lingkungan',
-      subtitle: `Δ ${(encVal - airVal).toFixed(1)}°C`,
-      segments: [
-        { label: `Box: ${Math.round((encVal / tTotal) * 100)}%`, percent: Math.round((encVal / tTotal) * 100), color: 'bg-rose-500', textClass: 'text-rose-600 dark:text-rose-400' },
-        { label: `Luar: ${Math.round((airVal / tTotal) * 100)}%`, percent: Math.round((airVal / tTotal) * 100), color: 'bg-amber-500', textClass: 'text-amber-600 dark:text-amber-400' }
+    // Find Outdoor / Ambient Temp
+    const airStat = sensorStats.find((s: any) => {
+      const n = (s.name || '').toLowerCase()
+      return (n.includes('suhu') || n.includes('temp')) && (n.includes('luar') || n.includes('udara') || n.includes('lingkungan') || n.includes('ambient') || n.includes('air')) && !n.includes('dalam') && !n.includes('box') && !n.includes('tanah')
+    }) || sensorStats.find((s: any) => s !== encStat && ((s.name || '').toLowerCase().includes('suhu') || (s.name || '').toLowerCase().includes('temp') || (s.name || '').toLowerCase().includes('lembab') || (s.name || '').toLowerCase().includes('humidity')))
+    
+    const encVal = encStat ? Number((encStat.current ?? encStat.avg ?? 0).toFixed(1)) : null
+    const airVal = airStat ? Number((airStat.current ?? airStat.avg ?? 0).toFixed(1)) : null
+
+    let title = 'Perbandingan Suhu Box vs Lingkungan'
+    let subtitle = 'Data Sensor Terhubung'
+    let segments: any[] = []
+
+    if (encVal != null && airVal != null) {
+      const diff = Math.abs(encVal - airVal).toFixed(1)
+      const isBoxWarmer = encVal >= airVal
+      subtitle = `Selisih: ${diff}°C (${isBoxWarmer ? 'Box + ' + diff + '°C' : 'Luar + ' + diff + '°C'})`
+      
+      const tTotal = (encVal + airVal) || 1
+      segments = [
+        { label: `Box: ${encVal}°C`, percent: Math.round((encVal / tTotal) * 100), color: 'bg-rose-500', textClass: 'text-rose-600 dark:text-rose-400' },
+        { label: `Luar: ${airVal}°C`, percent: Math.round((airVal / tTotal) * 100), color: 'bg-amber-500', textClass: 'text-amber-600 dark:text-amber-400' }
+      ]
+    } else if (encVal != null) {
+      title = 'Monitoring Suhu Box Panel'
+      subtitle = `Suhu Saat Ini: ${encVal}°C`
+      segments = [
+        { label: `Box: ${encVal}°C`, percent: 100, color: 'bg-rose-500', textClass: 'text-rose-600 dark:text-rose-400' }
+      ]
+    } else if (airVal != null) {
+      title = 'Monitoring Suhu Lingkungan'
+      subtitle = `Suhu Saat Ini: ${airVal}°C`
+      segments = [
+        { label: `Luar: ${airVal}°C`, percent: 100, color: 'bg-amber-500', textClass: 'text-amber-600 dark:text-amber-400' }
       ]
     }
 
+    const distributionWidget = {
+      title,
+      subtitle,
+      segments
+    }
+
     defaultBadgeText = 'Termal & Uptime Aman'
-    defaultInsightText = `Suhu operasional box panel (${encStat?.avg ?? '--'}°C) berada di bawah batas aman. Manajemen termal perangkat stabil selama ${rangeLabel.value}.`
+    defaultInsightText = `Suhu operasional box panel (${encVal ?? encStat?.avg ?? '--'}°C) berada di bawah batas aman. Manajemen termal perangkat stabil selama ${rangeLabel.value}.`
 
     return {
       hasData: true,
