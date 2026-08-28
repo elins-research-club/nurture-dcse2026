@@ -1196,6 +1196,9 @@ onUnmounted(() => {
                   style="background: radial-gradient(circle at 85% 15%, rgba(255, 255, 255, 0.4) 0%, transparent 60%);"
                 ></div>
 
+                <!-- Tactile Analog Grain / Noise Texture Overlay -->
+                <div class="absolute inset-0 pointer-events-none opacity-25 mix-blend-overlay bg-grain-texture"></div>
+
                 <!-- Top: Thermometer Icon, Label, Main Value, and Min/Max Stats -->
                 <div class="flex items-center justify-between gap-2.5 relative z-10 my-auto">
                   <div class="flex items-center gap-3">

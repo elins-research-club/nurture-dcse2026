@@ -107,6 +107,9 @@ const thresholdStatus = computed(() => {
       class="absolute inset-0 pointer-events-none opacity-20"
       style="background: radial-gradient(circle at 85% 15%, rgba(255, 255, 255, 0.4) 0%, transparent 60%);"
     ></div>
+
+    <!-- Tactile Analog Grain / Noise Texture Overlay -->
+    <div class="absolute inset-0 pointer-events-none opacity-25 mix-blend-overlay bg-grain-texture"></div>
     
     <div class="flex items-center justify-between relative z-10">
       <div>
