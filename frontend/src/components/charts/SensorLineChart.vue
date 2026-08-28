@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { computed, ref, watch, onMounted, nextTick } from 'vue'
-import { use } from 'echarts/core'
+import { use, graphic } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart } from 'echarts/charts'
 import { GridComponent, TooltipComponent, LegendComponent, DataZoomComponent, TitleComponent } from 'echarts/components'
+import { useDark } from '@vueuse/core'
 import VChart from 'vue-echarts'
 
 use([
@@ -23,6 +24,12 @@ const props = defineProps<{
   isLoading?: boolean
 }>()
 
+const isDarkMode = useDark({
+  storageKey: 'theme',
+  valueDark: 'dark',
+  valueLight: 'light'
+})
+
 const vChartRef = ref<any>(null)
 
 // Calculate CSS zoom factor of parent container dynamically
@@ -36,7 +43,7 @@ const getParentZoom = (el: HTMLElement | null): number => {
     }
     curr = curr.parentElement
   }
-  return 0.75 // Fallback to 0.75 if zoom property is present
+  return 0.75
 }
 
 // Patch ZRender event handler to correct mouse coordinate scaling mismatch with CSS zoom
@@ -99,6 +106,35 @@ const COLOR_PALETTE = [
   '#6366f1'  // Indigo
 ]
 
+const hexToRgba = (hex: string, alpha: number): string => {
+  let c = hex.replace('#', '')
+  if (c.length === 3) {
+    c = c.split('').map(x => x + x).join('')
+  }
+  const num = parseInt(c, 16)
+  const r = (num >> 16) & 255
+  const g = (num >> 8) & 255
+  const b = num & 255
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`
+}
+
+const getSensorDeterministicColor = (sensorName: string, index: number): string => {
+  const name = (sensorName || '').toLowerCase()
+  if (name.includes('nitrogen') || name === 'n') return '#10b981' // Green
+  if (name.includes('phosphor') || name.includes('fosfor') || name === 'p') return '#3b82f6' // Blue
+  if (name.includes('potassium') || name.includes('kalium') || name === 'k') return '#8b5cf6' // Purple
+  if (name.includes('ph')) return '#f59e0b' // Amber
+  if (name.includes('ec') || name.includes('daya hantar')) return '#84cc16' // Lime
+  if (name.includes('suhu dalam') || name.includes('box') || name.includes('panel') || name.includes('enclosure')) return '#f43f5e' // Rose
+  if (name.includes('suhu') || name.includes('temp')) return '#ef4444' // Red
+  if (name.includes('probe 1')) return '#0ea5e9' // Sky Blue
+  if (name.includes('probe 2')) return '#06b6d4' // Cyan
+  if (name.includes('probe 3')) return '#14b8a6' // Teal
+  if (name.includes('kelembaban') || name.includes('moisture') || name.includes('lembab')) return '#06b6d4' // Cyan
+  
+  return COLOR_PALETTE[index % COLOR_PALETTE.length]
+}
+
 const formatXAxisTime = (ts: string) => {
   if (!ts) return ''
   try {
@@ -114,29 +150,60 @@ const formatXAxisTime = (ts: string) => {
 const option = computed(() => {
   const sensorsList = (props.sensors || []).filter(s => s.name !== 'Status aktuator')
   const feeds = props.data || []
+  const dark = isDarkMode.value
 
-  // Dynamic series generation from database sensor definitions
+  // Dynamic series generation from database sensor definitions with aesthetic gradient aura
   const series = sensorsList.map((sensor, index) => {
     const fieldKey = `${sensor.channel_id}_${sensor.thingspeak_field}`
-    const color = COLOR_PALETTE[index % COLOR_PALETTE.length]
+    const color = getSensorDeterministicColor(sensor.name, index)
 
     return {
       name: `${sensor.name} (${sensor.unit || ''})`.trim(),
       type: 'line',
-      smooth: true,
-      showSymbol: feeds.length < 30,
+      smooth: 0.28,
+      showSymbol: feeds.length < 35,
+      symbol: 'circle',
       symbolSize: 6,
       connectNulls: true,
       data: feeds.map(item => {
         const val = item[fieldKey]
         return val != null && val !== '' ? parseFloat(val) : null
       }),
-      itemStyle: { color },
-      lineStyle: { width: 2.5 }
+      itemStyle: { 
+        color,
+        borderColor: dark ? '#0f172a' : '#ffffff',
+        borderWidth: 1.5
+      },
+      lineStyle: { 
+        width: 2.8,
+        shadowColor: hexToRgba(color, 0.25),
+        shadowBlur: 6,
+        shadowOffsetY: 2
+      },
+      areaStyle: {
+        color: new graphic.LinearGradient(0, 0, 0, 1, [
+          { offset: 0, color: hexToRgba(color, 0.22) },
+          { offset: 0.75, color: hexToRgba(color, 0.03) },
+          { offset: 1, color: hexToRgba(color, 0.0) }
+        ])
+      },
+      emphasis: {
+        focus: 'series',
+        lineStyle: { width: 3.6 },
+        itemStyle: {
+          borderWidth: 3,
+          borderColor: '#ffffff',
+          shadowBlur: 10,
+          shadowColor: hexToRgba(color, 0.5)
+        }
+      }
     }
   })
 
+  const colorList = series.map(s => s.itemStyle.color)
+
   return {
+    color: colorList,
     textStyle: {
       fontFamily: "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
     },
@@ -145,36 +212,46 @@ const option = computed(() => {
     },
     tooltip: {
       trigger: 'axis',
-      backgroundColor: 'rgba(15, 23, 42, 0.95)',
-      borderColor: '#334155',
+      backgroundColor: dark ? 'rgba(15, 23, 42, 0.95)' : 'rgba(30, 41, 59, 0.95)',
+      borderColor: dark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.15)',
+      borderWidth: 1,
+      padding: [10, 14],
       textStyle: { 
         color: '#f8fafc', 
-        fontSize: 13, 
+        fontSize: 12, 
         fontWeight: 500,
         fontFamily: "'Plus Jakarta Sans', sans-serif" 
       },
       axisPointer: {
         type: 'cross',
+        crossStyle: {
+          color: dark ? '#475569' : '#94a3b8',
+          width: 1,
+          type: 'dashed'
+        },
         label: {
-          backgroundColor: '#475569',
-          fontSize: 12,
-          fontFamily: "'Plus Jakarta Sans', sans-serif"
+          backgroundColor: dark ? '#334155' : '#475569',
+          fontSize: 11,
+          fontWeight: 600,
+          fontFamily: "'Plus Jakarta Sans', sans-serif",
+          borderRadius: 6
         }
       }
     },
     legend: {
       type: 'scroll',
       top: 0,
+      data: series.map(s => s.name),
       textStyle: { 
-        color: '#475569', 
-        fontSize: 13, 
+        color: dark ? '#94a3b8' : '#475569', 
+        fontSize: 12, 
         fontWeight: 600,
         fontFamily: "'Plus Jakarta Sans', sans-serif" 
       },
-      pageIconColor: '#3b82f6',
+      pageIconColor: '#10b981',
       pageTextStyle: { 
-        color: '#475569', 
-        fontSize: 12,
+        color: dark ? '#94a3b8' : '#475569', 
+        fontSize: 11,
         fontFamily: "'Plus Jakarta Sans', sans-serif" 
       }
     },
@@ -182,17 +259,21 @@ const option = computed(() => {
       left: '1%',
       right: '2%',
       top: 36,
-      bottom: 32,
+      bottom: 34,
       containLabel: true
     },
     xAxis: {
       type: 'category',
       boundaryGap: false,
       data: feeds.map(item => formatXAxisTime(item.created_at || item.timestamp)),
-      axisLine: { lineStyle: { color: '#cbd5e1' } },
+      axisLine: { 
+        lineStyle: { 
+          color: dark ? 'rgba(51, 65, 85, 0.6)' : 'rgba(203, 213, 225, 0.8)' 
+        } 
+      },
       axisLabel: { 
-        color: '#475569', 
-        fontSize: 12, 
+        color: dark ? '#94a3b8' : '#64748b', 
+        fontSize: 11, 
         fontWeight: 600,
         fontFamily: "'Plus Jakarta Sans', sans-serif" 
       }
@@ -200,10 +281,15 @@ const option = computed(() => {
     yAxis: {
       type: 'value',
       scale: true,
-      splitLine: { lineStyle: { color: '#e2e8f0', type: 'dashed' } },
+      splitLine: { 
+        lineStyle: { 
+          color: dark ? 'rgba(30, 41, 59, 0.7)' : 'rgba(241, 245, 249, 0.95)', 
+          type: 'dashed' 
+        } 
+      },
       axisLabel: { 
-        color: '#475569', 
-        fontSize: 12, 
+        color: dark ? '#94a3b8' : '#64748b', 
+        fontSize: 11, 
         fontWeight: 600,
         fontFamily: "'Plus Jakarta Sans', sans-serif" 
       }
@@ -212,21 +298,61 @@ const option = computed(() => {
       {
         type: 'inside',
         start: 0,
-        end: 100
+        end: 100,
+        zoomOnMouseWheel: true,
+        moveOnMouseMove: true,
+        moveOnMouseWheel: false,
+        preventDefaultMouseMove: true
       },
       {
         type: 'slider',
-        show: feeds.length > 20,
-        bottom: 0,
-        height: 18,
-        borderColor: 'transparent',
-        backgroundColor: 'rgba(241,245,249,0.8)',
-        fillerColor: 'rgba(59, 130, 246, 0.15)',
-        handleStyle: { color: '#3b82f6' },
-        textStyle: { 
-          color: '#64748b', 
+        show: feeds.length > 15,
+        bottom: 2,
+        height: 22,
+        borderRadius: 11,
+        borderColor: dark ? 'rgba(51, 65, 85, 0.4)' : 'rgba(226, 232, 240, 0.8)',
+        borderWidth: 1,
+        backgroundColor: dark ? 'rgba(15, 23, 42, 0.75)' : 'rgba(241, 245, 249, 0.85)',
+        fillerColor: dark ? 'rgba(16, 185, 129, 0.22)' : 'rgba(16, 185, 129, 0.16)',
+        dataBackground: {
+          lineStyle: {
+            color: dark ? '#34d399' : '#10b981',
+            width: 1.2,
+            opacity: 0.35
+          },
+          areaStyle: {
+            color: dark ? 'rgba(52, 211, 153, 0.08)' : 'rgba(16, 185, 129, 0.08)'
+          }
+        },
+        selectedDataBackground: {
+          lineStyle: {
+            color: dark ? '#10b981' : '#059669',
+            width: 1.8
+          },
+          areaStyle: {
+            color: dark ? 'rgba(16, 185, 129, 0.3)' : 'rgba(5, 150, 105, 0.22)'
+          }
+        },
+        // Modern Pill Handle Icon
+        handleIcon: 'path://M-3,-10 h6 a3,3 0 0,1 3,3 v14 a3,3 0 0,1 -3,3 h-6 a3,3 0 0,1 -3,-3 v-14 a3,3 0 0,1 3,-3 z',
+        handleSize: '110%',
+        handleStyle: {
+          color: '#10b981',
+          borderColor: dark ? '#0f172a' : '#ffffff',
+          borderWidth: 2,
+          shadowBlur: 5,
+          shadowColor: 'rgba(0, 0, 0, 0.2)',
+          shadowOffsetY: 1
+        },
+        moveHandleSize: 4,
+        moveHandleStyle: {
+          color: dark ? 'rgba(52, 211, 153, 0.6)' : 'rgba(16, 185, 129, 0.6)'
+        },
+        textStyle: {
+          color: dark ? '#94a3b8' : '#64748b',
           fontSize: 10,
-          fontFamily: "'Plus Jakarta Sans', sans-serif" 
+          fontWeight: 600,
+          fontFamily: "'Plus Jakarta Sans', sans-serif"
         }
       }
     ],
@@ -322,6 +448,7 @@ const option = computed(() => {
       class="w-full h-full flex-1" 
       style="height: 100%; width: 100%; min-height: 280px;" 
       :option="option" 
+      :update-options="{ notMerge: true }"
       autoresize 
       @ready="patchChartZoom"
     />
