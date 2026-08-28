@@ -54,8 +54,8 @@ const categoryOptions = [
   },
   {
     id: 'environment' as const,
-    label: 'IoT & Iklim',
-    fullLabel: 'IoT & Mikroklimat',
+    label: 'IoT & Lingkungan',
+    fullLabel: 'IoT & Lingkungan',
     desc: 'Suhu Casing/Box, Kelembaban & Suhu Udara',
     icon: '/iot-icon.svg',
     isLucide: false,
@@ -64,8 +64,8 @@ const categoryOptions = [
   {
     id: 'all' as const,
     label: 'Semua',
-    fullLabel: 'Semua Domain Sensor',
-    desc: 'Agregasi seluruh telemetri multi-domain',
+    fullLabel: 'Semua Parameter',
+    desc: 'Agregasi seluruh telemetri',
     icon: null,
     isLucide: true,
     activeColor: 'text-primary bg-primary/10'
@@ -840,7 +840,7 @@ const analyticsData = computed(() => {
     return {
       hasData: true,
       dataPoints: feeds.length,
-      summaryTitle: 'Analisis IoT & Mikroklimat',
+      summaryTitle: 'Analisis IoT & Lingkungan',
       badgeText: criticalAnomaly ? 'Peringatan Termal' : (warningAnomaly ? (warningAnomaly.sensor.name + ' Perhatian') : defaultBadgeText),
       badgeColor: criticalAnomaly ? 'bg-rose-500/15 border-rose-500/30 text-rose-700 dark:text-rose-400' : (warningAnomaly ? 'bg-amber-500/15 border-amber-500/30 text-amber-700 dark:text-amber-400' : defaultBadgeColor),
       boxClass: criticalAnomaly ? 'bg-rose-500/10 dark:bg-rose-950/30 border-rose-500/25 text-rose-900 dark:text-rose-300' : (warningAnomaly ? 'bg-amber-500/10 dark:bg-amber-950/30 border-amber-500/25 text-amber-900 dark:text-amber-300' : defaultBoxClass),
