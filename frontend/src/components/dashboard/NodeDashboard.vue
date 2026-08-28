@@ -535,6 +535,135 @@ const analyticsData = computed(() => {
     }
   })
 
+  // Universal Sensor Anomaly & Threshold Evaluator
+  const anomalies: { sensor: any; severity: 'critical' | 'warning'; message: string }[] = []
+
+  sensorStats.forEach((stat: any) => {
+    const s = catSensors.find((cs: any) => cs.id === stat.id) || stat
+    const sName = (stat.name || '').toLowerCase()
+    const val = stat.current ?? stat.avg
+
+    if (val == null) return
+
+    // 1. Check Explicit Database Thresholds
+    if (s.max_threshold != null && stat.max != null && stat.max > s.max_threshold) {
+      const isExtreme = stat.max > s.max_threshold * 1.2
+      anomalies.push({
+        sensor: stat,
+        severity: isExtreme ? 'critical' : 'warning',
+        message: `${stat.name} menyentuh angka ${stat.max} ${stat.unit} (melebihi ambang batas maksimal ${s.max_threshold} ${stat.unit}).`
+      })
+      return
+    }
+    if (s.min_threshold != null && stat.min != null && stat.min < s.min_threshold) {
+      const isExtreme = stat.min < s.min_threshold * 0.8
+      anomalies.push({
+        sensor: stat,
+        severity: isExtreme ? 'critical' : 'warning',
+        message: `${stat.name} turun hingga ${stat.min} ${stat.unit} (di bawah batas minimal ${s.min_threshold} ${stat.unit}).`
+      })
+      return
+    }
+
+    // 2. Intelligent Agronomic & Hardware Standard Fallbacks
+    if (sName.includes('ph')) {
+      if (stat.avg != null && (stat.avg < 5.0 || stat.avg > 8.5)) {
+        anomalies.push({
+          sensor: stat,
+          severity: 'critical',
+          message: `Nilai pH rata-rata (${stat.avg}) tergolong ekstrem. Segera lakukan penyesuaian media tanah.`
+        })
+      } else if (stat.avg != null && (stat.avg < 5.8 || stat.avg > 7.5)) {
+        anomalies.push({
+          sensor: stat,
+          severity: 'warning',
+          message: `Nilai pH rata-rata (${stat.avg}) berada di luar ambang netral ideal 6.0–7.0 pada periode ${rangeLabel.value}.`
+        })
+      }
+    } else if (sName.includes('nitrogen') || sName.includes('nitrat')) {
+      if (val < 20) {
+        anomalies.push({
+          sensor: stat,
+          severity: 'warning',
+          message: `Kadar Nitrogen rata-rata berada di bawah target (${val} mg/kg). Pertimbangkan pemupukan N pada siklus berikutnya.`
+        })
+      } else if (val > 70) {
+        anomalies.push({
+          sensor: stat,
+          severity: 'warning',
+          message: `Kadar Nitrogen rata-rata tinggi (${val} mg/kg). Hindari akumulasi pupuk berlebih.`
+        })
+      }
+    } else if (sName.includes('phosphor') || sName.includes('fosfor')) {
+      if (val < 15) {
+        anomalies.push({
+          sensor: stat,
+          severity: 'warning',
+          message: `Kadar Fosfor rata-rata (${val} mg/kg) di bawah target optimal untuk perkembangan akar.`
+        })
+      }
+    } else if (sName.includes('potassium') || sName.includes('kalium')) {
+      if (val < 20) {
+        anomalies.push({
+          sensor: stat,
+          severity: 'warning',
+          message: `Kadar Kalium rata-rata (${val} mg/kg) di bawah target untuk ketahanan tanaman.`
+        })
+      }
+    } else if (sName.includes('suhu dalam') || sName.includes('enclosure') || sName.includes('box')) {
+      if (stat.max != null && stat.max > 45) {
+        anomalies.push({
+          sensor: stat,
+          severity: 'critical',
+          message: `Suhu box panel IoT mencapai puncak ${stat.max}°C (di atas batas aman 45°C). Pastikan kipas & ventilasi box beroperasi optimal.`
+        })
+      } else if (stat.max != null && stat.max > 38) {
+        anomalies.push({
+          sensor: stat,
+          severity: 'warning',
+          message: `Suhu box panel IoT sempat menghangat hingga ${stat.max}°C pada rentang ${rangeLabel.value}.`
+        })
+      }
+    } else if (sName.includes('suhu') || sName.includes('temp')) {
+      if (stat.max != null && stat.max > 38) {
+        anomalies.push({
+          sensor: stat,
+          severity: 'warning',
+          message: `Suhu udara lingkungan sempat menyentuh ${stat.max}°C pada periode ${rangeLabel.value}.`
+        })
+      }
+    } else if (sName.includes('lembab') || sName.includes('moisture') || sName.includes('humidity')) {
+      if (sName.includes('tanah') || sName.includes('probe')) {
+        if (stat.min != null && stat.min < 25) {
+          anomalies.push({
+            sensor: stat,
+            severity: 'warning',
+            message: `Kelembaban tanah sempat turun hingga ${stat.min}%. Rekomendasikan pengairan/irigasi.`
+          })
+        }
+      } else {
+        if (stat.min != null && stat.min < 35) {
+          anomalies.push({
+            sensor: stat,
+            severity: 'warning',
+            message: `Kelembaban udara lingkungan rendah (${stat.min}%). Kondisi cenderung kering.`
+          })
+        }
+      }
+    }
+  })
+
+  // Determine Semantic Wrapper Colors and Status
+  const criticalAnomaly = anomalies.find(a => a.severity === 'critical')
+  const warningAnomaly = anomalies.find(a => a.severity === 'warning')
+
+  let defaultBadgeText = 'Status Optimal'
+  let defaultBadgeColor = 'bg-emerald-500/15 border-emerald-500/30 text-emerald-700 dark:text-emerald-400'
+  let defaultBoxClass = 'bg-emerald-500/10 dark:bg-emerald-950/30 border-emerald-500/20 text-emerald-900 dark:text-emerald-300'
+  let defaultIconClass = 'text-emerald-600 dark:text-emerald-400'
+  let defaultIcon = Check
+  let defaultInsightText = `Seluruh telemetri dalam rentang ${rangeLabel.value} terpantau stabil dalam batas operasional normal.`
+
   // 1. Kategori NPK
   if (selectedCategory.value === 'npk') {
     const nStat = sensorStats.find((s: any) => s.name.toLowerCase().includes('nitrogen') || s.name.toLowerCase().includes('n'))
@@ -556,40 +685,26 @@ const analyticsData = computed(() => {
       ]
     }
 
-    let badgeText = 'Status Seimbang'
-    let badgeColor = 'bg-emerald-500/15 border-emerald-500/30 text-emerald-700 dark:text-emerald-400'
-    let boxClass = 'bg-emerald-500/10 dark:bg-emerald-950/30 border-emerald-500/20 text-emerald-900 dark:text-emerald-300'
-    let iconClass = 'text-emerald-600 dark:text-emerald-400'
-    let icon = Info
-    let insightText = `Keseimbangan NPK dalam rentang ${rangeLabel.value} terpantau stabil. Rasio N:P:K (${nVal} : ${pVal} : ${kVal}) mendukung fase metabolisme & vegetatif tanaman.`
-
-    if (nVal > 0 && nVal < 25) {
-      badgeText = 'Defisit Nutrisi N'
-      badgeColor = 'bg-amber-500/15 border-amber-500/30 text-amber-700 dark:text-amber-400'
-      boxClass = 'bg-amber-500/10 dark:bg-amber-950/30 border-amber-500/25 text-amber-900 dark:text-amber-300'
-      iconClass = 'text-amber-600 dark:text-amber-400'
-      icon = AlertTriangle
-      insightText = `Kadar Nitrogen rata-rata berada di bawah target (${nStat?.avg ?? nVal} mg/kg). Pertimbangkan penambahan pupuk N pada siklus berikutnya.`
-    }
+    defaultBadgeText = 'Nutrisi Seimbang'
+    defaultInsightText = `Keseimbangan NPK dalam rentang ${rangeLabel.value} terpantau stabil. Rasio N:P:K (${nVal} : ${pVal} : ${kVal}) mendukung fase vegetatif tanaman.`
 
     return {
       hasData: true,
       dataPoints: feeds.length,
       summaryTitle: 'Analisis Nutrisi NPK',
-      badgeText,
-      badgeColor,
-      boxClass,
-      iconClass,
-      icon,
+      badgeText: criticalAnomaly ? 'Peringatan Kritis' : (warningAnomaly ? (warningAnomaly.sensor.name + ' Perhatian') : defaultBadgeText),
+      badgeColor: criticalAnomaly ? 'bg-rose-500/15 border-rose-500/30 text-rose-700 dark:text-rose-400' : (warningAnomaly ? 'bg-amber-500/15 border-amber-500/30 text-amber-700 dark:text-amber-400' : defaultBadgeColor),
+      boxClass: criticalAnomaly ? 'bg-rose-500/10 dark:bg-rose-950/30 border-rose-500/25 text-rose-900 dark:text-rose-300' : (warningAnomaly ? 'bg-amber-500/10 dark:bg-amber-950/30 border-amber-500/25 text-amber-900 dark:text-amber-300' : defaultBoxClass),
+      iconClass: criticalAnomaly ? 'text-rose-600 dark:text-rose-400' : (warningAnomaly ? 'text-amber-600 dark:text-amber-400' : defaultIconClass),
+      icon: criticalAnomaly ? AlertTriangle : (warningAnomaly ? AlertTriangle : defaultIcon),
       metrics: sensorStats,
-      insightText,
+      insightText: criticalAnomaly?.message || warningAnomaly?.message || defaultInsightText,
       distributionWidget
     }
   }
 
   // 2. Kategori Tanah
   if (selectedCategory.value === 'soil') {
-    const phStat = sensorStats.find((s: any) => s.name.toLowerCase().includes('ph'))
     const moistProbes = sensorStats.filter((s: any) => s.name.toLowerCase().includes('probe') || s.name.toLowerCase().includes('kelembapan'))
     
     const avgMoist = moistProbes.length > 0 
@@ -611,33 +726,20 @@ const analyticsData = computed(() => {
       ]
     }
 
-    let badgeText = 'Media Tanah Prima'
-    let badgeColor = 'bg-emerald-500/15 border-emerald-500/30 text-emerald-700 dark:text-emerald-400'
-    let boxClass = 'bg-emerald-500/10 dark:bg-emerald-950/30 border-emerald-500/20 text-emerald-900 dark:text-emerald-300'
-    let iconClass = 'text-emerald-600 dark:text-emerald-400'
-    let icon = Info
-    let insightText = `Kelembaban rata-rata perakaran (${avgMoist ?? '--'}%) terjaga stabil sepanjang ${rangeLabel.value}. Daya hantar listrik (EC) optimal tanpa akumulasi garam berlebih.`
-
-    if (phStat?.avg != null && (phStat.avg < 5.8 || phStat.avg > 7.5)) {
-      badgeText = 'pH Perlu Perhatian'
-      badgeColor = 'bg-amber-500/15 border-amber-500/30 text-amber-700 dark:text-amber-400'
-      boxClass = 'bg-amber-500/10 dark:bg-amber-950/30 border-amber-500/25 text-amber-900 dark:text-amber-300'
-      iconClass = 'text-amber-600 dark:text-amber-400'
-      icon = AlertTriangle
-      insightText = `Nilai pH rata-rata (${phStat.avg}) berada di luar ambang netral ideal 6.0–7.0 pada periode ${rangeLabel.value}.`
-    }
+    defaultBadgeText = 'Media Tanah Prima'
+    defaultInsightText = `Kelembaban rata-rata perakaran (${avgMoist ?? '--'}%) terjaga stabil sepanjang ${rangeLabel.value}. Daya hantar listrik (EC) optimal tanpa akumulasi garam berlebih.`
 
     return {
       hasData: true,
       dataPoints: feeds.length,
       summaryTitle: 'Analisis Kondisi Tanah',
-      badgeText,
-      badgeColor,
-      boxClass,
-      iconClass,
-      icon,
+      badgeText: criticalAnomaly ? 'Peringatan Kritis' : (warningAnomaly ? (warningAnomaly.sensor.name + ' Perhatian') : defaultBadgeText),
+      badgeColor: criticalAnomaly ? 'bg-rose-500/15 border-rose-500/30 text-rose-700 dark:text-rose-400' : (warningAnomaly ? 'bg-amber-500/15 border-amber-500/30 text-amber-700 dark:text-amber-400' : defaultBadgeColor),
+      boxClass: criticalAnomaly ? 'bg-rose-500/10 dark:bg-rose-950/30 border-rose-500/25 text-rose-900 dark:text-rose-300' : (warningAnomaly ? 'bg-amber-500/10 dark:bg-amber-950/30 border-amber-500/25 text-amber-900 dark:text-amber-300' : defaultBoxClass),
+      iconClass: criticalAnomaly ? 'text-rose-600 dark:text-rose-400' : (warningAnomaly ? 'text-amber-600 dark:text-amber-400' : defaultIconClass),
+      icon: criticalAnomaly ? AlertTriangle : (warningAnomaly ? AlertTriangle : defaultIcon),
       metrics: sensorStats,
-      insightText,
+      insightText: criticalAnomaly?.message || warningAnomaly?.message || defaultInsightText,
       distributionWidget
     }
   }
@@ -660,33 +762,20 @@ const analyticsData = computed(() => {
       ]
     }
 
-    let badgeText = 'Termal & Uptime Aman'
-    let badgeColor = 'bg-emerald-500/15 border-emerald-500/30 text-emerald-700 dark:text-emerald-400'
-    let boxClass = 'bg-emerald-500/10 dark:bg-emerald-950/30 border-emerald-500/20 text-emerald-900 dark:text-emerald-300'
-    let iconClass = 'text-emerald-600 dark:text-emerald-400'
-    let icon = Info
-    let insightText = `Suhu operasional box panel (${encStat?.avg ?? '--'}°C) berada di bawah batas aman. Manajemen termal perangkat stabil selama ${rangeLabel.value}.`
-
-    if (encStat?.max != null && encStat.max > 45) {
-      badgeText = 'Peringatan Termal'
-      badgeColor = 'bg-rose-500/15 border-rose-500/30 text-rose-700 dark:text-rose-400'
-      boxClass = 'bg-rose-500/10 dark:bg-rose-950/30 border-rose-500/25 text-rose-900 dark:text-rose-300'
-      iconClass = 'text-rose-600 dark:text-rose-400'
-      icon = AlertTriangle
-      insightText = `Suhu box panel sempat menyentuh puncak ${encStat.max}°C pada rentang ${rangeLabel.value}. Pastikan kipas beroperasi optimal.`
-    }
+    defaultBadgeText = 'Termal & Uptime Aman'
+    defaultInsightText = `Suhu operasional box panel (${encStat?.avg ?? '--'}°C) berada di bawah batas aman. Manajemen termal perangkat stabil selama ${rangeLabel.value}.`
 
     return {
       hasData: true,
       dataPoints: feeds.length,
       summaryTitle: 'Analisis IoT & Mikroklimat',
-      badgeText,
-      badgeColor,
-      boxClass,
-      iconClass,
-      icon,
+      badgeText: criticalAnomaly ? 'Peringatan Termal' : (warningAnomaly ? (warningAnomaly.sensor.name + ' Perhatian') : defaultBadgeText),
+      badgeColor: criticalAnomaly ? 'bg-rose-500/15 border-rose-500/30 text-rose-700 dark:text-rose-400' : (warningAnomaly ? 'bg-amber-500/15 border-amber-500/30 text-amber-700 dark:text-amber-400' : defaultBadgeColor),
+      boxClass: criticalAnomaly ? 'bg-rose-500/10 dark:bg-rose-950/30 border-rose-500/25 text-rose-900 dark:text-rose-300' : (warningAnomaly ? 'bg-amber-500/10 dark:bg-amber-950/30 border-amber-500/25 text-amber-900 dark:text-amber-300' : defaultBoxClass),
+      iconClass: criticalAnomaly ? 'text-rose-600 dark:text-rose-400' : (warningAnomaly ? 'text-amber-600 dark:text-amber-400' : defaultIconClass),
+      icon: criticalAnomaly ? AlertTriangle : (warningAnomaly ? AlertTriangle : defaultIcon),
       metrics: sensorStats,
-      insightText,
+      insightText: criticalAnomaly?.message || warningAnomaly?.message || defaultInsightText,
       distributionWidget
     }
   }
@@ -702,17 +791,20 @@ const analyticsData = computed(() => {
     ]
   }
 
+  defaultBadgeText = `${sensorStats.length} Kanal Aktif`
+  defaultInsightText = `Berhasil mengagregasi ${feeds.length} titik data telemetri untuk seluruh domain sensor pada rentang ${rangeLabel.value}.`
+
   return {
     hasData: true,
     dataPoints: feeds.length,
     summaryTitle: 'Ikhtisar Seluruh Telemetri',
-    badgeText: `${sensorStats.length} Kanal Sensor`,
-    badgeColor: 'bg-primary/15 border-primary/30 text-primary',
-    boxClass: 'bg-sky-500/10 dark:bg-sky-950/30 border-sky-500/20 text-sky-900 dark:text-sky-300',
-    iconClass: 'text-sky-600 dark:text-sky-400',
-    icon: Info,
+    badgeText: criticalAnomaly ? 'Peringatan Kritis' : (warningAnomaly ? (warningAnomaly.sensor.name + ' Perhatian') : defaultBadgeText),
+    badgeColor: criticalAnomaly ? 'bg-rose-500/15 border-rose-500/30 text-rose-700 dark:text-rose-400' : (warningAnomaly ? 'bg-amber-500/15 border-amber-500/30 text-amber-700 dark:text-amber-400' : 'bg-primary/15 border-primary/30 text-primary'),
+    boxClass: criticalAnomaly ? 'bg-rose-500/10 dark:bg-rose-950/30 border-rose-500/25 text-rose-900 dark:text-rose-300' : (warningAnomaly ? 'bg-amber-500/10 dark:bg-amber-950/30 border-amber-500/25 text-amber-900 dark:text-amber-300' : 'bg-sky-500/10 dark:bg-sky-950/30 border-sky-500/20 text-sky-900 dark:text-sky-300'),
+    iconClass: criticalAnomaly ? 'text-rose-600 dark:text-rose-400' : (warningAnomaly ? 'text-amber-600 dark:text-amber-400' : 'text-sky-600 dark:text-sky-400'),
+    icon: criticalAnomaly ? AlertTriangle : (warningAnomaly ? AlertTriangle : Info),
     metrics: sensorStats.slice(0, 3),
-    insightText: `Berhasil mengagregasi ${feeds.length} titik data telemetri untuk seluruh domain sensor pada rentang ${rangeLabel.value}.`,
+    insightText: criticalAnomaly?.message || warningAnomaly?.message || defaultInsightText,
     distributionWidget
   }
 })
