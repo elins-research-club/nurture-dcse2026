@@ -769,47 +769,63 @@ const analyticsData = computed(() => {
 
   // 3. Kategori IoT & Iklim
   if (selectedCategory.value === 'environment') {
-    // Find Box / Enclosure Temp
+    // Find Box / Enclosure Temp strictly
     const encStat = sensorStats.find((s: any) => {
       const n = (s.name || '').toLowerCase()
       return n.includes('dalam') || n.includes('box') || n.includes('panel') || n.includes('enclosure') || n.includes('casing')
-    }) || sensorStats.find((s: any) => (s.name || '').toLowerCase().includes('suhu') || (s.name || '').toLowerCase().includes('temp'))
+    })
 
-    // Find Outdoor / Ambient Temp
+    // Find Outdoor / Ambient Temp strictly
     const airStat = sensorStats.find((s: any) => {
       const n = (s.name || '').toLowerCase()
       return (n.includes('suhu') || n.includes('temp')) && (n.includes('luar') || n.includes('udara') || n.includes('lingkungan') || n.includes('ambient') || n.includes('air')) && !n.includes('dalam') && !n.includes('box') && !n.includes('tanah')
-    }) || sensorStats.find((s: any) => s !== encStat && ((s.name || '').toLowerCase().includes('suhu') || (s.name || '').toLowerCase().includes('temp') || (s.name || '').toLowerCase().includes('lembab') || (s.name || '').toLowerCase().includes('humidity')))
+    })
+
+    // General Temperature Sensor (if only 1 generic temp sensor exists)
+    const genericTempStat = sensorStats.find((s: any) => (s.name || '').toLowerCase().includes('suhu') || (s.name || '').toLowerCase().includes('temp'))
+    const humidityStat = sensorStats.find((s: any) => (s.name || '').toLowerCase().includes('lembab') || (s.name || '').toLowerCase().includes('humidity'))
     
     const encVal = encStat ? Number((encStat.current ?? encStat.avg ?? 0).toFixed(1)) : null
     const airVal = airStat ? Number((airStat.current ?? airStat.avg ?? 0).toFixed(1)) : null
+    const genericTempVal = genericTempStat ? Number((genericTempStat.current ?? genericTempStat.avg ?? 0).toFixed(1)) : null
+    const humVal = humidityStat ? Number((humidityStat.current ?? humidityStat.avg ?? 0).toFixed(1)) : null
 
-    let title = 'Perbandingan Suhu Box vs Lingkungan'
+    let title = 'Ikhtisar Mikroklimat & Suhu'
     let subtitle = 'Data Sensor Terhubung'
     let segments: any[] = []
 
     if (encVal != null && airVal != null) {
+      title = 'Perbandingan Suhu Box vs Lingkungan'
       const diff = Math.abs(encVal - airVal).toFixed(1)
-      const isBoxWarmer = encVal >= airVal
-      subtitle = `Selisih: ${diff}°C (${isBoxWarmer ? 'Box + ' + diff + '°C' : 'Luar + ' + diff + '°C'})`
+      subtitle = `Selisih: ${diff}°C`
       
       const tTotal = (encVal + airVal) || 1
       segments = [
         { label: `Box: ${encVal}°C`, percent: Math.round((encVal / tTotal) * 100), color: 'bg-rose-500', textClass: 'text-rose-600 dark:text-rose-400' },
         { label: `Luar: ${airVal}°C`, percent: Math.round((airVal / tTotal) * 100), color: 'bg-amber-500', textClass: 'text-amber-600 dark:text-amber-400' }
       ]
-    } else if (encVal != null) {
-      title = 'Monitoring Suhu Box Panel'
-      subtitle = `Suhu Saat Ini: ${encVal}°C`
+    } else if (genericTempVal != null && humVal != null) {
+      title = 'Kondisi Udara & Kelembaban'
+      subtitle = `Suhu: ${genericTempVal}°C | Lembab: ${humVal}%`
       segments = [
-        { label: `Box: ${encVal}°C`, percent: 100, color: 'bg-rose-500', textClass: 'text-rose-600 dark:text-rose-400' }
+        { label: `Suhu: ${genericTempVal}°C`, percent: 50, color: 'bg-amber-500', textClass: 'text-amber-600 dark:text-amber-400' },
+        { label: `Lembab: ${humVal}%`, percent: 50, color: 'bg-sky-500', textClass: 'text-sky-600 dark:text-sky-400' }
       ]
-    } else if (airVal != null) {
-      title = 'Monitoring Suhu Lingkungan'
-      subtitle = `Suhu Saat Ini: ${airVal}°C`
+    } else if (genericTempVal != null) {
+      title = `Monitoring ${genericTempStat?.name || 'Suhu'}`
+      subtitle = `Rata-rata: ${genericTempVal}°C`
       segments = [
-        { label: `Luar: ${airVal}°C`, percent: 100, color: 'bg-amber-500', textClass: 'text-amber-600 dark:text-amber-400' }
+        { label: `${genericTempStat?.name || 'Suhu'}: ${genericTempVal}°C`, percent: 100, color: 'bg-amber-500', textClass: 'text-amber-600 dark:text-amber-400' }
       ]
+    } else {
+      title = 'Monitoring Sensor Lingkungan'
+      subtitle = `${sensorStats.length} Sensor Aktif`
+      segments = sensorStats.slice(0, 3).map((st: any, idx: number) => ({
+        label: `${st.name}: ${st.current ?? st.avg ?? '--'}${st.unit}`,
+        percent: Math.round(100 / Math.min(sensorStats.length, 3)),
+        color: idx === 0 ? 'bg-amber-500' : (idx === 1 ? 'bg-sky-500' : 'bg-emerald-500'),
+        textClass: idx === 0 ? 'text-amber-600' : (idx === 1 ? 'text-sky-600' : 'text-emerald-600')
+      }))
     }
 
     const distributionWidget = {
@@ -819,7 +835,7 @@ const analyticsData = computed(() => {
     }
 
     defaultBadgeText = 'Termal & Uptime Aman'
-    defaultInsightText = `Suhu operasional box panel (${encVal ?? encStat?.avg ?? '--'}°C) berada di bawah batas aman. Manajemen termal perangkat stabil selama ${rangeLabel.value}.`
+    defaultInsightText = `Suhu operasional box panel (${encVal ?? genericTempVal ?? '--'}°C) berada di bawah batas aman. Manajemen termal perangkat stabil selama ${rangeLabel.value}.`
 
     return {
       hasData: true,
