@@ -1201,11 +1201,9 @@ onUnmounted(() => {
             <div class="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-transparent to-primary/5 pointer-events-none"></div>
             <CardContent class="p-4 sm:p-4.5 relative z-10 flex flex-col justify-between gap-3 flex-1 h-full">
               
-              <!-- Header: Large Icon on Left with Title & Subtitle on Right -->
+              <!-- Header: Standalone Large Icon on Left with Title & Subtitle on Right -->
               <div class="pb-2.5 border-b border-border/40 flex items-center gap-3">
-                <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 border border-slate-200/70 dark:border-slate-700/70 shadow-xs">
-                  <Sparkles class="w-5 h-5 sm:w-5.5 sm:h-5.5 text-foreground" />
-                </div>
+                <Sparkles class="w-6 h-6 sm:w-7 sm:h-7 text-foreground shrink-0" />
                 <div class="min-w-0">
                   <h4 class="text-base sm:text-lg font-extrabold text-foreground tracking-tight leading-tight">{{ analyticsData.summaryTitle }}</h4>
                   <p class="text-xs sm:text-sm text-muted-foreground font-medium mt-0.5">Periode {{ rangeLabel }} ({{ analyticsData.dataPoints }} data)</p>
