@@ -202,7 +202,7 @@
    TACTILE ANALOG GRAIN / NOISE TEXTURE OVERLAY
    ═══════════════════════════════════════════════════════════════ */
 .bg-grain-texture {
-  background-image: url("/noise.png");
+  background-image: url("/noise.png?v=4");
   background-repeat: repeat;
 }
 
