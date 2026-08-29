@@ -319,7 +319,7 @@ onUnmounted(() => {
   <DashboardLayout noPadding>
     <div class="relative overflow-hidden w-full h-screen">
       <!-- Map -->
-      <div ref="mapContainer" class="absolute inset-0 z-0 w-full h-full" />
+      <div ref="mapContainer" data-lenis-prevent class="absolute inset-0 z-0 w-full h-full" />
 
       <!-- Watermark -->
       <div class="absolute bottom-7 right-0 z-10 pointer-events-none opacity-50 bg-black/40 text-white px-4 py-1.5 rounded-l-lg backdrop-blur-sm border-y border-l border-white/10 font-medium text-[11px] tracking-wide">

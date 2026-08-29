@@ -234,6 +234,7 @@ onUnmounted(() => {
             @click="closePalette"
           >
             <div 
+              data-lenis-prevent
               class="w-full max-w-xl rounded-2xl bg-white dark:bg-slate-900 border border-border/80 shadow-2xl overflow-hidden flex flex-col max-h-[80vh] animate-in zoom-in-95 duration-150"
               @click.stop
               @keydown="handleModalKeyDown"
@@ -258,7 +259,7 @@ onUnmounted(() => {
               </div>
 
               <!-- Node List Body -->
-              <div class="p-2 overflow-y-auto space-y-1 divide-y-0">
+              <div data-lenis-prevent class="p-2 overflow-y-auto space-y-1 divide-y-0">
                 <div class="px-2.5 py-1.5 flex items-center justify-between text-[10px] font-mono font-bold tracking-wider text-muted-foreground uppercase">
                   <span>Daftar Node Lapangan</span>
                   <span class="text-primary">{{ filteredNodes.length }} Stasiun</span>
