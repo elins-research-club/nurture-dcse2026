@@ -50,20 +50,26 @@ const thresholdStatus = computed(() => {
     return {
       status: 'low',
       label: 'Rendah',
-      icon: ArrowDownRight
+      icon: ArrowDownRight,
+      min,
+      max
     }
   }
   if (max != null && val > max) {
     return {
       status: 'high',
       label: 'Tinggi',
-      icon: ArrowUpRight
+      icon: ArrowUpRight,
+      min,
+      max
     }
   }
   return {
     status: 'ideal',
     label: 'Ideal',
-    icon: Check
+    icon: Check,
+    min,
+    max
   }
 })
 
@@ -190,9 +196,9 @@ const semanticTheme = computed(() => {
       class="text-white/20" 
     />
     
-    <div class="flex items-center justify-between relative z-10">
-      <div>
-        <p class="font-semibold text-sm sm:text-base text-white tracking-wide drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]">{{ title }}</p>
+    <div class="flex items-center justify-between relative z-10 gap-2">
+      <div class="min-w-0">
+        <p class="font-semibold text-sm sm:text-base text-white tracking-wide drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)] truncate">{{ title }}</p>
         <div class="flex items-baseline gap-1.5 mt-0.5">
           <h3 class="font-black tracking-tight text-white text-3xl sm:text-4xl drop-shadow-[0_1.5px_3px_rgba(0,0,0,0.4)]">
             {{ value !== null && value !== undefined ? value : '--' }}
@@ -201,13 +207,32 @@ const semanticTheme = computed(() => {
         </div>
       </div>
 
-      <!-- Bright Frosted Glass Status Capsule -->
+      <!-- Structured Stacked Status & Threshold Container (Option B - Apple Health Style) -->
       <div 
         v-if="thresholdStatus"
-        class="px-3.5 py-1.5 rounded-full bg-white/25 hover:bg-white/30 backdrop-blur-md text-white flex items-center gap-1.5 text-xs sm:text-sm font-bold shrink-0 border border-white/40 shadow-sm"
+        :class="[
+          'bg-white/20 hover:bg-white/25 backdrop-blur-md text-white border border-white/35 shadow-sm shrink-0 transition-all select-none',
+          (thresholdStatus.status === 'low' || thresholdStatus.status === 'high') && (thresholdStatus.min != null || thresholdStatus.max != null)
+            ? 'px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-2xl flex flex-col items-center gap-1.5 min-w-[125px] sm:min-w-[140px]'
+            : 'px-4 py-2 rounded-full flex items-center gap-2'
+        ]"
       >
-        <component :is="thresholdStatus.icon" class="w-4 h-4 stroke-[2.5] text-white" />
-        <span class="tracking-wide">{{ thresholdStatus.label }}</span>
+        <!-- Status with Icon (Prominent & Bold) -->
+        <div class="flex items-center gap-1.5 text-xs sm:text-sm font-black text-white leading-tight tracking-wide">
+          <component :is="thresholdStatus.icon" class="w-4 h-4 stroke-[2.5] text-white shrink-0" />
+          <span>{{ thresholdStatus.label }}</span>
+        </div>
+
+        <!-- Integrated Threshold Limit Row (Larger, High Readability Typography) -->
+        <div 
+          v-if="(thresholdStatus.status === 'low' || thresholdStatus.status === 'high') && (thresholdStatus.min != null || thresholdStatus.max != null)"
+          class="text-xs sm:text-[13px] font-bold text-white flex items-center justify-center gap-1.5 border-t border-white/25 pt-1.5 w-full tracking-tight whitespace-nowrap"
+          :title="`Ambang Batas Normal: ${thresholdStatus.min ?? 0} - ${thresholdStatus.max ?? '∞'} ${unit}`"
+        >
+          <span class="text-white/80 text-[11px] sm:text-xs font-medium">Batas:</span>
+          <span class="font-black text-white">{{ thresholdStatus.min ?? 0 }}–{{ thresholdStatus.max ?? '∞' }}</span>
+          <span class="text-[11px] sm:text-xs text-white/85 font-semibold">{{ unit }}</span>
+        </div>
       </div>
     </div>
   </div>

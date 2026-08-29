@@ -48,7 +48,9 @@ const categoryOptions = [
     desc: 'Nitrogen (N), Fosfor (P), Kalium (K)',
     icon: '/npk-icon.svg',
     isLucide: false,
-    activeColor: 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10'
+    iconColorClass: 'bg-emerald-600 dark:bg-emerald-400',
+    iconTextColorClass: 'text-emerald-600 dark:text-emerald-400',
+    wrapperClass: 'bg-emerald-500/10 dark:bg-emerald-500/15 border-emerald-500/20 dark:border-emerald-500/30'
   },
   {
     id: 'soil' as const,
@@ -57,7 +59,9 @@ const categoryOptions = [
     desc: 'pH Tanah, Multi-Probe Kelembapan, EC, Suhu',
     icon: '/soil-icon.svg',
     isLucide: false,
-    activeColor: 'text-amber-600 dark:text-amber-400 bg-amber-500/10'
+    iconColorClass: 'bg-amber-600 dark:bg-amber-400',
+    iconTextColorClass: 'text-amber-600 dark:text-amber-400',
+    wrapperClass: 'bg-amber-500/10 dark:bg-amber-500/15 border-amber-500/20 dark:border-amber-500/30'
   },
   {
     id: 'environment' as const,
@@ -66,7 +70,9 @@ const categoryOptions = [
     desc: 'Suhu Casing/Box, Kelembaban & Suhu Udara',
     icon: '/iot-icon.svg',
     isLucide: false,
-    activeColor: 'text-blue-600 dark:text-blue-400 bg-blue-500/10'
+    iconColorClass: 'bg-sky-600 dark:bg-sky-400',
+    iconTextColorClass: 'text-sky-600 dark:text-sky-400',
+    wrapperClass: 'bg-sky-500/10 dark:bg-sky-500/15 border-sky-500/20 dark:border-sky-500/30'
   },
   {
     id: 'all' as const,
@@ -75,7 +81,9 @@ const categoryOptions = [
     desc: 'Agregasi seluruh telemetri',
     icon: null,
     isLucide: true,
-    activeColor: 'text-primary bg-primary/10'
+    iconColorClass: 'bg-violet-600 dark:bg-violet-400',
+    iconTextColorClass: 'text-violet-600 dark:text-violet-400',
+    wrapperClass: 'bg-violet-500/10 dark:bg-violet-500/15 border-violet-500/20 dark:border-violet-500/30'
   }
 ]
 
@@ -434,96 +442,96 @@ const enclosureMaxVal = computed(() => {
 
 // Dynamic 3-State Semantic Card States (Rendah / Optimal / Tinggi) based on DB Thresholds
 const phCardState = computed(() => {
-  const v = getLiveVal(phMetric.value)
-  if (v == null) {
-    return { text: 'Netral', gradient: 'bg-gradient-to-br from-[#00b200] via-[#008a00] to-[#006400]', shadow: 'shadow-[#00b200]/20', isAlert: false }
-  }
-  const num = Number(v)
   const min = phMetric.value?.min_threshold ?? 5.8
   const max = phMetric.value?.max_threshold ?? 7.2
+  const v = getLiveVal(phMetric.value)
+  if (v == null) {
+    return { text: 'Netral', gradient: 'bg-gradient-to-br from-[#00b200] via-[#008a00] to-[#006400]', shadow: 'shadow-[#00b200]/20', isAlert: false, min, max }
+  }
+  const num = Number(v)
   if (num < min) {
-    return { text: 'Asam', gradient: 'bg-gradient-to-br from-orange-500 via-amber-600 to-rose-600', shadow: 'shadow-orange-500/25', isAlert: true }
+    return { text: 'Asam', gradient: 'bg-gradient-to-br from-orange-500 via-amber-600 to-rose-600', shadow: 'shadow-orange-500/25', isAlert: true, min, max }
   }
   if (num <= max) {
-    return { text: 'Optimal', gradient: 'bg-gradient-to-br from-[#00b200] via-[#008a00] to-[#006400]', shadow: 'shadow-[#00b200]/20', isAlert: false }
+    return { text: 'Optimal', gradient: 'bg-gradient-to-br from-[#00b200] via-[#008a00] to-[#006400]', shadow: 'shadow-[#00b200]/20', isAlert: false, min, max }
   }
-  return { text: 'Basa', gradient: 'bg-gradient-to-br from-indigo-500 via-purple-500 to-violet-600', shadow: 'shadow-purple-500/25', isAlert: true }
+  return { text: 'Basa', gradient: 'bg-gradient-to-br from-indigo-500 via-purple-500 to-violet-600', shadow: 'shadow-purple-500/25', isAlert: true, min, max }
 })
 const phStatus = computed(() => phCardState.value)
 
 // Dynamic Soil Temperature 3-State Card (Dingin: Biru Ice | Optimal: Hijau Emerald | Panas: Merah Rose Alert)
 const soilTempCardState = computed(() => {
-  const v = getLiveVal(soilTempMetric.value)
-  if (v == null) {
-    return { text: 'Optimal', gradient: 'bg-gradient-to-br from-[#00b200] via-[#008a00] to-[#006400]', shadow: 'shadow-[#00b200]/20', isAlert: false }
-  }
-  const num = Number(v)
   const min = soilTempMetric.value?.min_threshold ?? 18.0
   const max = soilTempMetric.value?.max_threshold ?? 32.0
+  const v = getLiveVal(soilTempMetric.value)
+  if (v == null) {
+    return { text: 'Optimal', gradient: 'bg-gradient-to-br from-[#00b200] via-[#008a00] to-[#006400]', shadow: 'shadow-[#00b200]/20', isAlert: false, min, max }
+  }
+  const num = Number(v)
   if (num < min) {
-    return { text: 'Dingin', gradient: 'bg-gradient-to-br from-cyan-500 via-sky-500 to-blue-600', shadow: 'shadow-sky-500/25', isAlert: true }
+    return { text: 'Dingin', gradient: 'bg-gradient-to-br from-cyan-500 via-sky-500 to-blue-600', shadow: 'shadow-sky-500/25', isAlert: true, min, max }
   }
   if (num <= max) {
-    return { text: 'Optimal', gradient: 'bg-gradient-to-br from-[#00b200] via-[#008a00] to-[#006400]', shadow: 'shadow-[#00b200]/20', isAlert: false }
+    return { text: 'Optimal', gradient: 'bg-gradient-to-br from-[#00b200] via-[#008a00] to-[#006400]', shadow: 'shadow-[#00b200]/20', isAlert: false, min, max }
   }
-  return { text: 'Panas', gradient: 'bg-gradient-to-br from-rose-500 via-red-600 to-rose-700 animate-pulse', shadow: 'shadow-rose-500/30', isAlert: true }
+  return { text: 'Panas', gradient: 'bg-gradient-to-br from-rose-500 via-red-600 to-rose-700 animate-pulse', shadow: 'shadow-rose-500/30', isAlert: true, min, max }
 })
 const soilTempStatus = computed(() => soilTempCardState.value)
 
 // Dynamic Soil EC 3-State Card (Rendah: Amber | Optimal: Lime/Emerald | Pekat: Merah Salin)
 const ecCardState = computed(() => {
-  const v = getLiveVal(ecMetric.value)
-  if (v == null) {
-    return { text: 'Optimal', gradient: 'bg-gradient-to-br from-lime-500 via-emerald-500 to-teal-600', shadow: 'shadow-lime-500/20', isAlert: false }
-  }
-  const num = Number(v)
   const min = ecMetric.value?.min_threshold ?? 600.0
   const max = ecMetric.value?.max_threshold ?? 1800.0
+  const v = getLiveVal(ecMetric.value)
+  if (v == null) {
+    return { text: 'Optimal', gradient: 'bg-gradient-to-br from-lime-500 via-emerald-500 to-teal-600', shadow: 'shadow-lime-500/20', isAlert: false, min, max }
+  }
+  const num = Number(v)
   if (num < min) {
-    return { text: 'Rendah', gradient: 'bg-gradient-to-br from-amber-400 via-amber-500 to-orange-500', shadow: 'shadow-amber-500/25', isAlert: true }
+    return { text: 'Rendah', gradient: 'bg-gradient-to-br from-amber-400 via-amber-500 to-orange-500', shadow: 'shadow-amber-500/25', isAlert: true, min, max }
   }
   if (num <= max) {
-    return { text: 'Optimal', gradient: 'bg-gradient-to-br from-lime-500 via-emerald-500 to-teal-600', shadow: 'shadow-lime-500/20', isAlert: false }
+    return { text: 'Optimal', gradient: 'bg-gradient-to-br from-lime-500 via-emerald-500 to-teal-600', shadow: 'shadow-lime-500/20', isAlert: false, min, max }
   }
-  return { text: 'Pekat', gradient: 'bg-gradient-to-br from-rose-500 via-red-600 to-rose-700 animate-pulse', shadow: 'shadow-rose-500/30', isAlert: true }
+  return { text: 'Pekat', gradient: 'bg-gradient-to-br from-rose-500 via-red-600 to-rose-700 animate-pulse', shadow: 'shadow-rose-500/30', isAlert: true, min, max }
 })
 const ecStatus = computed(() => ecCardState.value)
 
 // Dynamic Ambient Temperature 3-State Card (Sejuk: Biru Ice | Optimal: Hijau Emerald | Panas: Merah Rose Alert)
 const airTempCardState = computed(() => {
-  const v = getLiveVal(airTempMetric.value)
-  if (v == null) {
-    return { text: 'Optimal', gradient: 'bg-gradient-to-br from-[#00b200] via-[#008a00] to-[#006400]', shadow: 'shadow-[#00b200]/20', isAlert: false }
-  }
-  const num = Number(v)
   const min = airTempMetric.value?.min_threshold ?? 18.0
   const max = airTempMetric.value?.max_threshold ?? 34.0
+  const v = getLiveVal(airTempMetric.value)
+  if (v == null) {
+    return { text: 'Optimal', gradient: 'bg-gradient-to-br from-[#00b200] via-[#008a00] to-[#006400]', shadow: 'shadow-[#00b200]/20', isAlert: false, min, max }
+  }
+  const num = Number(v)
   if (num < min) {
-    return { text: 'Sejuk', gradient: 'bg-gradient-to-br from-cyan-500 via-sky-500 to-blue-600', shadow: 'shadow-sky-500/25', isAlert: true }
+    return { text: 'Sejuk', gradient: 'bg-gradient-to-br from-cyan-500 via-sky-500 to-blue-600', shadow: 'shadow-sky-500/25', isAlert: true, min, max }
   }
   if (num <= max) {
-    return { text: 'Optimal', gradient: 'bg-gradient-to-br from-[#00b200] via-[#008a00] to-[#006400]', shadow: 'shadow-[#00b200]/20', isAlert: false }
+    return { text: 'Optimal', gradient: 'bg-gradient-to-br from-[#00b200] via-[#008a00] to-[#006400]', shadow: 'shadow-[#00b200]/20', isAlert: false, min, max }
   }
-  return { text: 'Panas', gradient: 'bg-gradient-to-br from-rose-500 via-red-600 to-rose-700 animate-pulse', shadow: 'shadow-rose-500/30', isAlert: true }
+  return { text: 'Panas', gradient: 'bg-gradient-to-br from-rose-500 via-red-600 to-rose-700 animate-pulse', shadow: 'shadow-rose-500/30', isAlert: true, min, max }
 })
 const airTempStatus = computed(() => airTempCardState.value)
 
 // Dynamic Air Humidity 3-State Card (Kering: Amber | Optimal: Sky Blue | Tinggi: Deep Ocean)
 const humidityCardState = computed(() => {
-  const v = getLiveVal(humidityMetric.value)
-  if (v == null) {
-    return { text: 'Optimal', gradient: 'bg-gradient-to-br from-sky-400 via-cyan-500 to-blue-600', shadow: 'shadow-sky-500/20', isAlert: false }
-  }
-  const num = Number(v)
   const min = humidityMetric.value?.min_threshold ?? 45.0
   const max = humidityMetric.value?.max_threshold ?? 88.0
+  const v = getLiveVal(humidityMetric.value)
+  if (v == null) {
+    return { text: 'Optimal', gradient: 'bg-gradient-to-br from-sky-400 via-cyan-500 to-blue-600', shadow: 'shadow-sky-500/20', isAlert: false, min, max }
+  }
+  const num = Number(v)
   if (num < min) {
-    return { text: 'Kering', gradient: 'bg-gradient-to-br from-amber-400 via-orange-500 to-amber-600', shadow: 'shadow-amber-500/25', isAlert: true }
+    return { text: 'Kering', gradient: 'bg-gradient-to-br from-amber-400 via-orange-500 to-amber-600', shadow: 'shadow-amber-500/25', isAlert: true, min, max }
   }
   if (num <= max) {
-    return { text: 'Optimal', gradient: 'bg-gradient-to-br from-sky-400 via-cyan-500 to-blue-600', shadow: 'shadow-sky-500/20', isAlert: false }
+    return { text: 'Optimal', gradient: 'bg-gradient-to-br from-sky-400 via-cyan-500 to-blue-600', shadow: 'shadow-sky-500/20', isAlert: false, min, max }
   }
-  return { text: 'Tinggi', gradient: 'bg-gradient-to-br from-blue-600 via-indigo-600 to-slate-800', shadow: 'shadow-indigo-500/25', isAlert: true }
+  return { text: 'Tinggi', gradient: 'bg-gradient-to-br from-blue-600 via-indigo-600 to-slate-800', shadow: 'shadow-indigo-500/25', isAlert: true, min, max }
 })
 const humidityStatus = computed(() => humidityCardState.value)
 
@@ -1151,7 +1159,7 @@ onUnmounted(() => {
       <div class="lg:col-span-3 flex flex-col gap-3.5">
         
         <!-- CARD 1: Compact Node Identity & Status Card -->
-        <Card class="relative overflow-hidden border border-border/80 bg-white shadow-none">
+        <Card class="relative overflow-hidden">
           <div class="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-transparent to-primary/5 pointer-events-none"></div>
           <CardContent class="p-3.5 sm:p-4 relative z-10 flex flex-col gap-2.5">
             <!-- Node Title & Status Badge -->
@@ -1184,8 +1192,8 @@ onUnmounted(() => {
         </Card>
 
         <!-- CARD 2: Mini Map (1:1 Ratio Square Card) -->
-        <Card class="relative overflow-hidden w-full aspect-square border border-border/80 shadow-none flex flex-col group rounded-xl bg-white">
-          <div ref="miniMapContainer" class="w-full h-full absolute inset-0 z-0" />
+        <Card class="relative overflow-hidden w-full aspect-square flex flex-col group">
+          <div ref="miniMapContainer" data-lenis-prevent class="w-full h-full absolute inset-0 z-0" />
           
           <!-- Map Overlay Link to Full Map Page -->
           <div v-if="miniMapReady" class="absolute bottom-2.5 right-2.5 z-10">
@@ -1206,7 +1214,7 @@ onUnmounted(() => {
         </Card>
 
         <!-- CARD 3: Compact Actuator Control Status (Enlarged Height & Typography) -->
-        <Card v-if="aktuator" class="relative overflow-hidden border border-border/80 bg-white dark:bg-card shadow-none hover:-translate-y-1 hover:shadow-md transition-all duration-300">
+        <Card v-if="aktuator" class="relative overflow-hidden">
           <div class="p-4 sm:p-4.5 flex flex-col gap-3.5">
             <!-- Header: Title, Icon -->
             <div class="flex items-center gap-3">
@@ -1279,46 +1287,50 @@ onUnmounted(() => {
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-stretch">
           
           <!-- LEFT COL (lg:col-span-8): Wide Sensor Trends Line Chart -->
-          <Card class="lg:col-span-8 relative overflow-hidden flex flex-col border border-border/80 bg-white dark:bg-card shadow-none min-h-[460px]">
+          <Card class="lg:col-span-8 relative overflow-hidden flex flex-col min-h-[460px]">
             <div class="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-30 pointer-events-none"></div>
             <CardContent class="p-4 relative z-10 flex flex-col gap-2 flex-1">
               
               <!-- Chart Header: Category Pills + Time Range -->
-              <div class="flex flex-wrap items-center justify-between gap-2.5 pb-2 border-b border-border/40">
+              <div class="flex flex-wrap items-center justify-between gap-3 pb-2.5 border-b border-border/40">
                 
                 <!-- Category Dropdown Selector -->
                 <div class="relative" ref="categoryDropdownRef">
                   <button
                     type="button"
                     @click.stop="isCategoryDropdownOpen = !isCategoryDropdownOpen"
-                    class="h-8.5 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200/80 dark:hover:bg-slate-700/80 border border-slate-200/90 dark:border-slate-700/90 text-foreground text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer shadow-2xs select-none"
+                    class="h-9.5 sm:h-10 px-3.5 sm:px-4 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200/80 dark:hover:bg-slate-700/80 border border-slate-200/90 dark:border-slate-700/90 text-foreground text-xs sm:text-sm md:text-base font-extrabold flex items-center gap-2.5 transition-all cursor-pointer shadow-2xs select-none active:scale-95"
                     :title="`Kategori: ${currentCategoryMeta.fullLabel}`"
                   >
-                    <!-- Icon -->
-                    <img 
-                      v-if="!currentCategoryMeta.isLucide" 
-                      :src="currentCategoryMeta.icon!" 
-                      :alt="currentCategoryMeta.label" 
-                      class="w-4 h-4 object-contain dark:invert shrink-0" 
-                    />
-                    <Layers v-else class="w-4 h-4 text-primary shrink-0" />
+                    <!-- Soft Tinted Icon Container with Colored Icon Lines -->
+                    <div :class="['w-6 h-6 sm:w-7 sm:h-7 rounded-lg flex items-center justify-center shrink-0 border shadow-2xs transition-colors', currentCategoryMeta.wrapperClass]">
+                      <div 
+                        v-if="!currentCategoryMeta.isLucide" 
+                        :class="['w-3.5 h-3.5 sm:w-4 sm:h-4 transition-colors', currentCategoryMeta.iconColorClass]"
+                        :style="{
+                          mask: `url(${currentCategoryMeta.icon}) no-repeat center / contain`,
+                          WebkitMask: `url(${currentCategoryMeta.icon}) no-repeat center / contain`
+                        }"
+                      />
+                      <Layers v-else :class="['w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 transition-colors', currentCategoryMeta.iconTextColorClass]" />
+                    </div>
 
                     <!-- Selected Category Label -->
                     <span class="tracking-tight">{{ currentCategoryMeta.fullLabel }}</span>
 
                     <!-- Chevron -->
                     <ChevronDown 
-                      class="w-3.5 h-3.5 text-muted-foreground transition-transform duration-200" 
+                      class="w-4 h-4 text-muted-foreground transition-transform duration-200" 
                       :class="isCategoryDropdownOpen ? 'rotate-180 text-foreground' : ''" 
                     />
                   </button>
 
-                  <!-- Dropdown Menu Popover -->
+                  <!-- Dropdown Menu Popover (Enlarged) -->
                   <div
                     v-if="isCategoryDropdownOpen"
-                    class="absolute left-0 top-full mt-1.5 w-60 z-50 rounded-2xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200/90 dark:border-slate-800 shadow-2xl p-1.5 flex flex-col gap-1 animate-in fade-in zoom-in-95 duration-150 select-none"
+                    class="absolute left-0 top-full mt-2 w-80 sm:w-[350px] z-50 rounded-2xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200/90 dark:border-slate-800 shadow-2xl p-2 sm:p-2.5 flex flex-col gap-1.5 animate-in fade-in zoom-in-95 duration-150 select-none"
                   >
-                    <div class="px-2.5 py-1 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                    <div class="px-3.5 py-1.5 text-xs font-black text-muted-foreground uppercase tracking-wider">
                       Pilih Kategori
                     </div>
 
@@ -1328,51 +1340,53 @@ onUnmounted(() => {
                       type="button"
                       @click="selectCategory(cat.id)"
                       :class="[
-                        'w-full px-2.5 py-2 rounded-xl text-left flex items-center justify-between gap-2.5 transition-all cursor-pointer text-xs sm:text-sm',
+                        'w-full px-3.5 py-3 rounded-2xl text-left flex items-center justify-between gap-3 transition-all cursor-pointer group active:scale-[0.98]',
                         selectedCategory === cat.id 
-                          ? `${cat.activeColor} font-black border border-border/40 shadow-xs` 
-                          : 'text-foreground hover:bg-slate-100/80 dark:hover:bg-slate-800/80 border border-transparent font-medium'
+                          ? 'bg-slate-100/90 dark:bg-slate-800 border border-slate-300/80 dark:border-slate-700 shadow-2xs font-black text-foreground' 
+                          : 'text-foreground/80 hover:text-foreground hover:bg-slate-50 dark:hover:bg-slate-800/50 border border-transparent font-medium'
                       ]"
                     >
-                      <div class="flex items-center gap-2.5 min-w-0">
-                        <div class="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 border border-slate-200/60 dark:border-slate-700/60">
-                          <img 
+                      <div class="flex items-center gap-3.5 min-w-0">
+                        <div :class="['w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border shadow-2xs group-hover:scale-105 transition-all', cat.wrapperClass]">
+                          <div 
                             v-if="!cat.isLucide" 
-                            :src="cat.icon!" 
-                            :alt="cat.label" 
-                            class="w-4 h-4 object-contain dark:invert" 
+                            :class="['w-5 h-5 transition-colors', cat.iconColorClass]"
+                            :style="{
+                              mask: `url(${cat.icon}) no-repeat center / contain`,
+                              WebkitMask: `url(${cat.icon}) no-repeat center / contain`
+                            }"
                           />
-                          <Layers v-else class="w-4 h-4 text-primary" />
+                          <Layers v-else :class="['w-5 h-5 shrink-0 transition-colors', cat.iconTextColorClass]" />
                         </div>
-                        <div class="truncate">
-                          <div class="font-extrabold text-foreground leading-tight">{{ cat.fullLabel }}</div>
-                          <div class="text-[10px] text-muted-foreground truncate">{{ cat.desc }}</div>
+                        <div class="min-w-0">
+                          <div class="font-extrabold text-foreground leading-tight text-sm sm:text-base">{{ cat.fullLabel }}</div>
+                          <div class="text-xs text-muted-foreground font-medium mt-0.5">{{ cat.desc }}</div>
                         </div>
                       </div>
 
-                      <Check v-if="selectedCategory === cat.id" class="w-4 h-4 shrink-0 stroke-[2.5]" />
+                      <Check v-if="selectedCategory === cat.id" class="w-5 h-5 text-foreground shrink-0 stroke-[2.5]" />
                     </button>
                   </div>
                 </div>
 
                 <!-- Time Range Selector (Enlarged) -->
-                <div class="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200/80 dark:border-slate-700/80 text-xs sm:text-sm">
+                <div class="flex items-center gap-1 sm:gap-1.5 bg-slate-100 dark:bg-slate-800 p-1 sm:p-1.5 rounded-xl border border-slate-200/80 dark:border-slate-700/80 text-xs sm:text-sm">
                   <button
                     @click="changeRange('1d')"
                     :class="[
-                      'px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer flex items-center gap-1.5 text-xs sm:text-sm',
+                      'px-3 sm:px-3.5 py-1.5 rounded-lg font-extrabold transition-all cursor-pointer flex items-center gap-2 text-xs sm:text-sm active:scale-95',
                       selectedRange === '1d' 
                         ? 'bg-white dark:bg-card text-foreground border border-border/80 shadow-xs' 
                         : 'text-muted-foreground hover:text-foreground'
                     ]"
                   >
-                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
                     24J
                   </button>
                   <button
                     @click="changeRange('1w')"
                     :class="[
-                      'px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer text-xs sm:text-sm',
+                      'px-3 sm:px-3.5 py-1.5 rounded-lg font-extrabold transition-all cursor-pointer text-xs sm:text-sm active:scale-95',
                       selectedRange === '1w' 
                         ? 'bg-white dark:bg-card text-foreground border border-border/80 shadow-xs' 
                         : 'text-muted-foreground hover:text-foreground'
@@ -1383,7 +1397,7 @@ onUnmounted(() => {
                   <button
                     @click="changeRange('1M')"
                     :class="[
-                      'px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer text-xs sm:text-sm',
+                      'px-3 sm:px-3.5 py-1.5 rounded-lg font-extrabold transition-all cursor-pointer text-xs sm:text-sm active:scale-95',
                       selectedRange === '1M' 
                         ? 'bg-white dark:bg-card text-foreground border border-border/80 shadow-xs' 
                         : 'text-muted-foreground hover:text-foreground'
@@ -1394,23 +1408,23 @@ onUnmounted(() => {
                   <button
                     @click="selectedRange = 'custom'"
                     :class="[
-                      'px-2 py-1 rounded-lg font-bold transition-all cursor-pointer text-xs sm:text-sm',
+                      'px-2.5 sm:px-3 py-1.5 rounded-lg font-extrabold transition-all cursor-pointer text-xs sm:text-sm active:scale-95',
                       selectedRange === 'custom' 
                         ? 'bg-white dark:bg-card text-foreground border border-border/80 shadow-xs' 
                         : 'text-muted-foreground hover:text-foreground'
                     ]"
                     title="Rentang Kustom"
                   >
-                    <Calendar class="w-4 h-4" />
+                    <Calendar class="w-4.5 h-4.5" />
                   </button>
                 </div>
 
                 <!-- Export & PDF Report Action Buttons (Only Visible When Logged In) -->
-                <div v-if="authStore.isAuthenticated()" class="flex items-center gap-1.5 ml-auto sm:ml-0">
+                <div v-if="authStore.isAuthenticated()" class="flex items-center gap-2 ml-auto sm:ml-0">
                   <button
                     @click="isExportModalOpen = true"
                     type="button"
-                    class="h-8 px-3 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-xs font-bold flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer hover:scale-[1.02] active:scale-95"
+                    class="h-9.5 sm:h-10 px-3.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-xs sm:text-sm font-bold flex items-center gap-2 shadow-2xs transition-all cursor-pointer hover:scale-[1.02] active:scale-95"
                     title="Export data telemetri ke format CSV (Excel)"
                   >
                     <ExcelIcon />
@@ -1420,7 +1434,7 @@ onUnmounted(() => {
                   <button
                     @click="isReportModalOpen = true"
                     type="button"
-                    class="h-8 px-3 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 text-rose-700 dark:text-rose-300 border border-rose-500/30 text-xs font-bold flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer hover:scale-[1.02] active:scale-95"
+                    class="h-9.5 sm:h-10 px-3.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-700 dark:text-rose-300 border border-rose-500/30 text-xs sm:text-sm font-bold flex items-center gap-2 shadow-2xs transition-all cursor-pointer hover:scale-[1.02] active:scale-95"
                     title="Buat dan cetak Laporan Resmi PDF"
                   >
                     <PdfIcon />
@@ -1467,7 +1481,7 @@ onUnmounted(() => {
           </Card>
 
           <!-- RIGHT COL (lg:col-span-4): Dynamic Category-Aware Analytics & Insights Card (Enlarged Typography) -->
-          <Card class="lg:col-span-4 relative overflow-hidden flex flex-col border border-border/80 bg-white dark:bg-card shadow-none min-h-[460px]">
+          <Card class="lg:col-span-4 relative overflow-hidden flex flex-col min-h-[460px]">
             <div class="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-transparent to-primary/5 pointer-events-none"></div>
             <CardContent class="p-4 sm:p-4.5 relative z-10 flex flex-col justify-between gap-3 flex-1 h-full">
               
@@ -1574,7 +1588,7 @@ onUnmounted(() => {
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
           
           <!-- PORTLET 1: KONDISI TANAH -->
-          <Card class="relative overflow-hidden border border-border/80 bg-white dark:bg-card shadow-none hover:-translate-y-1 hover:shadow-md transition-all duration-300 flex flex-col">
+          <Card class="relative overflow-hidden flex flex-col">
             <div class="p-4 flex flex-col gap-3 flex-1 justify-between">
               <!-- Portlet Header -->
               <div class="flex items-center justify-between pb-2 border-b border-border/40">
@@ -1642,7 +1656,7 @@ onUnmounted(() => {
                 <!-- pH Tanah Card (Dynamic 3-State: Asam: Oranye-Merah | Optimal: Emerald | Basa: Ungu/Indigo) -->
                 <div 
                   :class="[
-                    'relative overflow-hidden p-2.5 sm:p-3 rounded-2xl text-white shadow-xs border border-white/20 flex flex-col justify-between min-h-[78px] group hover:scale-[1.01] transition-transform',
+                    'relative overflow-hidden p-2.5 sm:p-3 rounded-2xl text-white shadow-xs border border-white/20 flex flex-col justify-between min-h-[82px] group hover:scale-[1.01] transition-transform',
                     phCardState.gradient,
                     phCardState.shadow
                   ]"
@@ -1652,9 +1666,20 @@ onUnmounted(() => {
                     <span class="text-[11px] sm:text-xs font-semibold text-white/95 truncate drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)]">
                       {{ phMetric?.name || 'pH Tanah' }}
                     </span>
-                    <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-white/25 backdrop-blur-md text-white border border-white/40 shadow-2xs whitespace-nowrap drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)]">
-                      {{ phStatus.text }}
-                    </span>
+                    <!-- Unified Status & Threshold Capsule -->
+                    <div 
+                      :class="[
+                        'bg-white/25 hover:bg-white/30 backdrop-blur-md text-white border border-white/40 shadow-2xs transition-all shrink-0 select-none',
+                        phCardState.isAlert 
+                          ? 'px-2 py-0.5 rounded-xl flex flex-col items-center gap-0.5' 
+                          : 'px-2 py-0.5 rounded-full flex items-center'
+                      ]"
+                    >
+                      <span class="text-[10px] sm:text-[11px] font-extrabold tracking-wide leading-tight drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)]">{{ phStatus.text }}</span>
+                      <span v-if="phCardState.isAlert" class="text-[9px] sm:text-[10px] font-bold text-white/95 border-t border-white/25 pt-0.5 tracking-tight whitespace-nowrap">
+                        {{ phCardState.min }}–{{ phCardState.max }}
+                      </span>
+                    </div>
                   </div>
                   <div class="flex items-baseline gap-1 mt-1 relative z-10">
                     <span class="text-xl sm:text-2xl font-extrabold tracking-tight text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.2)]">
@@ -1669,7 +1694,7 @@ onUnmounted(() => {
                 <!-- Suhu Tanah Card (Dynamic 3-State: Dingin: Biru Ice | Optimal: Oranye Hangat | Panas: Merah Rose Alert) -->
                 <div 
                   :class="[
-                    'relative overflow-hidden p-2.5 sm:p-3 rounded-2xl text-white shadow-xs border border-white/20 flex flex-col justify-between min-h-[78px] group hover:scale-[1.01] transition-transform',
+                    'relative overflow-hidden p-2.5 sm:p-3 rounded-2xl text-white shadow-xs border border-white/20 flex flex-col justify-between min-h-[82px] group hover:scale-[1.01] transition-transform',
                     soilTempCardState.gradient,
                     soilTempCardState.shadow
                   ]"
@@ -1679,9 +1704,20 @@ onUnmounted(() => {
                     <span class="text-[11px] sm:text-xs font-semibold text-white/95 truncate drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)]">
                       {{ soilTempMetric?.name || 'Suhu Tanah' }}
                     </span>
-                    <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-white/25 backdrop-blur-md text-white border border-white/40 shadow-2xs whitespace-nowrap drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)]">
-                      {{ soilTempStatus.text }}
-                    </span>
+                    <!-- Unified Status & Threshold Capsule -->
+                    <div 
+                      :class="[
+                        'bg-white/25 hover:bg-white/30 backdrop-blur-md text-white border border-white/40 shadow-2xs transition-all shrink-0 select-none',
+                        soilTempCardState.isAlert 
+                          ? 'px-2 py-0.5 rounded-xl flex flex-col items-center gap-0.5' 
+                          : 'px-2 py-0.5 rounded-full flex items-center'
+                      ]"
+                    >
+                      <span class="text-[10px] sm:text-[11px] font-extrabold tracking-wide leading-tight drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)]">{{ soilTempStatus.text }}</span>
+                      <span v-if="soilTempCardState.isAlert" class="text-[9px] sm:text-[10px] font-bold text-white/95 border-t border-white/25 pt-0.5 tracking-tight whitespace-nowrap">
+                        {{ soilTempCardState.min }}–{{ soilTempCardState.max }}°
+                      </span>
+                    </div>
                   </div>
                   <div class="flex items-baseline gap-1 mt-1 relative z-10">
                     <span class="text-xl sm:text-2xl font-extrabold tracking-tight text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.2)]">
@@ -1696,7 +1732,7 @@ onUnmounted(() => {
                 <!-- EC (Electrical Conductivity) Card (Dynamic 3-State: Rendah: Amber | Optimal: Lime/Emerald | Pekat: Merah Salin) -->
                 <div 
                   :class="[
-                    'relative overflow-hidden p-2.5 sm:p-3 rounded-2xl text-white shadow-xs border border-white/20 flex flex-col justify-between min-h-[78px] group hover:scale-[1.01] transition-transform',
+                    'relative overflow-hidden p-2.5 sm:p-3 rounded-2xl text-white shadow-xs border border-white/20 flex flex-col justify-between min-h-[82px] group hover:scale-[1.01] transition-transform',
                     ecCardState.gradient,
                     ecCardState.shadow
                   ]"
@@ -1706,9 +1742,20 @@ onUnmounted(() => {
                     <span class="text-[11px] sm:text-xs font-semibold text-white/95 truncate drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)]">
                       {{ ecMetric?.name || 'eC Tanah' }}
                     </span>
-                    <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-white/25 backdrop-blur-md text-white border border-white/40 shadow-2xs whitespace-nowrap drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)]">
-                      {{ ecStatus.text }}
-                    </span>
+                    <!-- Unified Status & Threshold Capsule -->
+                    <div 
+                      :class="[
+                        'bg-white/25 hover:bg-white/30 backdrop-blur-md text-white border border-white/40 shadow-2xs transition-all shrink-0 select-none',
+                        ecCardState.isAlert 
+                          ? 'px-2 py-0.5 rounded-xl flex flex-col items-center gap-0.5' 
+                          : 'px-2 py-0.5 rounded-full flex items-center'
+                      ]"
+                    >
+                      <span class="text-[10px] sm:text-[11px] font-extrabold tracking-wide leading-tight drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)]">{{ ecStatus.text }}</span>
+                      <span v-if="ecCardState.isAlert" class="text-[9px] sm:text-[10px] font-bold text-white/95 border-t border-white/25 pt-0.5 tracking-tight whitespace-nowrap">
+                        {{ ecCardState.min }}–{{ ecCardState.max }}
+                      </span>
+                    </div>
                   </div>
                   <div class="flex items-baseline gap-1 mt-1 relative z-10">
                     <span class="text-xl sm:text-2xl font-extrabold tracking-tight text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.2)]">
@@ -1725,7 +1772,7 @@ onUnmounted(() => {
           </Card>
 
           <!-- PORTLET 2: KONDISI IOT -->
-          <Card class="relative overflow-hidden border border-border/80 bg-white dark:bg-card shadow-none hover:-translate-y-1 hover:shadow-md transition-all duration-300 flex flex-col">
+          <Card class="relative overflow-hidden flex flex-col">
             <div class="p-4 flex flex-col gap-3 flex-1 justify-between">
               <!-- Portlet Header -->
               <div class="flex items-center justify-between pb-2 border-b border-border/40">
@@ -1816,7 +1863,7 @@ onUnmounted(() => {
                 <!-- Suhu Luar / Ambient (Dynamic 3-State: Sejuk: Biru | Optimal: Oranye Hangat | Panas: Merah Rose Alert) -->
                 <div 
                   :class="[
-                    'relative overflow-hidden p-2.5 sm:p-3 rounded-2xl text-white shadow-xs border border-white/20 flex flex-col justify-between min-h-[78px] group hover:scale-[1.01] transition-transform',
+                    'relative overflow-hidden p-2.5 sm:p-3 rounded-2xl text-white shadow-xs border border-white/20 flex flex-col justify-between min-h-[82px] group hover:scale-[1.01] transition-transform',
                     airTempCardState.gradient,
                     airTempCardState.shadow
                   ]"
@@ -1826,9 +1873,20 @@ onUnmounted(() => {
                     <span class="text-[11px] sm:text-xs font-semibold text-white/95 truncate drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)]">
                       {{ airTempMetric?.name || 'Suhu Luar' }}
                     </span>
-                    <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-white/25 backdrop-blur-md text-white border border-white/40 shadow-2xs whitespace-nowrap drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)]">
-                      {{ airTempStatus.text }}
-                    </span>
+                    <!-- Unified Status & Threshold Capsule -->
+                    <div 
+                      :class="[
+                        'bg-white/25 hover:bg-white/30 backdrop-blur-md text-white border border-white/40 shadow-2xs transition-all shrink-0 select-none',
+                        airTempCardState.isAlert 
+                          ? 'px-2 py-0.5 rounded-xl flex flex-col items-center gap-0.5' 
+                          : 'px-2 py-0.5 rounded-full flex items-center'
+                      ]"
+                    >
+                      <span class="text-[10px] sm:text-[11px] font-extrabold tracking-wide leading-tight drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)]">{{ airTempStatus.text }}</span>
+                      <span v-if="airTempCardState.isAlert" class="text-[9px] sm:text-[10px] font-bold text-white/95 border-t border-white/25 pt-0.5 tracking-tight whitespace-nowrap">
+                        {{ airTempCardState.min }}–{{ airTempCardState.max }}°
+                      </span>
+                    </div>
                   </div>
                   <div class="flex items-baseline gap-1 mt-1 relative z-10">
                     <span class="text-xl sm:text-2xl font-extrabold tracking-tight text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.2)]">
@@ -1843,7 +1901,7 @@ onUnmounted(() => {
                 <!-- Kelembaban Udara (Dynamic 3-State: Kering: Amber | Optimal: Sky Blue | Tinggi: Deep Ocean) -->
                 <div 
                   :class="[
-                    'relative overflow-hidden p-2.5 sm:p-3 rounded-2xl text-white shadow-xs border border-white/20 flex flex-col justify-between min-h-[78px] group hover:scale-[1.01] transition-transform',
+                    'relative overflow-hidden p-2.5 sm:p-3 rounded-2xl text-white shadow-xs border border-white/20 flex flex-col justify-between min-h-[82px] group hover:scale-[1.01] transition-transform',
                     humidityCardState.gradient,
                     humidityCardState.shadow
                   ]"
@@ -1853,9 +1911,20 @@ onUnmounted(() => {
                     <span class="text-[11px] sm:text-xs font-semibold text-white/95 truncate drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)]">
                       {{ humidityMetric?.name || 'Kelembaban' }}
                     </span>
-                    <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-white/25 backdrop-blur-md text-white border border-white/40 shadow-2xs whitespace-nowrap drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)]">
-                      {{ humidityStatus.text }}
-                    </span>
+                    <!-- Unified Status & Threshold Capsule -->
+                    <div 
+                      :class="[
+                        'bg-white/25 hover:bg-white/30 backdrop-blur-md text-white border border-white/40 shadow-2xs transition-all shrink-0 select-none',
+                        humidityCardState.isAlert 
+                          ? 'px-2 py-0.5 rounded-xl flex flex-col items-center gap-0.5' 
+                          : 'px-2 py-0.5 rounded-full flex items-center'
+                      ]"
+                    >
+                      <span class="text-[10px] sm:text-[11px] font-extrabold tracking-wide leading-tight drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)]">{{ humidityStatus.text }}</span>
+                      <span v-if="humidityCardState.isAlert" class="text-[9px] sm:text-[10px] font-bold text-white/95 border-t border-white/25 pt-0.5 tracking-tight whitespace-nowrap">
+                        {{ humidityCardState.min }}–{{ humidityCardState.max }}%
+                      </span>
+                    </div>
                   </div>
                   <div class="flex items-baseline gap-1 mt-1 relative z-10">
                     <span class="text-xl sm:text-2xl font-extrabold tracking-tight text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.2)]">
