@@ -39,23 +39,42 @@ node_online_state = {}
 sensor_alert_state = {}
 
 
-async def fetch_latest(channel_id: str, read_api_key: str) -> Optional[Dict[str, Any]]:
+# Shared HTTP Client with Keep-Alive Connection Pool
+_http_client: Optional[httpx.AsyncClient] = None
+
+def get_http_client() -> httpx.AsyncClient:
+    """Returns a shared httpx.AsyncClient with Keep-Alive connection pooling for ThingSpeak HTTP requests."""
+    global _http_client
+    if _http_client is None or _http_client.is_closed:
+        limits = httpx.Limits(max_keepalive_connections=20, max_connections=50, keepalive_expiry=30.0)
+        _http_client = httpx.AsyncClient(timeout=10.0, limits=limits)
+    return _http_client
+
+async def close_http_client():
+    """Closes the shared HTTP client connection pool gracefully."""
+    global _http_client
+    if _http_client is not None and not _http_client.is_closed:
+        await _http_client.aclose()
+        _http_client = None
+
+
+async def fetch_latest(channel_id: str, read_api_key: str, client: Optional[httpx.AsyncClient] = None) -> Optional[Dict[str, Any]]:
     url = f"{settings.THINGSPEAK_BASE_URL}/channels/{channel_id}/feeds/last.json"
     params = {"api_key": read_api_key}
+    http_client = client or get_http_client()
     
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.get(url, params=params)
+        response = await http_client.get(url, params=params)
+        
+        if response.status_code == 200:
+            return response.json()
+        elif response.status_code == 429:
+            logger.warning(f"ThingSpeak rate limited for channel {channel_id}")
+            return None
+        else:
+            logger.warning(f"ThingSpeak error for channel {channel_id}: HTTP {response.status_code}")
+            return None
             
-            if response.status_code == 200:
-                return response.json()
-            elif response.status_code == 429:
-                logger.warning(f"ThingSpeak rate limited for channel {channel_id}")
-                return None
-            else:
-                logger.warning(f"ThingSpeak error for channel {channel_id}: HTTP {response.status_code}")
-                return None
-                
     except httpx.TimeoutException:
         logger.warning(f"ThingSpeak timeout for channel {channel_id}")
         return None
@@ -70,8 +89,9 @@ async def poll_node(node_id: str, channels: list, db_session):
     if not channels:
         return
 
-    # Fetch all channels in parallel
-    tasks = [fetch_latest(c.channel_id, c.read_api_key) for c in channels]
+    # Fetch all channels in parallel using shared HTTP connection pool
+    http_client = get_http_client()
+    tasks = [fetch_latest(c.channel_id, c.read_api_key, client=http_client) for c in channels]
     results = await asyncio.gather(*tasks)
     
     # If all channels return None, consider the node offline

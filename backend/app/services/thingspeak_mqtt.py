@@ -15,6 +15,7 @@ from app.services.websocket_manager import manager
 from app.services.telegram_service import send_telegram_alert
 from app.services.telemetry_buffer import append_node_telemetry
 from app.services.webpush_service import kirim_push
+from app.services.aktuator import baca_aktuator
 from app.services.alert_formatter import (
     format_sensor_alert_telegram,
     format_sensor_recovered_telegram,
@@ -30,6 +31,7 @@ logger = logging.getLogger(__name__)
 
 # In-memory accumulated latest data per node_id across multiple channels
 node_latest_data: Dict[str, Dict[str, Any]] = {}
+node_latest_actuators: Dict[str, Any] = {}
 node_online_state: Dict[str, bool] = {}
 sensor_alert_state: Dict[str, bool] = {}
 
@@ -63,6 +65,14 @@ async def process_thingspeak_payload(channel_str_id: str, data: Dict[str, Any]):
                     except (ValueError, TypeError):
                         extracted_data[f"{channel_uuid_str}_{field_name}"] = val
 
+            # Decode actuator bitmask if support channel or field8 is present
+            is_support_channel = (channel.label or "").strip().lower() == "pendukung"
+            if is_support_channel or "field8" in data:
+                field8_val = data.get("field8")
+                if field8_val is not None:
+                    node_latest_actuators[node.node_id] = baca_aktuator(field8_val)
+
+            aktuator = node_latest_actuators.get(node.node_id)
             created_at = data.get("created_at") or datetime.now(timezone.utc).isoformat()
 
             # Merge with accumulated live state for this node (Dual-Channel Forward-Fill)
@@ -77,6 +87,7 @@ async def process_thingspeak_payload(channel_str_id: str, data: Dict[str, Any]):
                 "node_id": node.node_id,
                 "status": "online",
                 "data": merged_data,
+                "aktuator": aktuator,
                 "created_at": created_at
             }
 
