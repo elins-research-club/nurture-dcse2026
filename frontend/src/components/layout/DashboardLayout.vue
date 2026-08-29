@@ -173,13 +173,13 @@ const toggleTheme = () => {
       <!-- Main Content Container with dynamic left padding matching Sidebar state (at unzoomed 1.0x scale) -->
       <div 
         :class="[
-          'flex-1 flex flex-col min-w-0 transition-all duration-300',
+          'flex-1 flex flex-col min-w-0 transition-[padding] duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] will-change-[padding]',
           authStore.isAuthenticated() ? (isCollapsed ? 'pl-[68px]' : 'pl-64') : 'pl-0'
         ]"
       >
         <main 
           :class="[
-            'flex-1 transition-all duration-300 bg-transparent',
+            'flex-1 bg-transparent',
             !props.noPadding ? 'p-3 sm:p-5 overflow-y-auto' : 'overflow-hidden flex flex-col h-screen w-full'
           ]"
           :style="props.compactZoom ? 'zoom: 0.75;' : ''"
