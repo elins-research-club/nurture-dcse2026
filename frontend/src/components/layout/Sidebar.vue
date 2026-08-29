@@ -27,10 +27,10 @@ const toggleCollapse = () => {
 
 const navItems = [
   { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-  { name: 'Nodes', path: '/nodes', icon: Network },
-  { name: 'Map', path: '/map', icon: MapPin },
+  { name: 'Alat IoT', path: '/nodes', icon: Network },
+  { name: 'Peta Lahan', path: '/map', icon: MapPin },
   { name: 'Logs & Ekspor Data', path: '/logs', icon: ScrollText },
-  { name: 'Settings', path: '/settings', icon: Settings },
+  { name: 'Pengaturan', path: '/settings', icon: Settings },
 ]
 
 const navigate = (path: string) => {
@@ -56,7 +56,7 @@ const isActive = (path: string) => {
 
 <template>
   <aside :class="[
-    'border-r border-border/80 bg-white dark:bg-card flex flex-col h-screen fixed left-0 top-0 shadow-none z-40 transition-[width] duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] will-change-[width] overflow-hidden',
+    'border-r border-border/80 bg-white dark:bg-card flex flex-col h-screen fixed left-0 top-0 shadow-none z-40 transition-[width] duration-300 ease-in-out overflow-hidden select-none',
     collapsed ? 'w-[68px]' : 'w-64'
   ]">
     <div 
@@ -64,15 +64,19 @@ const isActive = (path: string) => {
     >
       <button 
         @click="toggleCollapse"
-        class="w-10 h-10 flex items-center justify-center shrink-0 cursor-pointer transition-transform duration-200 active:scale-95 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/60" 
+        class="w-11 h-11 flex items-center justify-center shrink-0 cursor-pointer group focus:outline-none select-none" 
         title="Toggle Sidebar"
       >
-        <img src="/logo-icon.webp" alt="G-CONNECT Logo" class="w-8 h-8 object-contain shrink-0" />
+        <img 
+          src="/logo-icon.webp" 
+          alt="G-CONNECT Logo" 
+          class="w-8 h-8 object-contain shrink-0 transition-all duration-300 ease-out group-hover:drop-shadow-[0_0_12px_rgba(239,68,68,0.75)] group-hover:scale-105 group-active:scale-95" 
+        />
       </button>
 
       <div 
-        class="overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)]"
-        :class="collapsed ? 'max-w-0 opacity-0 -translate-x-3 pointer-events-none' : 'max-w-xs opacity-100 translate-x-0 ml-3'"
+        class="overflow-hidden transition-opacity duration-200 ease-in-out ml-3 min-w-0"
+        :class="collapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'"
       >
         <h1 class="text-xl font-extrabold text-foreground tracking-tight whitespace-nowrap">
           G-CONNECT
@@ -98,10 +102,12 @@ const isActive = (path: string) => {
           v-if="isActive(item.path)" 
           class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-r-full"
         ></div>
-        <component :is="item.icon" class="w-5 h-5 shrink-0" />
+        <div class="w-5 h-5 flex items-center justify-center shrink-0">
+          <component :is="item.icon" class="w-5 h-5" />
+        </div>
         <span 
-          class="whitespace-nowrap transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] text-sm ml-3.5 overflow-hidden"
-          :class="collapsed ? 'max-w-0 opacity-0 -translate-x-2 pointer-events-none' : 'max-w-xs opacity-100 translate-x-0'"
+          class="whitespace-nowrap transition-opacity duration-200 ease-in-out text-sm ml-3 overflow-hidden"
+          :class="collapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'"
         >
           {{ item.name }}
         </span>
@@ -115,10 +121,12 @@ const isActive = (path: string) => {
         class="w-full flex items-center h-11 px-3 rounded-xl font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors duration-150 group cursor-pointer overflow-hidden"
         :title="collapsed ? 'Logout' : undefined"
       >
-        <LogOut class="w-5 h-5 shrink-0" />
+        <div class="w-5 h-5 flex items-center justify-center shrink-0">
+          <LogOut class="w-5 h-5" />
+        </div>
         <span 
-          class="whitespace-nowrap transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] text-sm ml-3.5 overflow-hidden"
-          :class="collapsed ? 'max-w-0 opacity-0 -translate-x-2 pointer-events-none' : 'max-w-xs opacity-100 translate-x-0'"
+          class="whitespace-nowrap transition-opacity duration-200 ease-in-out text-sm ml-3 overflow-hidden"
+          :class="collapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'"
         >
           Logout
         </span>

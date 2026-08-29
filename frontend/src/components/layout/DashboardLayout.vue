@@ -34,15 +34,16 @@ const toggleTheme = () => {
 
 <template>
   <div class="min-h-screen relative flex flex-col font-sans">
-    <!-- TOPOGRAPHIC CONTOUR ELEVATION (ISOLINES) - NEUTRAL GRAY -->
-    <div class="fixed inset-0 pointer-events-none z-0 overflow-hidden select-none bg-[#F8FAFC] dark:bg-[#0B0F17]">
-      <!-- 1. Ambient Neutral Glows -->
-      <div class="absolute -top-32 -left-32 w-[700px] h-[600px] rounded-full bg-slate-200/50 dark:bg-slate-800/30 blur-[140px] pointer-events-none"></div>
-      <div class="absolute -bottom-32 -right-32 w-[750px] h-[650px] rounded-full bg-slate-200/40 dark:bg-slate-800/30 blur-[150px] pointer-events-none"></div>
+    <!-- FARMLAND TOPOGRAPHIC ELEVATION & NIGHT ATMOSPHERE -->
+    <div class="fixed inset-0 pointer-events-none z-0 overflow-hidden select-none bg-[#F8FAFC] dark:bg-[#050C10]">
+      <!-- 1. Ambient Natural Farmland Mist Glows -->
+      <div class="absolute -top-32 -left-32 w-[700px] h-[600px] rounded-full bg-slate-200/50 dark:bg-emerald-950/25 blur-[140px] pointer-events-none"></div>
+      <div class="absolute -bottom-32 -right-32 w-[750px] h-[650px] rounded-full bg-slate-200/40 dark:bg-teal-950/25 blur-[150px] pointer-events-none"></div>
+      <div class="hidden dark:block absolute top-1/4 right-1/4 w-[500px] h-[500px] rounded-full bg-emerald-900/10 blur-[160px] pointer-events-none"></div>
 
-      <!-- 2. High-Density Mathematical Topographic SVG -->
+      <!-- 2. Farmland Elevation Contour Isolines -->
       <div 
-        class="absolute inset-0 w-full h-full bg-slate-500 dark:bg-slate-400 opacity-[0.15] dark:opacity-[0.15]"
+        class="absolute inset-0 w-full h-full bg-slate-500 dark:bg-emerald-500/25 opacity-[0.12] dark:opacity-[0.14]"
         style="
           mask-image: url('/topography.svg'); 
           mask-size: cover; 
@@ -52,6 +53,9 @@ const toggleTheme = () => {
           -webkit-mask-position: center;
         "
       ></div>
+
+      <!-- 3. Soft Farmland Atmosphere Grain / Ambient Mist -->
+      <div class="absolute inset-0 bg-gradient-to-t from-emerald-950/15 via-transparent to-transparent pointer-events-none"></div>
     </div>
 
     <!-- Foreground UI Container with relative z-10 -->
@@ -173,7 +177,7 @@ const toggleTheme = () => {
       <!-- Main Content Container with dynamic left padding matching Sidebar state (at unzoomed 1.0x scale) -->
       <div 
         :class="[
-          'flex-1 flex flex-col min-w-0 transition-[padding] duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] will-change-[padding]',
+          'flex-1 flex flex-col min-w-0 transition-[padding-left] duration-300 ease-in-out',
           authStore.isAuthenticated() ? (isCollapsed ? 'pl-[68px]' : 'pl-64') : 'pl-0'
         ]"
       >
