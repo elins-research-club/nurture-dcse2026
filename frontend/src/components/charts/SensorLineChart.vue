@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { computed, ref, watch, onMounted, nextTick } from 'vue'
-import { use } from 'echarts/core'
+import { use, graphic } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart } from 'echarts/charts'
 import { GridComponent, TooltipComponent, LegendComponent, DataZoomComponent, TitleComponent } from 'echarts/components'
+import { useDark } from '@vueuse/core'
 import VChart from 'vue-echarts'
 
 use([
@@ -23,6 +24,12 @@ const props = defineProps<{
   isLoading?: boolean
 }>()
 
+const isDarkMode = useDark({
+  storageKey: 'theme',
+  valueDark: 'dark',
+  valueLight: 'light'
+})
+
 const vChartRef = ref<any>(null)
 
 // Calculate CSS zoom factor of parent container dynamically
@@ -36,7 +43,7 @@ const getParentZoom = (el: HTMLElement | null): number => {
     }
     curr = curr.parentElement
   }
-  return 0.75 // Fallback to 0.75 if zoom property is present
+  return 0.75
 }
 
 // Patch ZRender event handler to correct mouse coordinate scaling mismatch with CSS zoom
@@ -99,6 +106,35 @@ const COLOR_PALETTE = [
   '#6366f1'  // Indigo
 ]
 
+const hexToRgba = (hex: string, alpha: number): string => {
+  let c = hex.replace('#', '')
+  if (c.length === 3) {
+    c = c.split('').map(x => x + x).join('')
+  }
+  const num = parseInt(c, 16)
+  const r = (num >> 16) & 255
+  const g = (num >> 8) & 255
+  const b = num & 255
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`
+}
+
+const getSensorDeterministicColor = (sensorName: string, index: number): string => {
+  const name = (sensorName || '').toLowerCase()
+  if (name.includes('nitrogen') || name === 'n') return '#10b981' // Green
+  if (name.includes('phosphor') || name.includes('fosfor') || name === 'p') return '#3b82f6' // Blue
+  if (name.includes('potassium') || name.includes('kalium') || name === 'k') return '#8b5cf6' // Purple
+  if (name.includes('ph')) return '#f59e0b' // Amber
+  if (name.includes('ec') || name.includes('daya hantar')) return '#84cc16' // Lime
+  if (name.includes('suhu dalam') || name.includes('box') || name.includes('panel') || name.includes('enclosure')) return '#f43f5e' // Rose
+  if (name.includes('suhu') || name.includes('temp')) return '#ef4444' // Red
+  if (name.includes('probe 1')) return '#0ea5e9' // Sky Blue
+  if (name.includes('probe 2')) return '#06b6d4' // Cyan
+  if (name.includes('probe 3')) return '#14b8a6' // Teal
+  if (name.includes('kelembaban') || name.includes('moisture') || name.includes('lembab')) return '#06b6d4' // Cyan
+  
+  return COLOR_PALETTE[index % COLOR_PALETTE.length]
+}
+
 const formatXAxisTime = (ts: string) => {
   if (!ts) return ''
   try {
@@ -114,29 +150,60 @@ const formatXAxisTime = (ts: string) => {
 const option = computed(() => {
   const sensorsList = (props.sensors || []).filter(s => s.name !== 'Status aktuator')
   const feeds = props.data || []
+  const dark = isDarkMode.value
 
-  // Dynamic series generation from database sensor definitions
+  // Dynamic series generation from database sensor definitions with aesthetic gradient aura
   const series = sensorsList.map((sensor, index) => {
     const fieldKey = `${sensor.channel_id}_${sensor.thingspeak_field}`
-    const color = COLOR_PALETTE[index % COLOR_PALETTE.length]
+    const color = getSensorDeterministicColor(sensor.name, index)
 
     return {
       name: `${sensor.name} (${sensor.unit || ''})`.trim(),
       type: 'line',
-      smooth: true,
-      showSymbol: feeds.length < 30,
+      smooth: 0.28,
+      showSymbol: feeds.length < 35,
+      symbol: 'circle',
       symbolSize: 6,
       connectNulls: true,
       data: feeds.map(item => {
         const val = item[fieldKey]
         return val != null && val !== '' ? parseFloat(val) : null
       }),
-      itemStyle: { color },
-      lineStyle: { width: 2.5 }
+      itemStyle: { 
+        color,
+        borderColor: dark ? '#0f172a' : '#ffffff',
+        borderWidth: 1.5
+      },
+      lineStyle: { 
+        width: 2.8,
+        shadowColor: hexToRgba(color, 0.25),
+        shadowBlur: 6,
+        shadowOffsetY: 2
+      },
+      areaStyle: {
+        color: new graphic.LinearGradient(0, 0, 0, 1, [
+          { offset: 0, color: hexToRgba(color, 0.22) },
+          { offset: 0.75, color: hexToRgba(color, 0.03) },
+          { offset: 1, color: hexToRgba(color, 0.0) }
+        ])
+      },
+      emphasis: {
+        focus: 'series',
+        lineStyle: { width: 3.6 },
+        itemStyle: {
+          borderWidth: 3,
+          borderColor: '#ffffff',
+          shadowBlur: 10,
+          shadowColor: hexToRgba(color, 0.5)
+        }
+      }
     }
   })
 
+  const colorList = series.map(s => s.itemStyle.color)
+
   return {
+    color: colorList,
     textStyle: {
       fontFamily: "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
     },
@@ -145,36 +212,46 @@ const option = computed(() => {
     },
     tooltip: {
       trigger: 'axis',
-      backgroundColor: 'rgba(15, 23, 42, 0.95)',
-      borderColor: '#334155',
+      backgroundColor: dark ? 'rgba(15, 23, 42, 0.95)' : 'rgba(30, 41, 59, 0.95)',
+      borderColor: dark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.15)',
+      borderWidth: 1,
+      padding: [10, 14],
       textStyle: { 
         color: '#f8fafc', 
-        fontSize: 13, 
+        fontSize: 12, 
         fontWeight: 500,
         fontFamily: "'Plus Jakarta Sans', sans-serif" 
       },
       axisPointer: {
         type: 'cross',
+        crossStyle: {
+          color: dark ? '#475569' : '#94a3b8',
+          width: 1,
+          type: 'dashed'
+        },
         label: {
-          backgroundColor: '#475569',
-          fontSize: 12,
-          fontFamily: "'Plus Jakarta Sans', sans-serif"
+          backgroundColor: dark ? '#334155' : '#475569',
+          fontSize: 11,
+          fontWeight: 600,
+          fontFamily: "'Plus Jakarta Sans', sans-serif",
+          borderRadius: 6
         }
       }
     },
     legend: {
       type: 'scroll',
       top: 0,
+      data: series.map(s => s.name),
       textStyle: { 
-        color: '#475569', 
-        fontSize: 13, 
+        color: dark ? '#94a3b8' : '#475569', 
+        fontSize: 12, 
         fontWeight: 600,
         fontFamily: "'Plus Jakarta Sans', sans-serif" 
       },
-      pageIconColor: '#3b82f6',
+      pageIconColor: '#10b981',
       pageTextStyle: { 
-        color: '#475569', 
-        fontSize: 12,
+        color: dark ? '#94a3b8' : '#475569', 
+        fontSize: 11,
         fontFamily: "'Plus Jakarta Sans', sans-serif" 
       }
     },
@@ -182,17 +259,21 @@ const option = computed(() => {
       left: '1%',
       right: '2%',
       top: 36,
-      bottom: 32,
+      bottom: 34,
       containLabel: true
     },
     xAxis: {
       type: 'category',
       boundaryGap: false,
       data: feeds.map(item => formatXAxisTime(item.created_at || item.timestamp)),
-      axisLine: { lineStyle: { color: '#cbd5e1' } },
+      axisLine: { 
+        lineStyle: { 
+          color: dark ? 'rgba(51, 65, 85, 0.6)' : 'rgba(203, 213, 225, 0.8)' 
+        } 
+      },
       axisLabel: { 
-        color: '#475569', 
-        fontSize: 12, 
+        color: dark ? '#94a3b8' : '#64748b', 
+        fontSize: 11, 
         fontWeight: 600,
         fontFamily: "'Plus Jakarta Sans', sans-serif" 
       }
@@ -200,10 +281,15 @@ const option = computed(() => {
     yAxis: {
       type: 'value',
       scale: true,
-      splitLine: { lineStyle: { color: '#e2e8f0', type: 'dashed' } },
+      splitLine: { 
+        lineStyle: { 
+          color: dark ? 'rgba(30, 41, 59, 0.7)' : 'rgba(241, 245, 249, 0.95)', 
+          type: 'dashed' 
+        } 
+      },
       axisLabel: { 
-        color: '#475569', 
-        fontSize: 12, 
+        color: dark ? '#94a3b8' : '#64748b', 
+        fontSize: 11, 
         fontWeight: 600,
         fontFamily: "'Plus Jakarta Sans', sans-serif" 
       }
@@ -212,21 +298,61 @@ const option = computed(() => {
       {
         type: 'inside',
         start: 0,
-        end: 100
+        end: 100,
+        zoomOnMouseWheel: true,
+        moveOnMouseMove: true,
+        moveOnMouseWheel: false,
+        preventDefaultMouseMove: true
       },
       {
         type: 'slider',
-        show: feeds.length > 20,
-        bottom: 0,
-        height: 18,
-        borderColor: 'transparent',
-        backgroundColor: 'rgba(241,245,249,0.8)',
-        fillerColor: 'rgba(59, 130, 246, 0.15)',
-        handleStyle: { color: '#3b82f6' },
-        textStyle: { 
-          color: '#64748b', 
+        show: feeds.length > 15,
+        bottom: 2,
+        height: 22,
+        borderRadius: 11,
+        borderColor: dark ? 'rgba(51, 65, 85, 0.4)' : 'rgba(226, 232, 240, 0.8)',
+        borderWidth: 1,
+        backgroundColor: dark ? 'rgba(15, 23, 42, 0.75)' : 'rgba(241, 245, 249, 0.85)',
+        fillerColor: dark ? 'rgba(16, 185, 129, 0.22)' : 'rgba(16, 185, 129, 0.16)',
+        dataBackground: {
+          lineStyle: {
+            color: dark ? '#34d399' : '#10b981',
+            width: 1.2,
+            opacity: 0.35
+          },
+          areaStyle: {
+            color: dark ? 'rgba(52, 211, 153, 0.08)' : 'rgba(16, 185, 129, 0.08)'
+          }
+        },
+        selectedDataBackground: {
+          lineStyle: {
+            color: dark ? '#10b981' : '#059669',
+            width: 1.8
+          },
+          areaStyle: {
+            color: dark ? 'rgba(16, 185, 129, 0.3)' : 'rgba(5, 150, 105, 0.22)'
+          }
+        },
+        // Modern Pill Handle Icon
+        handleIcon: 'path://M-3,-10 h6 a3,3 0 0,1 3,3 v14 a3,3 0 0,1 -3,3 h-6 a3,3 0 0,1 -3,-3 v-14 a3,3 0 0,1 3,-3 z',
+        handleSize: '110%',
+        handleStyle: {
+          color: '#10b981',
+          borderColor: dark ? '#0f172a' : '#ffffff',
+          borderWidth: 2,
+          shadowBlur: 5,
+          shadowColor: 'rgba(0, 0, 0, 0.2)',
+          shadowOffsetY: 1
+        },
+        moveHandleSize: 4,
+        moveHandleStyle: {
+          color: dark ? 'rgba(52, 211, 153, 0.6)' : 'rgba(16, 185, 129, 0.6)'
+        },
+        textStyle: {
+          color: dark ? '#94a3b8' : '#64748b',
           fontSize: 10,
-          fontFamily: "'Plus Jakarta Sans', sans-serif" 
+          fontWeight: 600,
+          fontFamily: "'Plus Jakarta Sans', sans-serif"
         }
       }
     ],
@@ -238,29 +364,29 @@ const option = computed(() => {
 <template>
   <div class="relative w-full h-full min-h-[320px] flex-1 flex flex-col">
     <!-- ═══════════════════════════════════════════════════════════════ -->
-    <!-- BEAUTIFUL ANIMATED CHART SKELETON LOADER -->
+    <!-- CLEAN MINIMAL SKELETON LOADER -->
     <!-- ═══════════════════════════════════════════════════════════════ -->
     <div 
       v-if="isLoading" 
-      class="absolute inset-0 z-20 flex flex-col justify-between p-4 bg-white/95 dark:bg-card/95 backdrop-blur-md rounded-2xl animate-pulse select-none"
+      class="absolute inset-0 z-20 flex flex-col justify-between p-4 bg-white/95 dark:bg-card/95 backdrop-blur-md rounded-2xl select-none"
     >
-      <!-- 1. Top Legend Skeleton Pills -->
+      <!-- 1. Top Legend Skeleton Pills (Neutral) -->
       <div class="flex flex-wrap items-center justify-center gap-4 sm:gap-6 pt-1">
         <div class="flex items-center gap-2">
-          <div class="w-3 h-3 rounded-full bg-emerald-500/40 animate-ping duration-1000"></div>
-          <div class="h-3.5 w-24 sm:w-28 rounded-md bg-slate-200 dark:bg-slate-800"></div>
+          <div class="w-3 h-3 rounded-full bg-slate-200 dark:bg-slate-700"></div>
+          <div class="h-3.5 w-24 sm:w-28 rounded-md bg-slate-200 dark:bg-slate-700 animate-pulse"></div>
         </div>
         <div class="flex items-center gap-2">
-          <div class="w-3 h-3 rounded-full bg-blue-500/40"></div>
-          <div class="h-3.5 w-28 sm:w-32 rounded-md bg-slate-200 dark:bg-slate-800"></div>
+          <div class="w-3 h-3 rounded-full bg-slate-200 dark:bg-slate-700"></div>
+          <div class="h-3.5 w-28 sm:w-32 rounded-md bg-slate-200 dark:bg-slate-700 animate-pulse"></div>
         </div>
         <div class="flex items-center gap-2">
-          <div class="w-3 h-3 rounded-full bg-purple-500/40"></div>
-          <div class="h-3.5 w-24 sm:w-28 rounded-md bg-slate-200 dark:bg-slate-800"></div>
+          <div class="w-3 h-3 rounded-full bg-slate-200 dark:bg-slate-700"></div>
+          <div class="h-3.5 w-24 sm:w-28 rounded-md bg-slate-200 dark:bg-slate-700 animate-pulse"></div>
         </div>
       </div>
 
-      <!-- 2. Chart Grid & Wave Silhouette Skeleton -->
+      <!-- 2. Chart Grid Skeleton (Clean Horizontal Dashed Lines) -->
       <div class="relative flex-1 my-3 flex flex-col justify-between border-l border-b border-slate-200 dark:border-slate-800 pl-2 pb-1 overflow-hidden min-h-[190px]">
         <!-- Horizontal Guide Lines with Y-Axis Tick Skeletons -->
         <div class="w-full flex items-center gap-2">
@@ -284,40 +410,10 @@ const option = computed(() => {
           <div class="flex-1 border-b border-slate-200 dark:border-slate-800"></div>
         </div>
 
-        <!-- Animated Shimmer Wave Curves (SVG) -->
-        <svg class="absolute inset-0 w-full h-full pointer-events-none opacity-30 dark:opacity-20 pl-2" viewBox="0 0 600 200" preserveAspectRatio="none">
-          <!-- Wave 1 (Emerald Wave) -->
-          <path 
-            d="M 0,140 Q 90,50 180,100 T 360,70 T 500,120 T 600,60" 
-            fill="none" 
-            stroke="#10b981" 
-            stroke-width="3.5" 
-            stroke-linecap="round"
-            stroke-dasharray="8 4"
-          />
-          <!-- Wave 2 (Blue Wave) -->
-          <path 
-            d="M 0,100 Q 120,160 240,80 T 420,130 T 600,90" 
-            fill="none" 
-            stroke="#3b82f6" 
-            stroke-width="3" 
-            stroke-linecap="round"
-          />
-          <!-- Wave 3 (Purple Wave) -->
-          <path 
-            d="M 0,160 Q 150,110 300,140 T 480,90 T 600,120" 
-            fill="none" 
-            stroke="#8b5cf6" 
-            stroke-width="2.5" 
-            stroke-linecap="round"
-            stroke-dasharray="4 4"
-          />
-        </svg>
-
         <!-- Centered Floating Frosted Loader Pill -->
         <div class="absolute inset-0 flex items-center justify-center">
-          <div class="px-4 py-2 rounded-xl bg-white/95 dark:bg-slate-900/95 border border-slate-200 dark:border-slate-700 shadow-lg flex items-center gap-2.5 text-xs sm:text-sm font-bold text-foreground">
-            <svg class="animate-spin h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <div class="px-4 py-2 rounded-xl bg-white/95 dark:bg-slate-900/95 border border-slate-200 dark:border-slate-700 shadow-sm flex items-center gap-2.5 text-xs sm:text-sm font-semibold text-foreground">
+            <svg class="animate-spin h-4 w-4 text-primary shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
@@ -329,11 +425,11 @@ const option = computed(() => {
       <!-- 3. Bottom X-Axis Time Pill Skeletons & DataZoom Bar -->
       <div class="space-y-2 pt-0.5">
         <div class="flex justify-between items-center px-2">
-          <div class="h-2.5 w-14 sm:w-16 rounded bg-slate-200 dark:bg-slate-800"></div>
-          <div class="h-2.5 w-14 sm:w-16 rounded bg-slate-200 dark:bg-slate-800"></div>
-          <div class="h-2.5 w-14 sm:w-16 rounded bg-slate-200 dark:bg-slate-800"></div>
-          <div class="h-2.5 w-14 sm:w-16 rounded bg-slate-200 dark:bg-slate-800"></div>
-          <div class="h-2.5 w-14 sm:w-16 rounded bg-slate-200 dark:bg-slate-800"></div>
+          <div class="h-2.5 w-14 sm:w-16 rounded bg-slate-200 dark:bg-slate-700 animate-pulse"></div>
+          <div class="h-2.5 w-14 sm:w-16 rounded bg-slate-200 dark:bg-slate-700 animate-pulse"></div>
+          <div class="h-2.5 w-14 sm:w-16 rounded bg-slate-200 dark:bg-slate-700 animate-pulse"></div>
+          <div class="h-2.5 w-14 sm:w-16 rounded bg-slate-200 dark:bg-slate-700 animate-pulse"></div>
+          <div class="h-2.5 w-14 sm:w-16 rounded bg-slate-200 dark:bg-slate-700 animate-pulse"></div>
         </div>
         <!-- DataZoom Slider Bar Skeleton -->
         <div class="h-3 w-full rounded-md bg-slate-100 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/60"></div>
@@ -352,6 +448,7 @@ const option = computed(() => {
       class="w-full h-full flex-1" 
       style="height: 100%; width: 100%; min-height: 280px;" 
       :option="option" 
+      :update-options="{ notMerge: true }"
       autoresize 
       @ready="patchChartZoom"
     />

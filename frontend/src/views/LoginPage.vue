@@ -1,20 +1,44 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useMutation } from '@tanstack/vue-query'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Eye, EyeOff } from 'lucide-vue-next'
+import { Eye, EyeOff, User, ArrowRight, ShieldCheck, Check } from 'lucide-vue-next'
 
 const username = ref('')
 const password = ref('')
+const rememberMe = ref(false) // Default unchecked
 const errorMsg = ref('')
 const showPassword = ref(false)
+const hasRememberedAccount = ref(false)
+const savedUsername = ref('')
+const showManualForm = ref(false)
 
 const router = useRouter()
 const authStore = useAuthStore()
+
+onMounted(() => {
+  const rememberedToken = localStorage.getItem('gconnect_remembered_token')
+  const savedUser = localStorage.getItem('gconnect_saved_username')
+  
+  if (rememberedToken) {
+    hasRememberedAccount.value = true
+    savedUsername.value = savedUser || 'Administrator'
+  } else if (savedUser) {
+    username.value = savedUser
+  }
+})
+
+const handleQuickBypass = () => {
+  const success = authStore.quickLogin()
+  if (!success) {
+    hasRememberedAccount.value = false
+    showManualForm.value = true
+  }
+}
 
 const loginMutation = useMutation({
   mutationFn: async () => {
@@ -35,7 +59,7 @@ const loginMutation = useMutation({
     return response.json()
   },
   onSuccess: (data) => {
-    authStore.setToken(data.access_token)
+    authStore.setToken(data.access_token, rememberMe.value, username.value)
     router.push('/dashboard')
   },
   onError: (err: any) => {
@@ -80,18 +104,51 @@ const handleLogin = () => {
         <!-- Divider -->
         <div class="border-t border-border/50"></div>
 
-        <!-- Form -->
-        <div class="space-y-4">
+        <!-- Quick Login / Bypass Card for Remembered User -->
+        <div v-if="hasRememberedAccount && !showManualForm" class="space-y-4 animate-slide-up-in">
+          <div class="p-4 rounded-2xl bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/30 flex items-center gap-3.5 shadow-sm">
+            <div class="w-12 h-12 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0 shadow-inner">
+              <User class="w-6 h-6" />
+            </div>
+            <div class="min-w-0 flex-1">
+              <span class="text-xs font-semibold text-emerald-700 dark:text-emerald-300">Akun Tersimpan</span>
+              <p class="text-sm sm:text-base font-extrabold text-foreground truncate mt-0.5">{{ savedUsername }}</p>
+            </div>
+          </div>
+
+          <Button
+            type="button"
+            class="w-full h-11 font-bold text-sm bg-emerald-600 hover:bg-emerald-700 text-white shadow-md cursor-pointer gap-2 active:scale-[0.99] transition-all rounded-xl"
+            @click="handleQuickBypass"
+          >
+            <span>Masuk Cepat</span>
+            <ArrowRight class="w-4 h-4" />
+          </Button>
+
+          <div class="text-center pt-2">
+            <button
+              type="button"
+              @click="showManualForm = true"
+              class="text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+            >
+              Gunakan Akun Lain / Masuk Manual &rarr;
+            </button>
+          </div>
+        </div>
+
+        <!-- Form (Using semantic form so browser password manager natively prompts to save credentials) -->
+        <form v-else @submit.prevent="handleLogin" class="space-y-4 animate-slide-up-in">
           <div class="space-y-1.5">
             <Label for="username" class="text-sm font-medium">Username</Label>
             <Input
               id="username"
+              name="username"
               v-model="username"
               type="text"
               autocomplete="username"
               placeholder="e.g. gconnect"
               class="h-10 bg-background/50"
-              @keyup.enter="handleLogin"
+              required
             />
           </div>
 
@@ -100,21 +157,57 @@ const handleLogin = () => {
             <div class="relative">
               <Input
                 id="password"
+                name="password"
                 v-model="password"
                 :type="showPassword ? 'text' : 'password'"
                 autocomplete="current-password"
                 placeholder="••••••••"
-                @keyup.enter="handleLogin"
                 class="pr-10 h-10 bg-background/50 hide-password-eye"
+                required
               />
               <button
                 type="button"
                 @click="showPassword = !showPassword"
                 class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                tabindex="-1"
               >
                 <component :is="showPassword ? EyeOff : Eye" class="w-4 h-4" />
               </button>
             </div>
+          </div>
+
+          <!-- Remember Me Checkbox (Custom Interactive Pill) -->
+          <div class="flex items-center justify-between pt-0.5 pb-1 select-none">
+            <button
+              type="button"
+              @click="rememberMe = !rememberMe"
+              class="flex items-center gap-2.5 cursor-pointer group text-left focus:outline-none"
+            >
+              <!-- Custom Checkbox Box -->
+              <div 
+                class="w-4.5 h-4.5 rounded-md border flex items-center justify-center transition-all duration-200 shadow-2xs"
+                :class="rememberMe 
+                  ? 'bg-primary border-primary text-primary-foreground shadow-sm shadow-primary/20 scale-105' 
+                  : 'bg-background border-input hover:border-primary/60 group-hover:border-foreground/50'"
+              >
+                <Check v-if="rememberMe" class="w-3.5 h-3.5 stroke-[3]" />
+              </div>
+              <span 
+                class="text-xs sm:text-sm font-medium transition-colors"
+                :class="rememberMe ? 'text-foreground font-semibold' : 'text-muted-foreground group-hover:text-foreground'"
+              >
+                Ingat saya
+              </span>
+            </button>
+
+            <button
+              v-if="hasRememberedAccount"
+              type="button"
+              @click="showManualForm = false"
+              class="text-xs text-primary hover:underline font-semibold cursor-pointer"
+            >
+              &larr; Masuk Cepat
+            </button>
           </div>
 
           <!-- Error -->
@@ -125,8 +218,8 @@ const handleLogin = () => {
 
           <!-- Submit -->
           <Button
-            class="w-full h-10 mt-2 font-semibold"
-            @click="handleLogin"
+            type="submit"
+            class="w-full h-10 mt-2 font-semibold cursor-pointer shadow-sm active:scale-[0.99] transition-all"
             :disabled="loginMutation.isPending.value"
           >
             <span v-if="loginMutation.isPending.value" class="flex items-center gap-2">
@@ -135,7 +228,7 @@ const handleLogin = () => {
             </span>
             <span v-else>Sign In</span>
           </Button>
-        </div>
+        </form>
 
       </div>
 

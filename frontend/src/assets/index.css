@@ -197,3 +197,13 @@
 .dark .bg-agro-canvas {
   background-color: #060B09;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   TACTILE ANALOG GRAIN / NOISE TEXTURE OVERLAY
+   ═══════════════════════════════════════════════════════════════ */
+.bg-grain-texture {
+  background-image: url("/noise.png?v=8");
+  background-repeat: repeat;
+}
+
+

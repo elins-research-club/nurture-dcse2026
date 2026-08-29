@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { Card, CardContent } from '@/components/ui/card'
+import { DotPattern } from '@/components/ui/dot-pattern'
 import { 
   Droplet, Thermometer, Sun, Beaker, Battery, 
-  Check, ArrowDownRight, ArrowUpRight
+  Check, ArrowDownRight, ArrowUpRight, Activity
 } from 'lucide-vue-next'
-import { formatValue } from '@/lib/utils'
 
 const props = withDefaults(defineProps<{
   title: string
@@ -20,20 +19,7 @@ const props = withDefaults(defineProps<{
   size: 'default',
 })
 
-const iconMap = {
-  temperature: Thermometer,
-  humidity: Droplet,
-  soil: Droplet,
-  ph: Beaker,
-  npk: Beaker,
-  light: Sun,
-  battery: Battery
-}
-
-const Icon = computed(() => iconMap[props.type] || Beaker)
-const isLg = computed(() => props.size === 'lg')
-
-// Determine threshold status (Rendah: Soft Sky Blue / Ideal: Soft Mint Emerald / Tinggi: Soft Rose Coral)
+// Determine threshold status (Rendah / Ideal / Tinggi) for the capsule badge
 const thresholdStatus = computed(() => {
   if (props.value === null || props.value === undefined) return null
 
@@ -55,7 +41,6 @@ const thresholdStatus = computed(() => {
     }
   }
 
-  // Only calculate threshold for sensors with defined min/max or NPK
   if (min == null && max == null) return null
 
   const val = Number(props.value)
@@ -65,48 +50,145 @@ const thresholdStatus = computed(() => {
     return {
       status: 'low',
       label: 'Rendah',
-      icon: ArrowDownRight,
-      // Bright Vibrant Sky Blue gradient
-      gradient: 'linear-gradient(135deg, #38BDF8 0%, #0EA5E9 45%, #0284C7 100%)',
-      shadowClass: 'shadow-md shadow-sky-400/20 hover:shadow-lg hover:shadow-sky-400/30'
+      icon: ArrowDownRight
     }
   }
   if (max != null && val > max) {
     return {
       status: 'high',
       label: 'Tinggi',
-      icon: ArrowUpRight,
-      // Bright Vibrant Coral Rose gradient
-      gradient: 'linear-gradient(135deg, #FB7185 0%, #F43F5E 45%, #E11D48 100%)',
-      shadowClass: 'shadow-md shadow-rose-400/20 hover:shadow-lg hover:shadow-rose-400/30'
+      icon: ArrowUpRight
     }
   }
   return {
     status: 'ideal',
     label: 'Ideal',
-    icon: Check,
-    // Bright & Fresh Emerald Green gradient
+    icon: Check
+  }
+})
+
+// Semantic gradient based on status, fallback to identity
+const semanticTheme = computed(() => {
+  const status = thresholdStatus.value?.status
+
+  if (status === 'low') {
+    return {
+      gradient: 'linear-gradient(135deg, #F59E0B 0%, #D97706 45%, #B45309 100%)', // Amber
+      shadowClass: 'shadow-md shadow-amber-500/20 hover:shadow-lg hover:shadow-amber-500/30'
+    }
+  }
+
+  if (status === 'high') {
+    return {
+      gradient: 'linear-gradient(135deg, #EF4444 0%, #DC2626 45%, #B91C1C 100%)', // Red
+      shadowClass: 'shadow-md shadow-red-500/20 hover:shadow-lg hover:shadow-red-500/30'
+    }
+  }
+
+  if (status === 'ideal') {
+    return {
+      gradient: 'linear-gradient(135deg, #00B200 0%, #008A00 45%, #006400 100%)', // Ideal Green
+      shadowClass: 'shadow-md shadow-[#00b200]/20 hover:shadow-lg hover:shadow-[#00b200]/30'
+    }
+  }
+
+  const t = (props.title || '').toLowerCase()
+  const type = (props.type || '').toLowerCase()
+
+  // 1. Nitrogen (N) -> Emerald Green
+  if (t.includes('nitrogen') || t.includes('nitrat') || t === 'n') {
+    return {
+      gradient: 'linear-gradient(135deg, #34D399 0%, #10B981 45%, #059669 100%)',
+      shadowClass: 'shadow-md shadow-emerald-400/20 hover:shadow-lg hover:shadow-emerald-400/30'
+    }
+  }
+
+  // 2. Phosphorus (P) -> Ocean Blue
+  if (t.includes('phosphorus') || t.includes('fosfor') || t === 'p') {
+    return {
+      gradient: 'linear-gradient(135deg, #60A5FA 0%, #3B82F6 45%, #1D4ED8 100%)',
+      shadowClass: 'shadow-md shadow-blue-400/20 hover:shadow-lg hover:shadow-blue-400/30'
+    }
+  }
+
+  // 3. Potassium (K) -> Royal Purple
+  if (t.includes('potassium') || t.includes('kalium') || t === 'k') {
+    return {
+      gradient: 'linear-gradient(135deg, #A78BFA 0%, #8B5CF6 45%, #6D28D9 100%)',
+      shadowClass: 'shadow-md shadow-purple-400/20 hover:shadow-lg hover:shadow-purple-400/30'
+    }
+  }
+
+  // 4. pH -> Amber / Gold
+  if (t.includes('ph') || type === 'ph') {
+    return {
+      gradient: 'linear-gradient(135deg, #FBBF24 0%, #F59E0B 45%, #D97706 100%)',
+      shadowClass: 'shadow-md shadow-amber-400/20 hover:shadow-lg hover:shadow-amber-400/30'
+    }
+  }
+
+  // 5. Suhu / Temperature -> Warm Rose / Orange
+  if (t.includes('suhu') || t.includes('temp') || type === 'temperature') {
+    return {
+      gradient: 'linear-gradient(135deg, #FB923C 0%, #F43F5E 45%, #E11D48 100%)',
+      shadowClass: 'shadow-md shadow-rose-400/20 hover:shadow-lg hover:shadow-rose-400/30'
+    }
+  }
+
+  // 6. Kelembaban / Moisture -> Cyan / Sky Blue
+  if (t.includes('kelembaban') || t.includes('lembab') || t.includes('moisture') || type === 'humidity' || type === 'soil') {
+    return {
+      gradient: 'linear-gradient(135deg, #38BDF8 0%, #0EA5E9 45%, #0284C7 100%)',
+      shadowClass: 'shadow-md shadow-sky-400/20 hover:shadow-lg hover:shadow-sky-400/30'
+    }
+  }
+
+  // 7. EC -> Lime / Emerald
+  if (t.includes('ec') || t.includes('daya hantar')) {
+    return {
+      gradient: 'linear-gradient(135deg, #A3E635 0%, #84CC16 45%, #4D7C0F 100%)',
+      shadowClass: 'shadow-md shadow-lime-400/20 hover:shadow-lg hover:shadow-lime-400/30'
+    }
+  }
+
+  if (props.accentGradient) {
+    return {
+      gradient: props.accentGradient,
+      shadowClass: 'shadow-md shadow-primary/20'
+    }
+  }
+
+  return {
     gradient: 'linear-gradient(135deg, #34D399 0%, #10B981 45%, #059669 100%)',
-    shadowClass: 'shadow-md shadow-emerald-400/20 hover:shadow-lg hover:shadow-emerald-400/30'
+    shadowClass: 'shadow-md shadow-emerald-400/20'
   }
 })
 </script>
 
 <template>
-  <!-- Full Soft Gradient Card when Threshold Status is Active (NPK / Threshold Sensors) -->
+  <!-- Full Semantic Gradient Card with High Polish & Visual Identity -->
   <div 
-    v-if="thresholdStatus"
     :class="[
-      'relative overflow-hidden rounded-2xl p-4 transition-all duration-300 select-none text-white border-0 shadow-none',
-      thresholdStatus.shadowClass
+      'relative overflow-hidden rounded-2xl p-4 transition-all duration-300 select-none text-white border-0 shadow-[inset_0_1px_1.5px_rgba(255,255,255,0.45),0_3px_12px_-2px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 hover:shadow-[inset_0_1px_1.5px_rgba(255,255,255,0.65),0_8px_24px_-4px_rgba(0,0,0,0.15)] cursor-default',
+      semanticTheme.shadowClass
     ]"
-    :style="{ background: thresholdStatus.gradient }"
+    :style="{ background: semanticTheme.gradient }"
   >
     <!-- Soft Glass Inner Glow / Lighting Reflection -->
     <div 
       class="absolute inset-0 pointer-events-none opacity-20"
       style="background: radial-gradient(circle at 85% 15%, rgba(255, 255, 255, 0.4) 0%, transparent 60%);"
     ></div>
+
+    <!-- Inspira UI DotPattern Texture Overlay -->
+    <DotPattern 
+      :width="12" 
+      :height="12" 
+      :cx="1" 
+      :cy="1" 
+      :cr="1" 
+      class="text-white/20" 
+    />
     
     <div class="flex items-center justify-between relative z-10">
       <div>
@@ -120,40 +202,13 @@ const thresholdStatus = computed(() => {
       </div>
 
       <!-- Bright Frosted Glass Status Capsule -->
-      <div class="px-3.5 py-1.5 rounded-full bg-white/30 hover:bg-white/35 backdrop-blur-md text-white flex items-center gap-1.5 text-xs sm:text-sm font-bold shrink-0 border border-white/50 shadow-sm">
+      <div 
+        v-if="thresholdStatus"
+        class="px-3.5 py-1.5 rounded-full bg-white/25 hover:bg-white/30 backdrop-blur-md text-white flex items-center gap-1.5 text-xs sm:text-sm font-bold shrink-0 border border-white/40 shadow-sm"
+      >
         <component :is="thresholdStatus.icon" class="w-4 h-4 stroke-[2.5] text-white" />
         <span class="tracking-wide">{{ thresholdStatus.label }}</span>
       </div>
     </div>
   </div>
-
-  <!-- Standard Clean Card (Fallback for Non-Threshold Generic Sensors) -->
-  <Card 
-    v-else
-    class="relative overflow-hidden group transition-all duration-200 shadow-none border border-border/80 bg-white dark:bg-card"
-  >
-    <CardContent :class="['flex items-center justify-between relative z-10', isLg ? 'p-5' : 'p-4']">
-      <div>
-        <p :class="['font-medium text-muted-foreground group-hover:text-foreground/80 transition-colors', isLg ? 'text-base' : 'text-sm sm:text-base']">{{ title }}</p>
-        <div class="flex items-baseline gap-1 mt-1">
-          <h3 :class="[
-            'font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-br from-foreground to-foreground/70',
-            isLg ? 'text-4xl' : 'text-3xl'
-          ]">
-            {{ value !== null && value !== undefined ? value : '--' }}
-          </h3>
-          <span :class="['text-muted-foreground font-medium ml-1', isLg ? 'text-base' : 'text-sm']">{{ unit }}</span>
-        </div>
-      </div>
-
-      <div 
-        :class="[
-          'rounded-xl flex items-center justify-center transition-all duration-300 group-hover:scale-105 bg-slate-50 dark:bg-slate-900/50 border border-border/50', 
-          isLg ? 'w-14 h-14' : 'w-11 h-11'
-        ]"
-      >
-        <component :is="Icon" :class="['drop-shadow-sm transition-transform group-hover:rotate-6 text-primary', isLg ? 'w-7 h-7' : 'w-5.5 h-5.5']" />
-      </div>
-    </CardContent>
-  </Card>
 </template>
