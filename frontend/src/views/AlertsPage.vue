@@ -7,8 +7,6 @@ import { useEventLogs, type EventLog } from '@/composables/useEventLogs'
 import { useAuthStore } from '@/stores/auth'
 import ExcelIcon from '@/components/icons/ExcelIcon.vue'
 import PdfIcon from '@/components/icons/PdfIcon.vue'
-import jsPDF from 'jspdf'
-import autoTable from 'jspdf-autotable'
 import { 
   Info, AlertTriangle, XCircle, Clock, ChevronLeft, ChevronRight, 
   ChevronsLeft, ChevronsRight, RefreshCw, Loader2, ScrollText
@@ -178,6 +176,11 @@ const exportToPDF = async () => {
       alert('Tidak ada data log untuk diekspor ke PDF.')
       return
     }
+
+    const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+      import('jspdf'),
+      import('jspdf-autotable')
+    ])
 
     const doc = new jsPDF({
       orientation: 'portrait',

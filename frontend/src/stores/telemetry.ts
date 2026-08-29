@@ -213,6 +213,34 @@ export const useTelemetryStore = defineStore("telemetry", () => {
 
   let ws: WebSocket | null = null;
   let reconnectTimer: any = null;
+  let reconnectAttempts = 0;
+  const maxReconnectDelay = 30000;
+
+  // Batching & RAF Throttling for Realtime WebSocket Telemetry Stream
+  let pendingFeeds: Record<string, any> = {};
+  let rafId: number | null = null;
+
+  const flushPendingUpdates = () => {
+    rafId = null;
+    for (const [nodeId, newFeed] of Object.entries(pendingFeeds)) {
+      const current = telemetryHistory.value[nodeId]
+        ? [...telemetryHistory.value[nodeId]]
+        : [];
+      current.unshift(newFeed);
+      // Retain live window stream (up to 500 recent points)
+      telemetryHistory.value[nodeId] = current.slice(0, 500);
+      cekAmbang(nodeId, newFeed);
+    }
+    pendingFeeds = {};
+  };
+
+  const scheduleReconnect = () => {
+    if (reconnectTimer) clearTimeout(reconnectTimer);
+    // Exponential backoff: 1.5s, 2.25s, 3.3s, ... max 30s + random jitter 0-500ms
+    const delay = Math.min(1500 * Math.pow(1.5, reconnectAttempts), maxReconnectDelay) + Math.random() * 500;
+    reconnectAttempts++;
+    reconnectTimer = setTimeout(connectWebSocket, delay);
+  };
 
   const connectWebSocket = () => {
     if (ws) return;
@@ -227,6 +255,7 @@ export const useTelemetryStore = defineStore("telemetry", () => {
 
       ws.onopen = () => {
         isConnected.value = true;
+        reconnectAttempts = 0;
         console.log("[TelemetryStore] WebSocket connected");
       };
 
@@ -236,9 +265,9 @@ export const useTelemetryStore = defineStore("telemetry", () => {
           if (msg?.event === "sensor_update" && msg.node_id) {
             const nodeId = msg.node_id;
             const current = telemetryHistory.value[nodeId]
-              ? [...telemetryHistory.value[nodeId]]
+              ? telemetryHistory.value[nodeId]
               : [];
-            const previousFeed = current[0] || {};
+            const previousFeed = pendingFeeds[nodeId] || current[0] || {};
 
             // Merge multi-channel fields so fields from channel 1 and channel 2 never erase each other
             const newFeed = {
@@ -247,11 +276,16 @@ export const useTelemetryStore = defineStore("telemetry", () => {
               created_at: msg.created_at || new Date().toISOString(),
             };
 
-            current.unshift(newFeed);
-            // Retain live window stream (up to 500 recent points)
-            telemetryHistory.value[nodeId] = current.slice(0, 500);
+            pendingFeeds[nodeId] = newFeed;
 
-            cekAmbang(nodeId, newFeed);
+            // Batch reactive update into next browser animation frame (60 FPS smooth rendering)
+            if (!rafId) {
+              if (typeof requestAnimationFrame !== "undefined") {
+                rafId = requestAnimationFrame(flushPendingUpdates);
+              } else {
+                flushPendingUpdates();
+              }
+            }
           }
         } catch (e) {
           console.error("[TelemetryStore] Failed to parse message", e);
@@ -261,7 +295,7 @@ export const useTelemetryStore = defineStore("telemetry", () => {
       ws.onclose = () => {
         isConnected.value = false;
         ws = null;
-        reconnectTimer = setTimeout(connectWebSocket, 3000);
+        scheduleReconnect();
       };
 
       ws.onerror = (err) => {
@@ -269,16 +303,22 @@ export const useTelemetryStore = defineStore("telemetry", () => {
       };
     } catch (err) {
       console.error("[TelemetryStore] Failed to init WebSocket", err);
+      scheduleReconnect();
     }
   };
 
   const disconnectWebSocket = () => {
     if (reconnectTimer) clearTimeout(reconnectTimer);
+    if (rafId && typeof cancelAnimationFrame !== "undefined") {
+      cancelAnimationFrame(rafId);
+      rafId = null;
+    }
     if (ws) {
       ws.close();
       ws = null;
     }
     isConnected.value = false;
+    pendingFeeds = {};
   };
 
   const fetchSensors = async (nodeId: string) => {

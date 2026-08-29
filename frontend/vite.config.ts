@@ -13,6 +13,29 @@ export default defineConfig({
       "@": path.resolve(import.meta.dirname, "./src"),
     },
   },
+  build: {
+    chunkSizeWarningLimit: 700,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('echarts') || id.includes('zrender') || id.includes('vue-echarts')) {
+              return 'vendor-echarts'
+            }
+            if (id.includes('leaflet')) {
+              return 'vendor-leaflet'
+            }
+            if (id.includes('lucide-vue-next')) {
+              return 'vendor-icons'
+            }
+            if (id.includes('vue') || id.includes('pinia') || id.includes('@tanstack/vue-query')) {
+              return 'vendor-core'
+            }
+          }
+        }
+      }
+    }
+  },
   server: {
     host: true,
     allowedHosts: [

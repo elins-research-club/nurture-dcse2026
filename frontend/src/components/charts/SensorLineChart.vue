@@ -171,6 +171,7 @@ const option = computed(() => {
     return {
       name: `${sensor.name} (${sensor.unit || ''})`.trim(),
       type: 'line',
+      sampling: 'lttb',
       smooth: 0.28,
       showSymbol: feeds.length < 35,
       symbol: 'circle',
