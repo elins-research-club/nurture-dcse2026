@@ -61,6 +61,10 @@ watch(() => authStore.token, (token) => {
 
 <template>
   <div class="min-h-screen bg-background text-foreground flex flex-col font-sans antialiased">
-    <RouterView />
+    <RouterView v-slot="{ Component, route }">
+      <Transition name="page" mode="out-in">
+        <component :is="Component" :key="route.name || route.path" />
+      </Transition>
+    </RouterView>
   </div>
 </template>

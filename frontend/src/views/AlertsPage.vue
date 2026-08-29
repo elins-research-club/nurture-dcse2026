@@ -100,10 +100,13 @@ const fetchExportLogs = async (): Promise<EventLog[]> => {
     params.set('level', selectedLevel.value)
   }
 
+  const headers: Record<string, string> = {}
+  if (authStore.token) {
+    headers['Authorization'] = `Bearer ${authStore.token}`
+  }
+
   const response = await fetch(`/api/v1/event-logs/?${params.toString()}`, {
-    headers: {
-      'Authorization': `Bearer ${authStore.token}`
-    }
+    headers
   })
 
   if (!response.ok) {
