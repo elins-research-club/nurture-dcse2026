@@ -102,7 +102,7 @@ G-CONNECT2026/
 
 | Layer | Teknologi |
 |---|---|
-| **Frontend** | Vue 3, TypeScript, Vite, TailwindCSS v4, Apache ECharts (`vue-echarts`), Leaflet, Pinia, TanStack Query, Lucide Icons |
+| **Frontend** | Vue 3, TypeScript, Vite, TailwindCSS v4, shadcn/ui, Radix UI, Apache ECharts (`vue-echarts`), Leaflet, Pinia, TanStack Query, Lucide Icons |
 | **Backend** | FastAPI, Python 3.11, SQLAlchemy (async), Pydantic v2, Uvicorn |
 | **Database** | PostgreSQL 15 |
 | **IoT Data Source** | ThingSpeak API (Dual-Channel Merging + Forward-Fill + Aggregation) |
@@ -330,6 +330,11 @@ POST /api/v1/nodes/NODE-01/sensors/
 ---
 
 ## 🌟 Fitur Unggulan Sistem
+
+### 🎨 UI/UX Modern, Reaktif & Semantik
+* **Desain Berbasis Komponen:** Migrasi penuh menggunakan **Tailwind CSS v4** dan **shadcn/ui** (Radix UI) untuk tampilan yang bersih, modern, dan _highly-customizable_.
+* **Semantic Status Cards:** Background warna kartu sensor NPK dan IoT beradaptasi secara dinamis (_Hijau Ideal, Merah Tinggi, Kuning Rendah_) sesuai dengan evaluasi algoritma ambang batas agronomi secara *real-time*.
+* **Micro-Interactions:** Efek _hover lifting_, _glassmorphism_, _soft shadows_, dan transisi halus meningkatkan kedalaman dan estetika antarmuka dashboard.
 
 ### 📈 Sistem Grafik Telemetri Cerdas & Agregasi
 * **Category Pills Navigation:** Pemisahan visualisasi ke dalam 4 kategori parameter (**Unsur Hara NPK**, **Kondisi Tanah**, **Lingkungan & Iklim**, dan **Semua Sensor**) agar skala sumbu Y presisi dan grafik tidak saling tumpuk.
