@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { LayoutDashboard, Network, Settings, LogOut, ChevronLeft, ChevronRight, Bell, MapPin, BookmarkCheck, Trash2 } from 'lucide-vue-next'
+import { LayoutDashboard, Network, Settings, LogOut, ChevronLeft, ChevronRight, ScrollText, MapPin, BookmarkCheck, Trash2 } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import {
   Dialog,
@@ -29,7 +29,7 @@ const navItems = [
   { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
   { name: 'Nodes', path: '/nodes', icon: Network },
   { name: 'Map', path: '/map', icon: MapPin },
-  { name: 'Alerts', path: '/alerts', icon: Bell },
+  { name: 'Logs & Ekspor Data', path: '/logs', icon: ScrollText },
   { name: 'Settings', path: '/settings', icon: Settings },
 ]
 
@@ -49,6 +49,7 @@ const handleFullLogout = () => {
 
 const isActive = (path: string) => {
   if (path === '/nodes' && route.path.startsWith('/nodes')) return true
+  if (path === '/logs' && (route.path.startsWith('/logs') || route.path.startsWith('/alerts'))) return true
   return route.path === path
 }
 </script>

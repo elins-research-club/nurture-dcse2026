@@ -38,10 +38,18 @@ const router = createRouter({
       meta: { requiresAuth: true }
     },
     {
-      path: '/alerts',
-      name: 'alerts',
+      path: '/logs',
+      name: 'logs',
       component: () => import('@/views/AlertsPage.vue'),
       meta: { requiresAuth: true }
+    },
+    {
+      path: '/alerts',
+      redirect: '/logs'
+    },
+    {
+      path: '/logs-export',
+      redirect: '/logs'
     },
     {
       path: '/map',
