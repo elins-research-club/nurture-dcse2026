@@ -12,7 +12,6 @@ import {
   MapPin, 
   Radio, 
   Check, 
-  Plus, 
   Layers, 
   CornerDownLeft, 
   ChevronDown
@@ -234,6 +233,7 @@ onUnmounted(() => {
             @click="closePalette"
           >
             <div 
+              data-lenis-prevent
               class="w-full max-w-xl rounded-2xl bg-white dark:bg-slate-900 border border-border/80 shadow-2xl overflow-hidden flex flex-col max-h-[80vh] animate-in zoom-in-95 duration-150"
               @click.stop
               @keydown="handleModalKeyDown"
@@ -258,7 +258,7 @@ onUnmounted(() => {
               </div>
 
               <!-- Node List Body -->
-              <div class="p-2 overflow-y-auto space-y-1 divide-y-0">
+              <div data-lenis-prevent class="p-2 overflow-y-auto space-y-1 divide-y-0">
                 <div class="px-2.5 py-1.5 flex items-center justify-between text-[10px] font-mono font-bold tracking-wider text-muted-foreground uppercase">
                   <span>Daftar Node Lapangan</span>
                   <span class="text-primary">{{ filteredNodes.length }} Stasiun</span>
@@ -324,7 +324,7 @@ onUnmounted(() => {
 
               <!-- Footer Guidance -->
               <div class="px-4 py-2.5 border-t border-border/80 bg-slate-50 dark:bg-slate-900/60 flex items-center justify-between text-xs text-muted-foreground">
-                <div class="hidden sm:flex items-center gap-3 text-[11px] font-mono">
+                <div class="flex items-center gap-3 text-[11px] font-mono">
                   <span class="flex items-center gap-1">
                     <kbd class="px-1 rounded bg-slate-200 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-[10px]">↑↓</kbd> Navigasi
                   </span>
@@ -335,15 +335,6 @@ onUnmounted(() => {
                     <kbd class="px-1 rounded bg-slate-200 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-[10px]">ESC</kbd> Tutup
                   </span>
                 </div>
-
-                <a 
-                  href="/nodes"
-                  @click="closePalette"
-                  class="font-bold text-primary hover:underline text-xs flex items-center gap-1 cursor-pointer ml-auto"
-                >
-                  <Plus class="w-3.5 h-3.5" />
-                  <span>Kelola Seluruh Node Lapangan</span>
-                </a>
               </div>
 
             </div>

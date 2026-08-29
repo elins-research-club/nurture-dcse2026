@@ -32,52 +32,64 @@ const isDarkMode = useDark({
 
 const vChartRef = ref<any>(null)
 
-// Calculate CSS zoom factor of parent container dynamically
-const getParentZoom = (el: HTMLElement | null): number => {
-  let curr: HTMLElement | null = el
-  while (curr) {
-    const style = window.getComputedStyle(curr)
-    const zoom = (style as any).zoom
-    if (zoom && parseFloat(zoom) && parseFloat(zoom) !== 1) {
-      return parseFloat(zoom)
-    }
-    curr = curr.parentElement
-  }
-  return 0.75
-}
-
-// Patch ZRender event handler to correct mouse coordinate scaling mismatch with CSS zoom
+// Precision calibrated coordinate patch for CSS zoom / high-DPI scaling
 const patchChartZoom = (chartInstance: any) => {
-  if (!chartInstance) return
-  const zr = chartInstance.getZr ? chartInstance.getZr() : null
-  if (!zr || !zr.handler || (zr.handler as any)._zoomPatched) return
+  const chart = chartInstance?.chart || (chartInstance?.getZr ? chartInstance : null) || vChartRef.value?.chart
+  if (!chart) return
+  const zr = chart.getZr ? chart.getZr() : null
+  if (!zr || !zr.handler) return
 
-  const originalTrigger = zr.handler.trigger.bind(zr.handler)
-  zr.handler.trigger = function (name: string, event: any) {
-    if (event) {
-      const zoom = getParentZoom(zr.dom) || 0.75
-      if (zoom !== 1) {
-        if (event.zrX != null && !event._zoomCorrected) {
-          event.zrX = event.zrX / zoom
-          event._zoomCorrected = true
-        }
-        if (event.zrY != null && !event._zoomYCorrected) {
-          event.zrY = event.zrY / zoom
-          event._zoomYCorrected = true
-        }
-        if (event.offsetX != null && !event._offsetCorrected) {
-          event.offsetX = event.offsetX / zoom
-          event._offsetCorrected = true
-        }
-        if (event.offsetY != null && !event._offsetYCorrected) {
-          event.offsetY = event.offsetY / zoom
-          event._offsetYCorrected = true
-        }
+  const handler = zr.handler
+
+  const fixEventCoords = (event: any) => {
+    if (!event || !zr.dom) return
+    const dom = zr.dom
+    const rect = dom.getBoundingClientRect()
+    // Calculate real pixel ratio between canvas client layout and viewport bounding box
+    const scaleX = rect.width > 0 ? dom.clientWidth / rect.width : 1
+    const scaleY = rect.height > 0 ? dom.clientHeight / rect.height : 1
+
+    // If there is any scale mismatch (e.g. CSS zoom: 0.75 where scaleX = 1.33333)
+    if (Math.abs(scaleX - 1) > 0.01 || Math.abs(scaleY - 1) > 0.01) {
+      if (event.clientX != null && rect.left != null) {
+        event.zrX = (event.clientX - rect.left) * scaleX
+        event.zrY = (event.clientY - rect.top) * scaleY
+      } else if (event.zrX != null) {
+        event.zrX = event.zrX * scaleX
+        event.zrY = event.zrY * scaleY
       }
     }
-    return originalTrigger(name, event)
   }
-  ;(zr.handler as any)._zoomPatched = true
+
+  const patchProxy = (proxy: any) => {
+    if (!proxy || proxy._zoomFixed) return
+    proxy._zoomFixed = true
+    const origTrigger = proxy.trigger.bind(proxy)
+    proxy.trigger = function (name: string, event: any) {
+      try {
+        fixEventCoords(event)
+      } catch (err) {
+        // Safe fallback
+      }
+      return origTrigger(name, event)
+    }
+  }
+
+  if (handler.proxy) {
+    patchProxy(handler.proxy)
+  }
+
+  if (!(handler as any)._zoomFixed) {
+    ;(handler as any)._zoomFixed = true
+
+    const origSetProxy = handler.setHandlerProxy ? handler.setHandlerProxy.bind(handler) : null
+    if (origSetProxy) {
+      handler.setHandlerProxy = function (proxy: any) {
+        origSetProxy(proxy)
+        patchProxy(proxy)
+      }
+    }
+  }
 }
 
 watch(
@@ -85,8 +97,7 @@ watch(
   (inst) => {
     if (!inst) return
     nextTick(() => {
-      const chart = inst.chart || (inst.getZr ? inst : null)
-      if (chart) patchChartZoom(chart)
+      patchChartZoom(inst)
     })
   },
   { immediate: true, flush: 'post' }
@@ -160,6 +171,7 @@ const option = computed(() => {
     return {
       name: `${sensor.name} (${sensor.unit || ''})`.trim(),
       type: 'line',
+      sampling: 'lttb',
       smooth: 0.28,
       showSymbol: feeds.length < 35,
       symbol: 'circle',
@@ -218,7 +230,7 @@ const option = computed(() => {
       padding: [10, 14],
       textStyle: { 
         color: '#f8fafc', 
-        fontSize: 12, 
+        fontSize: 16, 
         fontWeight: 500,
         fontFamily: "'Plus Jakarta Sans', sans-serif" 
       },
@@ -231,7 +243,7 @@ const option = computed(() => {
         },
         label: {
           backgroundColor: dark ? '#334155' : '#475569',
-          fontSize: 11,
+          fontSize: 15,
           fontWeight: 600,
           fontFamily: "'Plus Jakarta Sans', sans-serif",
           borderRadius: 6
@@ -244,21 +256,21 @@ const option = computed(() => {
       data: series.map(s => s.name),
       textStyle: { 
         color: dark ? '#94a3b8' : '#475569', 
-        fontSize: 12, 
+        fontSize: 16, 
         fontWeight: 600,
         fontFamily: "'Plus Jakarta Sans', sans-serif" 
       },
       pageIconColor: '#10b981',
       pageTextStyle: { 
         color: dark ? '#94a3b8' : '#475569', 
-        fontSize: 11,
+        fontSize: 15,
         fontFamily: "'Plus Jakarta Sans', sans-serif" 
       }
     },
     grid: {
       left: '1%',
       right: '2%',
-      top: 36,
+      top: 42,
       bottom: 34,
       containLabel: true
     },
@@ -273,7 +285,7 @@ const option = computed(() => {
       },
       axisLabel: { 
         color: dark ? '#94a3b8' : '#64748b', 
-        fontSize: 11, 
+        fontSize: 15, 
         fontWeight: 600,
         fontFamily: "'Plus Jakarta Sans', sans-serif" 
       }
@@ -289,7 +301,7 @@ const option = computed(() => {
       },
       axisLabel: { 
         color: dark ? '#94a3b8' : '#64748b', 
-        fontSize: 11, 
+        fontSize: 15, 
         fontWeight: 600,
         fontFamily: "'Plus Jakarta Sans', sans-serif" 
       }
@@ -362,7 +374,7 @@ const option = computed(() => {
 </script>
 
 <template>
-  <div class="relative w-full h-full min-h-[320px] flex-1 flex flex-col">
+  <div data-lenis-prevent class="relative w-full h-full min-h-[320px] flex-1 flex flex-col">
     <!-- ═══════════════════════════════════════════════════════════════ -->
     <!-- CLEAN MINIMAL SKELETON LOADER -->
     <!-- ═══════════════════════════════════════════════════════════════ -->

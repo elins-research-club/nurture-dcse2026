@@ -64,12 +64,19 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  const login = (newToken: string, userData?: any) => {
+    token.value = newToken
+    if (userData) user.value = userData
+    localStorage.setItem('token', newToken)
+  }
+
   return {
     token,
     user,
     isRemembered,
     savedUsername,
     setToken,
+    login,
     quickLogin,
     logout,
     isAuthenticated: () => !!token.value

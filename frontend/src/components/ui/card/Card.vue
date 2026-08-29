@@ -11,7 +11,7 @@ const props = defineProps<{
   <div
     :class="
       cn(
-        'rounded-2xl border border-border/80 bg-white dark:bg-card text-card-foreground shadow-[inset_0_1px_1px_rgba(255,255,255,0.9),0_2px_8px_-2px_rgba(0,0,0,0.04)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.06),0_2px_8px_-2px_rgba(0,0,0,0.3)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[inset_0_1px_1px_rgba(255,255,255,1),0_8px_24px_-4px_rgba(0,0,0,0.07)] dark:hover:shadow-[inset_0_1px_1px_rgba(255,255,255,0.1),0_8px_24px_-4px_rgba(0,0,0,0.4)]',
+        'rounded-2xl border border-white/80 dark:border-white/10 ring-1 ring-slate-900/5 dark:ring-white/5 bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl backdrop-saturate-150 text-card-foreground shadow-[inset_0_1.5px_0_0_rgba(255,255,255,1),inset_0_0_20px_0_rgba(255,255,255,0.35),0_6px_24px_-4px_rgba(15,23,42,0.07)] dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12),inset_0_0_20px_0_rgba(255,255,255,0.02),0_6px_24px_-4px_rgba(0,0,0,0.35)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[inset_0_1.5px_0_0_rgba(255,255,255,1),inset_0_0_24px_0_rgba(255,255,255,0.5),0_12px_32px_-4px_rgba(15,23,42,0.1)] dark:hover:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.18),0_12px_32px_-4px_rgba(0,0,0,0.45)]',
         props.class,
       )
     "

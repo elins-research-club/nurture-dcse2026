@@ -48,7 +48,9 @@ const categoryOptions = [
     desc: 'Nitrogen (N), Fosfor (P), Kalium (K)',
     icon: '/npk-icon.svg',
     isLucide: false,
-    activeColor: 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10'
+    iconColorClass: 'bg-emerald-600 dark:bg-emerald-400',
+    iconTextColorClass: 'text-emerald-600 dark:text-emerald-400',
+    wrapperClass: 'bg-emerald-500/10 dark:bg-emerald-500/15 border-emerald-500/20 dark:border-emerald-500/30'
   },
   {
     id: 'soil' as const,
@@ -57,7 +59,9 @@ const categoryOptions = [
     desc: 'pH Tanah, Multi-Probe Kelembapan, EC, Suhu',
     icon: '/soil-icon.svg',
     isLucide: false,
-    activeColor: 'text-amber-600 dark:text-amber-400 bg-amber-500/10'
+    iconColorClass: 'bg-amber-600 dark:bg-amber-400',
+    iconTextColorClass: 'text-amber-600 dark:text-amber-400',
+    wrapperClass: 'bg-amber-500/10 dark:bg-amber-500/15 border-amber-500/20 dark:border-amber-500/30'
   },
   {
     id: 'environment' as const,
@@ -66,7 +70,9 @@ const categoryOptions = [
     desc: 'Suhu Casing/Box, Kelembaban & Suhu Udara',
     icon: '/iot-icon.svg',
     isLucide: false,
-    activeColor: 'text-blue-600 dark:text-blue-400 bg-blue-500/10'
+    iconColorClass: 'bg-sky-600 dark:bg-sky-400',
+    iconTextColorClass: 'text-sky-600 dark:text-sky-400',
+    wrapperClass: 'bg-sky-500/10 dark:bg-sky-500/15 border-sky-500/20 dark:border-sky-500/30'
   },
   {
     id: 'all' as const,
@@ -75,7 +81,9 @@ const categoryOptions = [
     desc: 'Agregasi seluruh telemetri',
     icon: null,
     isLucide: true,
-    activeColor: 'text-primary bg-primary/10'
+    iconColorClass: 'bg-violet-600 dark:bg-violet-400',
+    iconTextColorClass: 'text-violet-600 dark:text-violet-400',
+    wrapperClass: 'bg-violet-500/10 dark:bg-violet-500/15 border-violet-500/20 dark:border-violet-500/30'
   }
 ]
 
@@ -434,96 +442,96 @@ const enclosureMaxVal = computed(() => {
 
 // Dynamic 3-State Semantic Card States (Rendah / Optimal / Tinggi) based on DB Thresholds
 const phCardState = computed(() => {
-  const v = getLiveVal(phMetric.value)
-  if (v == null) {
-    return { text: 'Netral', gradient: 'bg-gradient-to-br from-[#00b200] via-[#008a00] to-[#006400]', shadow: 'shadow-[#00b200]/20', isAlert: false }
-  }
-  const num = Number(v)
   const min = phMetric.value?.min_threshold ?? 5.8
   const max = phMetric.value?.max_threshold ?? 7.2
+  const v = getLiveVal(phMetric.value)
+  if (v == null) {
+    return { text: 'Netral', gradient: 'bg-gradient-to-br from-[#00b200] via-[#008a00] to-[#006400]', shadow: 'shadow-[#00b200]/20', isAlert: false, min, max }
+  }
+  const num = Number(v)
   if (num < min) {
-    return { text: 'Asam', gradient: 'bg-gradient-to-br from-orange-500 via-amber-600 to-rose-600', shadow: 'shadow-orange-500/25', isAlert: true }
+    return { text: 'Asam', gradient: 'bg-gradient-to-br from-orange-500 via-amber-600 to-rose-600', shadow: 'shadow-orange-500/25', isAlert: true, min, max }
   }
   if (num <= max) {
-    return { text: 'Optimal', gradient: 'bg-gradient-to-br from-[#00b200] via-[#008a00] to-[#006400]', shadow: 'shadow-[#00b200]/20', isAlert: false }
+    return { text: 'Optimal', gradient: 'bg-gradient-to-br from-[#00b200] via-[#008a00] to-[#006400]', shadow: 'shadow-[#00b200]/20', isAlert: false, min, max }
   }
-  return { text: 'Basa', gradient: 'bg-gradient-to-br from-indigo-500 via-purple-500 to-violet-600', shadow: 'shadow-purple-500/25', isAlert: true }
+  return { text: 'Basa', gradient: 'bg-gradient-to-br from-indigo-500 via-purple-500 to-violet-600', shadow: 'shadow-purple-500/25', isAlert: true, min, max }
 })
 const phStatus = computed(() => phCardState.value)
 
 // Dynamic Soil Temperature 3-State Card (Dingin: Biru Ice | Optimal: Hijau Emerald | Panas: Merah Rose Alert)
 const soilTempCardState = computed(() => {
-  const v = getLiveVal(soilTempMetric.value)
-  if (v == null) {
-    return { text: 'Optimal', gradient: 'bg-gradient-to-br from-[#00b200] via-[#008a00] to-[#006400]', shadow: 'shadow-[#00b200]/20', isAlert: false }
-  }
-  const num = Number(v)
   const min = soilTempMetric.value?.min_threshold ?? 18.0
   const max = soilTempMetric.value?.max_threshold ?? 32.0
+  const v = getLiveVal(soilTempMetric.value)
+  if (v == null) {
+    return { text: 'Optimal', gradient: 'bg-gradient-to-br from-[#00b200] via-[#008a00] to-[#006400]', shadow: 'shadow-[#00b200]/20', isAlert: false, min, max }
+  }
+  const num = Number(v)
   if (num < min) {
-    return { text: 'Dingin', gradient: 'bg-gradient-to-br from-cyan-500 via-sky-500 to-blue-600', shadow: 'shadow-sky-500/25', isAlert: true }
+    return { text: 'Dingin', gradient: 'bg-gradient-to-br from-cyan-500 via-sky-500 to-blue-600', shadow: 'shadow-sky-500/25', isAlert: true, min, max }
   }
   if (num <= max) {
-    return { text: 'Optimal', gradient: 'bg-gradient-to-br from-[#00b200] via-[#008a00] to-[#006400]', shadow: 'shadow-[#00b200]/20', isAlert: false }
+    return { text: 'Optimal', gradient: 'bg-gradient-to-br from-[#00b200] via-[#008a00] to-[#006400]', shadow: 'shadow-[#00b200]/20', isAlert: false, min, max }
   }
-  return { text: 'Panas', gradient: 'bg-gradient-to-br from-rose-500 via-red-600 to-rose-700 animate-pulse', shadow: 'shadow-rose-500/30', isAlert: true }
+  return { text: 'Panas', gradient: 'bg-gradient-to-br from-rose-500 via-red-600 to-rose-700 animate-pulse', shadow: 'shadow-rose-500/30', isAlert: true, min, max }
 })
 const soilTempStatus = computed(() => soilTempCardState.value)
 
 // Dynamic Soil EC 3-State Card (Rendah: Amber | Optimal: Lime/Emerald | Pekat: Merah Salin)
 const ecCardState = computed(() => {
-  const v = getLiveVal(ecMetric.value)
-  if (v == null) {
-    return { text: 'Optimal', gradient: 'bg-gradient-to-br from-lime-500 via-emerald-500 to-teal-600', shadow: 'shadow-lime-500/20', isAlert: false }
-  }
-  const num = Number(v)
   const min = ecMetric.value?.min_threshold ?? 600.0
   const max = ecMetric.value?.max_threshold ?? 1800.0
+  const v = getLiveVal(ecMetric.value)
+  if (v == null) {
+    return { text: 'Optimal', gradient: 'bg-gradient-to-br from-lime-500 via-emerald-500 to-teal-600', shadow: 'shadow-lime-500/20', isAlert: false, min, max }
+  }
+  const num = Number(v)
   if (num < min) {
-    return { text: 'Rendah', gradient: 'bg-gradient-to-br from-amber-400 via-amber-500 to-orange-500', shadow: 'shadow-amber-500/25', isAlert: true }
+    return { text: 'Rendah', gradient: 'bg-gradient-to-br from-amber-400 via-amber-500 to-orange-500', shadow: 'shadow-amber-500/25', isAlert: true, min, max }
   }
   if (num <= max) {
-    return { text: 'Optimal', gradient: 'bg-gradient-to-br from-lime-500 via-emerald-500 to-teal-600', shadow: 'shadow-lime-500/20', isAlert: false }
+    return { text: 'Optimal', gradient: 'bg-gradient-to-br from-lime-500 via-emerald-500 to-teal-600', shadow: 'shadow-lime-500/20', isAlert: false, min, max }
   }
-  return { text: 'Pekat', gradient: 'bg-gradient-to-br from-rose-500 via-red-600 to-rose-700 animate-pulse', shadow: 'shadow-rose-500/30', isAlert: true }
+  return { text: 'Pekat', gradient: 'bg-gradient-to-br from-rose-500 via-red-600 to-rose-700 animate-pulse', shadow: 'shadow-rose-500/30', isAlert: true, min, max }
 })
 const ecStatus = computed(() => ecCardState.value)
 
 // Dynamic Ambient Temperature 3-State Card (Sejuk: Biru Ice | Optimal: Hijau Emerald | Panas: Merah Rose Alert)
 const airTempCardState = computed(() => {
-  const v = getLiveVal(airTempMetric.value)
-  if (v == null) {
-    return { text: 'Optimal', gradient: 'bg-gradient-to-br from-[#00b200] via-[#008a00] to-[#006400]', shadow: 'shadow-[#00b200]/20', isAlert: false }
-  }
-  const num = Number(v)
   const min = airTempMetric.value?.min_threshold ?? 18.0
   const max = airTempMetric.value?.max_threshold ?? 34.0
+  const v = getLiveVal(airTempMetric.value)
+  if (v == null) {
+    return { text: 'Optimal', gradient: 'bg-gradient-to-br from-[#00b200] via-[#008a00] to-[#006400]', shadow: 'shadow-[#00b200]/20', isAlert: false, min, max }
+  }
+  const num = Number(v)
   if (num < min) {
-    return { text: 'Sejuk', gradient: 'bg-gradient-to-br from-cyan-500 via-sky-500 to-blue-600', shadow: 'shadow-sky-500/25', isAlert: true }
+    return { text: 'Sejuk', gradient: 'bg-gradient-to-br from-cyan-500 via-sky-500 to-blue-600', shadow: 'shadow-sky-500/25', isAlert: true, min, max }
   }
   if (num <= max) {
-    return { text: 'Optimal', gradient: 'bg-gradient-to-br from-[#00b200] via-[#008a00] to-[#006400]', shadow: 'shadow-[#00b200]/20', isAlert: false }
+    return { text: 'Optimal', gradient: 'bg-gradient-to-br from-[#00b200] via-[#008a00] to-[#006400]', shadow: 'shadow-[#00b200]/20', isAlert: false, min, max }
   }
-  return { text: 'Panas', gradient: 'bg-gradient-to-br from-rose-500 via-red-600 to-rose-700 animate-pulse', shadow: 'shadow-rose-500/30', isAlert: true }
+  return { text: 'Panas', gradient: 'bg-gradient-to-br from-rose-500 via-red-600 to-rose-700 animate-pulse', shadow: 'shadow-rose-500/30', isAlert: true, min, max }
 })
 const airTempStatus = computed(() => airTempCardState.value)
 
 // Dynamic Air Humidity 3-State Card (Kering: Amber | Optimal: Sky Blue | Tinggi: Deep Ocean)
 const humidityCardState = computed(() => {
-  const v = getLiveVal(humidityMetric.value)
-  if (v == null) {
-    return { text: 'Optimal', gradient: 'bg-gradient-to-br from-sky-400 via-cyan-500 to-blue-600', shadow: 'shadow-sky-500/20', isAlert: false }
-  }
-  const num = Number(v)
   const min = humidityMetric.value?.min_threshold ?? 45.0
   const max = humidityMetric.value?.max_threshold ?? 88.0
+  const v = getLiveVal(humidityMetric.value)
+  if (v == null) {
+    return { text: 'Optimal', gradient: 'bg-gradient-to-br from-sky-400 via-cyan-500 to-blue-600', shadow: 'shadow-sky-500/20', isAlert: false, min, max }
+  }
+  const num = Number(v)
   if (num < min) {
-    return { text: 'Kering', gradient: 'bg-gradient-to-br from-amber-400 via-orange-500 to-amber-600', shadow: 'shadow-amber-500/25', isAlert: true }
+    return { text: 'Kering', gradient: 'bg-gradient-to-br from-amber-400 via-orange-500 to-amber-600', shadow: 'shadow-amber-500/25', isAlert: true, min, max }
   }
   if (num <= max) {
-    return { text: 'Optimal', gradient: 'bg-gradient-to-br from-sky-400 via-cyan-500 to-blue-600', shadow: 'shadow-sky-500/20', isAlert: false }
+    return { text: 'Optimal', gradient: 'bg-gradient-to-br from-sky-400 via-cyan-500 to-blue-600', shadow: 'shadow-sky-500/20', isAlert: false, min, max }
   }
-  return { text: 'Tinggi', gradient: 'bg-gradient-to-br from-blue-600 via-indigo-600 to-slate-800', shadow: 'shadow-indigo-500/25', isAlert: true }
+  return { text: 'Tinggi', gradient: 'bg-gradient-to-br from-blue-600 via-indigo-600 to-slate-800', shadow: 'shadow-indigo-500/25', isAlert: true, min, max }
 })
 const humidityStatus = computed(() => humidityCardState.value)
 
@@ -709,9 +717,10 @@ const reportSensorStats = computed(() => {
     }
   })
 })
-
-// Dynamic Reactive Analytics Data based on selectedCategory & selectedRange
+// Dynamic Reactive Analytics Data based on selectedCategory & selectedRange
 const analyticsData = computed(() => {
+  // Explicitly reference latestTelemetry and telemetryHistory to guarantee real-time reactivity on WS messages
+  const liveFeed = latestTelemetry.value
   const feeds = chartData.value || []
   const catSensors = (activeCategorySensors.value || []).filter((s: any) => s.name !== 'Status aktuator')
   
@@ -731,12 +740,13 @@ const analyticsData = computed(() => {
     }
   }
 
-  // Calculate statistics per active sensor in current category
+  // Calculate statistics per active sensor in current category, merging live WS values
   const sensorStats = catSensors.map((s: any) => {
     const key = `${s.channel_id}_${s.thingspeak_field}`
     const rawVals = feeds.map((f: any) => parseFloat(f[key])).filter((v: number) => Number.isFinite(v))
+    const liveVal = getLiveVal(s)
     
-    if (!rawVals.length) {
+    if (!rawVals.length && liveVal == null) {
       return {
         id: s.id,
         name: s.name,
@@ -750,12 +760,12 @@ const analyticsData = computed(() => {
       }
     }
 
-    const current = rawVals.length ? Number(rawVals[rawVals.length - 1].toFixed(1)) : null
-    const min = rawVals.length ? Number(Math.min(...rawVals).toFixed(1)) : null
-    const max = rawVals.length ? Number(Math.max(...rawVals).toFixed(1)) : null
+    const current = liveVal != null ? Number(Number(liveVal).toFixed(1)) : (rawVals.length ? Number(rawVals[rawVals.length - 1].toFixed(1)) : null)
+    const min = rawVals.length ? Number(Math.min(...rawVals).toFixed(1)) : current
+    const max = rawVals.length ? Number(Math.max(...rawVals).toFixed(1)) : current
     const sum = rawVals.reduce((a: number, b: number) => a + b, 0)
-    const avg = rawVals.length ? Number((sum / rawVals.length).toFixed(1)) : null
-    const first = rawVals[0]
+    const avg = rawVals.length ? Number((sum / rawVals.length).toFixed(1)) : current
+    const first = rawVals.length ? rawVals[0] : current
     const delta = (current != null && first != null) ? Number((current - first).toFixed(1)) : 0
     const trend = delta > 0.3 ? 'up' : (delta < -0.3 ? 'down' : 'stable')
 
@@ -785,150 +795,154 @@ const analyticsData = computed(() => {
   const checkSoilMoisture = (n: string) => (n.includes('tanah') || n.includes('soil') || n.includes('probe')) && (n.includes('lembab') || n.includes('moist'))
   const checkAirHumidity = (n: string) => (n.includes('udara') || n.includes('air') || n.includes('ambient') || n.includes('humidity')) && !n.includes('tanah') && !n.includes('soil')
 
-  // Universal Sensor Anomaly & Threshold Evaluator
-  const anomalies: { sensor: any; severity: 'critical' | 'warning'; message: string }[] = []
+  // Real-time Active Anomalies & Historical Notes Evaluator
+  const activeAnomalies: { sensor: any; severity: 'critical' | 'warning'; message: string }[] = []
+  const historicalNotes: { sensor: any; message: string }[] = []
 
   sensorStats.forEach((stat: any) => {
     const s = catSensors.find((cs: any) => cs.id === stat.id) || stat
     const sName = (stat.name || '').toLowerCase()
-    const val = stat.current ?? stat.avg
+    const currentVal = stat.current
 
-    if (val == null) return
+    if (currentVal == null) return
 
-    // 1. Check Explicit Database Thresholds
-    if (s.max_threshold != null && stat.max != null && stat.max > s.max_threshold) {
-      const isExtreme = stat.max > s.max_threshold * 1.2
-      anomalies.push({
+    // 1. Check Active Real-Time Database Thresholds
+    if (s.max_threshold != null && currentVal > s.max_threshold) {
+      const isExtreme = currentVal > s.max_threshold * 1.2
+      activeAnomalies.push({
         sensor: stat,
         severity: isExtreme ? 'critical' : 'warning',
-        message: `${stat.name} menyentuh angka ${stat.max} ${stat.unit} (melebihi ambang batas maksimal ${s.max_threshold} ${stat.unit}).`
+        message: `${stat.name} saat ini ${currentVal} ${stat.unit} (melebihi ambang batas maksimal ${s.max_threshold} ${stat.unit}).`
       })
       return
     }
-    if (s.min_threshold != null && stat.min != null && stat.min < s.min_threshold) {
-      const isExtreme = stat.min < s.min_threshold * 0.8
-      anomalies.push({
+    if (s.min_threshold != null && currentVal < s.min_threshold) {
+      const isExtreme = currentVal < s.min_threshold * 0.8
+      activeAnomalies.push({
         sensor: stat,
         severity: isExtreme ? 'critical' : 'warning',
-        message: `${stat.name} turun hingga ${stat.min} ${stat.unit} (di bawah batas minimal ${s.min_threshold} ${stat.unit}).`
+        message: `${stat.name} saat ini ${currentVal} ${stat.unit} (di bawah batas minimal ${s.min_threshold} ${stat.unit}).`
       })
       return
     }
 
-    // 2. Intelligent Agronomic & Hardware Standard Fallbacks
+    // 2. Intelligent Agronomic Real-Time Standard Fallbacks
     if (checkPH(sName)) {
-      if (stat.avg != null && (stat.avg < 5.0 || stat.avg > 8.5)) {
-        anomalies.push({
+      if (currentVal < 5.0 || currentVal > 8.5) {
+        activeAnomalies.push({
           sensor: stat,
           severity: 'critical',
-          message: `Nilai pH rata-rata (${stat.avg}) tergolong ekstrem. Segera lakukan penyesuaian media tanah.`
+          message: `Nilai pH saat ini (${currentVal}) tergolong ekstrem. Segera lakukan penyesuaian media tanah.`
         })
-      } else if (stat.avg != null && (stat.avg < 5.8 || stat.avg > 7.5)) {
-        anomalies.push({
+      } else if (currentVal < 5.8 || currentVal > 7.5) {
+        activeAnomalies.push({
           sensor: stat,
           severity: 'warning',
-          message: `Nilai pH rata-rata (${stat.avg}) berada di luar ambang netral ideal 6.0–7.0 pada periode ${rangeLabel.value}.`
+          message: `Nilai pH saat ini (${currentVal}) berada di luar ambang netral ideal 6.0–7.0.`
         })
       }
     } else if (checkNitrogen(sName)) {
-      if (val < 20) {
-        anomalies.push({
+      if (currentVal < 20) {
+        activeAnomalies.push({
           sensor: stat,
           severity: 'warning',
-          message: `Kadar Nitrogen rata-rata berada di bawah target (${val} mg/kg). Pertimbangkan pemupukan N pada siklus berikutnya.`
+          message: `Kadar Nitrogen saat ini rendah (${currentVal} mg/kg). Pertimbangkan pemupukan N pada siklus berikutnya.`
         })
-      } else if (val > 80) {
-        anomalies.push({
+      } else if (currentVal > 80) {
+        activeAnomalies.push({
           sensor: stat,
           severity: 'warning',
-          message: `Kadar Nitrogen rata-rata tinggi (${val} mg/kg). Hindari akumulasi pupuk berlebih.`
+          message: `Kadar Nitrogen saat ini tinggi (${currentVal} mg/kg). Hindari akumulasi pupuk berlebih.`
         })
       }
     } else if (checkPhosphorus(sName)) {
-      if (val < 15) {
-        anomalies.push({
+      if (currentVal < 15) {
+        activeAnomalies.push({
           sensor: stat,
           severity: 'warning',
-          message: `Kadar Fosfor rata-rata (${val} mg/kg) di bawah target optimal untuk perkembangan akar.`
+          message: `Kadar Fosfor saat ini (${currentVal} mg/kg) di bawah target optimal untuk perkembangan akar.`
         })
-      } else if (val > 60) {
-        anomalies.push({
+      } else if (currentVal > 60) {
+        activeAnomalies.push({
           sensor: stat,
           severity: 'warning',
-          message: `Kadar Fosfor rata-rata (${val} mg/kg) tergolong tinggi.`
+          message: `Kadar Fosfor saat ini (${currentVal} mg/kg) tergolong tinggi.`
         })
       }
     } else if (checkPotassium(sName)) {
-      if (val < 20) {
-        anomalies.push({
+      if (currentVal < 20) {
+        activeAnomalies.push({
           sensor: stat,
           severity: 'warning',
-          message: `Kadar Kalium rata-rata (${val} mg/kg) di bawah target untuk ketahanan tanaman.`
+          message: `Kadar Kalium saat ini (${currentVal} mg/kg) di bawah target untuk ketahanan tanaman.`
         })
-      } else if (val > 60) {
-        anomalies.push({
+      } else if (currentVal > 60) {
+        activeAnomalies.push({
           sensor: stat,
           severity: 'warning',
-          message: `Kadar Kalium rata-rata (${val} mg/kg) tergolong tinggi.`
+          message: `Kadar Kalium saat ini (${currentVal} mg/kg) tergolong tinggi.`
         })
       }
     } else if (checkEnclosureTemp(sName)) {
-      if (stat.max != null && stat.max > 45) {
-        anomalies.push({
+      if (currentVal > 45) {
+        activeAnomalies.push({
           sensor: stat,
           severity: 'critical',
-          message: `Suhu box panel IoT mencapai puncak ${stat.max}°C (di atas batas aman 45°C). Pastikan kipas & ventilasi box beroperasi optimal.`
-        })
-      } else if (stat.max != null && stat.max > 38) {
-        anomalies.push({
-          sensor: stat,
-          severity: 'warning',
-          message: `Suhu box panel IoT sempat menghangat hingga ${stat.max}°C pada rentang ${rangeLabel.value}.`
+          message: `Suhu box panel IoT mencapai ${currentVal}°C (di atas batas aman 45°C). Pastikan kipas & ventilasi beroperasi.`
         })
       }
     } else if (checkAirTemp(sName)) {
-      if (stat.max != null && stat.max > 38) {
-        anomalies.push({
+      if (currentVal > 38) {
+        activeAnomalies.push({
           sensor: stat,
           severity: 'warning',
-          message: `Suhu udara lingkungan sempat menyentuh ${stat.max}°C pada periode ${rangeLabel.value}.`
+          message: `Suhu udara lingkungan saat ini tinggi (${currentVal}°C).`
         })
       }
     } else if (checkSoilMoisture(sName)) {
-      if (stat.min != null && stat.min < 25) {
-        anomalies.push({
+      if (currentVal < 25) {
+        activeAnomalies.push({
           sensor: stat,
           severity: 'warning',
-          message: `Kelembaban tanah sempat turun hingga ${stat.min}%. Rekomendasikan pengairan/irigasi.`
+          message: `Kelembaban tanah saat ini rendah (${currentVal}%). Rekomendasikan pengairan/irigasi.`
         })
       }
     } else if (checkAirHumidity(sName)) {
-      if (stat.min != null && stat.min < 35) {
-        anomalies.push({
+      if (currentVal < 35) {
+        activeAnomalies.push({
           sensor: stat,
           severity: 'warning',
-          message: `Kelembaban udara lingkungan rendah (${stat.min}%). Kondisi cenderung kering.`
+          message: `Kelembaban udara lingkungan rendah (${currentVal}%). Kondisi cenderung kering.`
         })
       }
+    }
+
+    // Check historical peak notice if currently normal
+    if (s.max_threshold != null && stat.max != null && stat.max > s.max_threshold && currentVal <= s.max_threshold) {
+      historicalNotes.push({
+        sensor: stat,
+        message: `${stat.name} sempat menyentuh puncak ${stat.max} ${stat.unit} pada rentang ${rangeLabel.value}, namun saat ini telah kembali normal (${currentVal} ${stat.unit}).`
+      })
     }
   })
 
   // Determine Semantic Wrapper Colors and Status
-  const criticalAnomaly = anomalies.find(a => a.severity === 'critical')
-  const warningAnomaly = anomalies.find(a => a.severity === 'warning')
+  const criticalAnomaly = activeAnomalies.find(a => a.severity === 'critical')
+  const warningAnomaly = activeAnomalies.find(a => a.severity === 'warning')
+  const recentHistoricalNote = historicalNotes[0]
 
   let defaultBadgeText = 'Status Optimal'
   let defaultBadgeColor = 'bg-emerald-500/15 border-emerald-500/30 text-emerald-700 dark:text-emerald-400'
   let defaultBoxClass = 'bg-emerald-500/10 dark:bg-emerald-950/30 border-emerald-500/20 text-emerald-900 dark:text-emerald-300'
   let defaultIconClass = 'text-emerald-600 dark:text-emerald-400'
   let defaultIcon = Check
-  let defaultInsightText = `Seluruh telemetri dalam rentang ${rangeLabel.value} terpantau stabil dalam batas operasional normal.`
+  let defaultInsightText = recentHistoricalNote?.message || `Seluruh telemetri dalam rentang ${rangeLabel.value} terpantau stabil dalam batas operasional normal.`
 
   // 1. Kategori NPK
   if (selectedCategory.value === 'npk') {
     const nStat = sensorStats.find((s: any) => s.name.toLowerCase().includes('nitrogen') || s.name.toLowerCase().includes('n'))
     const pStat = sensorStats.find((s: any) => s.name.toLowerCase().includes('phosphor') || s.name.toLowerCase().includes('p'))
-    const kStat = sensorStats.find((s: any) => s.name.toLowerCase().includes('potassium') || s.name.toLowerCase().includes('kalium') || s.name.toLowerCase().includes('k'))
+    const kStat = sensorStats.find((s: any) => s.name.toLowerCase().includes('potassium') || s.name.toLowerCase().includes('kalium') || s.name.toLowerCase() === 'k')
     
     const nVal = Number((nStat?.current ?? nStat?.avg ?? 0).toFixed(1))
     const pVal = Number((pStat?.current ?? pStat?.avg ?? 0).toFixed(1))
@@ -945,8 +959,8 @@ const analyticsData = computed(() => {
       ]
     }
 
-    defaultBadgeText = 'Nutrisi Seimbang'
-    defaultInsightText = `Keseimbangan NPK dalam rentang ${rangeLabel.value} terpantau stabil. Rasio N:P:K (${nVal} : ${pVal} : ${kVal}) mendukung fase vegetatif tanaman.`
+    defaultBadgeText = recentHistoricalNote ? 'Stabil Normal' : 'Nutrisi Seimbang'
+    defaultInsightText = recentHistoricalNote?.message || `Keseimbangan NPK dalam rentang ${rangeLabel.value} terpantau stabil. Rasio N:P:K (${nVal} : ${pVal} : ${kVal}) mendukung fase vegetatif tanaman.`
 
     return {
       hasData: true,
@@ -1151,7 +1165,7 @@ onUnmounted(() => {
       <div class="lg:col-span-3 flex flex-col gap-3.5">
         
         <!-- CARD 1: Compact Node Identity & Status Card -->
-        <Card class="relative overflow-hidden border border-border/80 bg-white shadow-none">
+        <Card class="relative overflow-hidden">
           <div class="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-transparent to-primary/5 pointer-events-none"></div>
           <CardContent class="p-3.5 sm:p-4 relative z-10 flex flex-col gap-2.5">
             <!-- Node Title & Status Badge -->
@@ -1184,8 +1198,8 @@ onUnmounted(() => {
         </Card>
 
         <!-- CARD 2: Mini Map (1:1 Ratio Square Card) -->
-        <Card class="relative overflow-hidden w-full aspect-square border border-border/80 shadow-none flex flex-col group rounded-xl bg-white">
-          <div ref="miniMapContainer" class="w-full h-full absolute inset-0 z-0" />
+        <Card class="relative overflow-hidden w-full aspect-square flex flex-col group">
+          <div ref="miniMapContainer" data-lenis-prevent class="w-full h-full absolute inset-0 z-0" />
           
           <!-- Map Overlay Link to Full Map Page -->
           <div v-if="miniMapReady" class="absolute bottom-2.5 right-2.5 z-10">
@@ -1206,7 +1220,7 @@ onUnmounted(() => {
         </Card>
 
         <!-- CARD 3: Compact Actuator Control Status (Enlarged Height & Typography) -->
-        <Card v-if="aktuator" class="relative overflow-hidden border border-border/80 bg-white dark:bg-card shadow-none hover:-translate-y-1 hover:shadow-md transition-all duration-300">
+        <Card v-if="aktuator" class="relative overflow-hidden">
           <div class="p-4 sm:p-4.5 flex flex-col gap-3.5">
             <!-- Header: Title, Icon -->
             <div class="flex items-center gap-3">
@@ -1220,10 +1234,10 @@ onUnmounted(() => {
                 v-for="a in actuatorList" 
                 :key="a.id"
                 :class="[
-                  'py-3 px-2 rounded-xl text-xs sm:text-sm font-medium border flex flex-col items-center justify-center gap-2 transition-all text-center min-h-[96px] sm:min-h-[105px]',
+                  'py-3 px-2 rounded-xl text-xs sm:text-sm font-medium border flex flex-col items-center justify-center gap-2 transition-all duration-200 text-center min-h-[96px] sm:min-h-[105px] select-none hover:-translate-y-0.5 cursor-default',
                   a.aktif 
-                    ? a.activeBg 
-                    : 'bg-slate-50 dark:bg-slate-900/50 border-slate-200/80 dark:border-slate-800 text-slate-500 dark:text-slate-400'
+                    ? [a.activeBg, 'shadow-sm shadow-emerald-500/10 ring-1 ring-emerald-500/25'] 
+                    : 'bg-slate-50 dark:bg-slate-900/50 border-slate-200/80 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700'
                 ]"
               >
                 <!-- 1. Large Animated Icon on Top (Centered Horizontal) -->
@@ -1279,46 +1293,50 @@ onUnmounted(() => {
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-stretch">
           
           <!-- LEFT COL (lg:col-span-8): Wide Sensor Trends Line Chart -->
-          <Card class="lg:col-span-8 relative overflow-hidden flex flex-col border border-border/80 bg-white dark:bg-card shadow-none min-h-[460px]">
+          <Card class="lg:col-span-8 relative overflow-hidden flex flex-col min-h-[460px]">
             <div class="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-30 pointer-events-none"></div>
             <CardContent class="p-4 relative z-10 flex flex-col gap-2 flex-1">
               
               <!-- Chart Header: Category Pills + Time Range -->
-              <div class="flex flex-wrap items-center justify-between gap-2.5 pb-2 border-b border-border/40">
+              <div class="flex flex-wrap items-center justify-between gap-3 pb-2.5 border-b border-border/40">
                 
                 <!-- Category Dropdown Selector -->
                 <div class="relative" ref="categoryDropdownRef">
                   <button
                     type="button"
                     @click.stop="isCategoryDropdownOpen = !isCategoryDropdownOpen"
-                    class="h-8.5 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200/80 dark:hover:bg-slate-700/80 border border-slate-200/90 dark:border-slate-700/90 text-foreground text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer shadow-2xs select-none"
+                    class="h-9.5 sm:h-10 px-3.5 sm:px-4 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200/80 dark:hover:bg-slate-700/80 border border-slate-200/90 dark:border-slate-700/90 text-foreground text-xs sm:text-sm md:text-base font-extrabold flex items-center gap-2.5 transition-all cursor-pointer shadow-2xs select-none active:scale-95"
                     :title="`Kategori: ${currentCategoryMeta.fullLabel}`"
                   >
-                    <!-- Icon -->
-                    <img 
-                      v-if="!currentCategoryMeta.isLucide" 
-                      :src="currentCategoryMeta.icon!" 
-                      :alt="currentCategoryMeta.label" 
-                      class="w-4 h-4 object-contain dark:invert shrink-0" 
-                    />
-                    <Layers v-else class="w-4 h-4 text-primary shrink-0" />
+                    <!-- Soft Tinted Icon Container with Colored Icon Lines -->
+                    <div :class="['w-6 h-6 sm:w-7 sm:h-7 rounded-lg flex items-center justify-center shrink-0 border shadow-2xs transition-colors', currentCategoryMeta.wrapperClass]">
+                      <div 
+                        v-if="!currentCategoryMeta.isLucide" 
+                        :class="['w-3.5 h-3.5 sm:w-4 sm:h-4 transition-colors', currentCategoryMeta.iconColorClass]"
+                        :style="{
+                          mask: `url(${currentCategoryMeta.icon}) no-repeat center / contain`,
+                          WebkitMask: `url(${currentCategoryMeta.icon}) no-repeat center / contain`
+                        }"
+                      />
+                      <Layers v-else :class="['w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 transition-colors', currentCategoryMeta.iconTextColorClass]" />
+                    </div>
 
                     <!-- Selected Category Label -->
                     <span class="tracking-tight">{{ currentCategoryMeta.fullLabel }}</span>
 
                     <!-- Chevron -->
                     <ChevronDown 
-                      class="w-3.5 h-3.5 text-muted-foreground transition-transform duration-200" 
+                      class="w-4 h-4 text-muted-foreground transition-transform duration-200" 
                       :class="isCategoryDropdownOpen ? 'rotate-180 text-foreground' : ''" 
                     />
                   </button>
 
-                  <!-- Dropdown Menu Popover -->
+                  <!-- Dropdown Menu Popover (Enlarged) -->
                   <div
                     v-if="isCategoryDropdownOpen"
-                    class="absolute left-0 top-full mt-1.5 w-60 z-50 rounded-2xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200/90 dark:border-slate-800 shadow-2xl p-1.5 flex flex-col gap-1 animate-in fade-in zoom-in-95 duration-150 select-none"
+                    class="absolute left-0 top-full mt-2 w-80 sm:w-[350px] z-50 rounded-2xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200/90 dark:border-slate-800 shadow-2xl p-2 sm:p-2.5 flex flex-col gap-1.5 animate-in fade-in zoom-in-95 duration-150 select-none"
                   >
-                    <div class="px-2.5 py-1 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                    <div class="px-3.5 py-1.5 text-xs font-black text-muted-foreground uppercase tracking-wider">
                       Pilih Kategori
                     </div>
 
@@ -1328,51 +1346,53 @@ onUnmounted(() => {
                       type="button"
                       @click="selectCategory(cat.id)"
                       :class="[
-                        'w-full px-2.5 py-2 rounded-xl text-left flex items-center justify-between gap-2.5 transition-all cursor-pointer text-xs sm:text-sm',
+                        'w-full px-3.5 py-3 rounded-2xl text-left flex items-center justify-between gap-3 transition-all cursor-pointer group active:scale-[0.98]',
                         selectedCategory === cat.id 
-                          ? `${cat.activeColor} font-black border border-border/40 shadow-xs` 
-                          : 'text-foreground hover:bg-slate-100/80 dark:hover:bg-slate-800/80 border border-transparent font-medium'
+                          ? 'bg-slate-100/90 dark:bg-slate-800 border border-slate-300/80 dark:border-slate-700 shadow-2xs font-black text-foreground' 
+                          : 'text-foreground/80 hover:text-foreground hover:bg-slate-50 dark:hover:bg-slate-800/50 border border-transparent font-medium'
                       ]"
                     >
-                      <div class="flex items-center gap-2.5 min-w-0">
-                        <div class="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 border border-slate-200/60 dark:border-slate-700/60">
-                          <img 
+                      <div class="flex items-center gap-3.5 min-w-0">
+                        <div :class="['w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border shadow-2xs group-hover:scale-105 transition-all', cat.wrapperClass]">
+                          <div 
                             v-if="!cat.isLucide" 
-                            :src="cat.icon!" 
-                            :alt="cat.label" 
-                            class="w-4 h-4 object-contain dark:invert" 
+                            :class="['w-5 h-5 transition-colors', cat.iconColorClass]"
+                            :style="{
+                              mask: `url(${cat.icon}) no-repeat center / contain`,
+                              WebkitMask: `url(${cat.icon}) no-repeat center / contain`
+                            }"
                           />
-                          <Layers v-else class="w-4 h-4 text-primary" />
+                          <Layers v-else :class="['w-5 h-5 shrink-0 transition-colors', cat.iconTextColorClass]" />
                         </div>
-                        <div class="truncate">
-                          <div class="font-extrabold text-foreground leading-tight">{{ cat.fullLabel }}</div>
-                          <div class="text-[10px] text-muted-foreground truncate">{{ cat.desc }}</div>
+                        <div class="min-w-0">
+                          <div class="font-extrabold text-foreground leading-tight text-sm sm:text-base">{{ cat.fullLabel }}</div>
+                          <div class="text-xs text-muted-foreground font-medium mt-0.5">{{ cat.desc }}</div>
                         </div>
                       </div>
 
-                      <Check v-if="selectedCategory === cat.id" class="w-4 h-4 shrink-0 stroke-[2.5]" />
+                      <Check v-if="selectedCategory === cat.id" class="w-5 h-5 text-foreground shrink-0 stroke-[2.5]" />
                     </button>
                   </div>
                 </div>
 
                 <!-- Time Range Selector (Enlarged) -->
-                <div class="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200/80 dark:border-slate-700/80 text-xs sm:text-sm">
+                <div class="flex items-center gap-1 sm:gap-1.5 bg-slate-100 dark:bg-slate-800 p-1 sm:p-1.5 rounded-xl border border-slate-200/80 dark:border-slate-700/80 text-xs sm:text-sm">
                   <button
                     @click="changeRange('1d')"
                     :class="[
-                      'px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer flex items-center gap-1.5 text-xs sm:text-sm',
+                      'px-3 sm:px-3.5 py-1.5 rounded-lg font-extrabold transition-all cursor-pointer flex items-center gap-2 text-xs sm:text-sm active:scale-95',
                       selectedRange === '1d' 
                         ? 'bg-white dark:bg-card text-foreground border border-border/80 shadow-xs' 
                         : 'text-muted-foreground hover:text-foreground'
                     ]"
                   >
-                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
                     24J
                   </button>
                   <button
                     @click="changeRange('1w')"
                     :class="[
-                      'px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer text-xs sm:text-sm',
+                      'px-3 sm:px-3.5 py-1.5 rounded-lg font-extrabold transition-all cursor-pointer text-xs sm:text-sm active:scale-95',
                       selectedRange === '1w' 
                         ? 'bg-white dark:bg-card text-foreground border border-border/80 shadow-xs' 
                         : 'text-muted-foreground hover:text-foreground'
@@ -1383,7 +1403,7 @@ onUnmounted(() => {
                   <button
                     @click="changeRange('1M')"
                     :class="[
-                      'px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer text-xs sm:text-sm',
+                      'px-3 sm:px-3.5 py-1.5 rounded-lg font-extrabold transition-all cursor-pointer text-xs sm:text-sm active:scale-95',
                       selectedRange === '1M' 
                         ? 'bg-white dark:bg-card text-foreground border border-border/80 shadow-xs' 
                         : 'text-muted-foreground hover:text-foreground'
@@ -1394,20 +1414,42 @@ onUnmounted(() => {
                   <button
                     @click="selectedRange = 'custom'"
                     :class="[
-                      'px-2 py-1 rounded-lg font-bold transition-all cursor-pointer text-xs sm:text-sm',
+                      'px-2.5 sm:px-3 py-1.5 rounded-lg font-extrabold transition-all cursor-pointer text-xs sm:text-sm active:scale-95',
                       selectedRange === 'custom' 
                         ? 'bg-white dark:bg-card text-foreground border border-border/80 shadow-xs' 
                         : 'text-muted-foreground hover:text-foreground'
                     ]"
                     title="Rentang Kustom"
                   >
-                    <Calendar class="w-4 h-4" />
+                    <Calendar class="w-4.5 h-4.5" />
                   </button>
                 </div>
 
-                </div>
+                <!-- Export & PDF Report Action Buttons (Only Visible When Logged In) -->
+                <div v-if="authStore.isAuthenticated()" class="flex items-center gap-2 ml-auto sm:ml-0">
+                  <button
+                    @click="isExportModalOpen = true"
+                    type="button"
+                    class="h-9.5 sm:h-10 px-3.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-xs sm:text-sm font-bold flex items-center gap-2 shadow-2xs transition-all cursor-pointer hover:scale-[1.02] active:scale-95"
+                    title="Export data telemetri ke format CSV (Excel)"
+                  >
+                    <ExcelIcon />
+                    <span class="hidden md:inline">Export CSV</span>
+                  </button>
 
-                <!-- Custom Date Picker -->
+                  <button
+                    @click="isReportModalOpen = true"
+                    type="button"
+                    class="h-9.5 sm:h-10 px-3.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-700 dark:text-rose-300 border border-rose-500/30 text-xs sm:text-sm font-bold flex items-center gap-2 shadow-2xs transition-all cursor-pointer hover:scale-[1.02] active:scale-95"
+                    title="Buat dan cetak Laporan Resmi PDF"
+                  >
+                    <PdfIcon />
+                    <span class="hidden md:inline">Laporan PDF</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Custom Date Picker -->
               <div v-if="selectedRange === 'custom'" class="flex flex-wrap items-center gap-3 p-2 bg-muted/30 dark:bg-muted/10 border border-border/50 rounded-xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.6)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] text-xs sm:text-sm animate-slide-up">
                 <div class="flex items-center bg-background rounded-lg border border-border/80 shadow-sm overflow-hidden">
                   <div class="flex items-center px-3 bg-muted/50 border-r border-border/80 h-8">
@@ -1445,7 +1487,7 @@ onUnmounted(() => {
           </Card>
 
           <!-- RIGHT COL (lg:col-span-4): Dynamic Category-Aware Analytics & Insights Card (Enlarged Typography) -->
-          <Card class="lg:col-span-4 relative overflow-hidden flex flex-col border border-border/80 bg-white dark:bg-card shadow-none min-h-[460px]">
+          <Card class="lg:col-span-4 relative overflow-hidden flex flex-col min-h-[460px]">
             <div class="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-transparent to-primary/5 pointer-events-none"></div>
             <CardContent class="p-4 sm:p-4.5 relative z-10 flex flex-col justify-between gap-3 flex-1 h-full">
               
@@ -1552,7 +1594,7 @@ onUnmounted(() => {
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
           
           <!-- PORTLET 1: KONDISI TANAH -->
-          <Card class="relative overflow-hidden border border-border/80 bg-white dark:bg-card shadow-none hover:-translate-y-1 hover:shadow-md transition-all duration-300 flex flex-col">
+          <Card class="relative overflow-hidden flex flex-col">
             <div class="p-4 flex flex-col gap-3 flex-1 justify-between">
               <!-- Portlet Header -->
               <div class="flex items-center justify-between pb-2 border-b border-border/40">
@@ -1620,19 +1662,30 @@ onUnmounted(() => {
                 <!-- pH Tanah Card (Dynamic 3-State: Asam: Oranye-Merah | Optimal: Emerald | Basa: Ungu/Indigo) -->
                 <div 
                   :class="[
-                    'relative overflow-hidden p-2.5 sm:p-3 rounded-2xl text-white shadow-xs border border-white/20 flex flex-col justify-between min-h-[78px] group hover:scale-[1.01] transition-transform',
+                    'relative overflow-hidden p-2.5 sm:p-3 rounded-2xl text-white shadow-xs border border-white/20 flex flex-col justify-between min-h-[92px] sm:min-h-[96px] group hover:scale-[1.01] transition-transform',
                     phCardState.gradient,
                     phCardState.shadow
                   ]"
                 >
                   <DotPattern :width="12" :height="12" :cx="6" :cy="6" :cr="1" class="text-white/20" />
-                  <div class="flex items-center justify-between gap-1.5 relative z-10">
-                    <span class="text-[11px] sm:text-xs font-semibold text-white/95 truncate drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)]">
+                  <div class="flex items-start justify-between gap-1.5 relative z-10">
+                    <span class="text-[11px] sm:text-xs font-semibold text-white/95 line-clamp-2 leading-tight flex-1 drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)]">
                       {{ phMetric?.name || 'pH Tanah' }}
                     </span>
-                    <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-white/25 backdrop-blur-md text-white border border-white/40 shadow-2xs whitespace-nowrap drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)]">
-                      {{ phStatus.text }}
-                    </span>
+                    <!-- Unified Status & Threshold Capsule -->
+                    <div 
+                      :class="[
+                        'bg-white/25 hover:bg-white/30 backdrop-blur-md text-white border border-white/40 shadow-2xs transition-all shrink-0 select-none',
+                        phCardState.isAlert 
+                          ? 'px-2 py-0.5 rounded-xl flex flex-col items-center gap-0.5' 
+                          : 'px-2 py-0.5 rounded-full flex items-center'
+                      ]"
+                    >
+                      <span class="text-[10px] sm:text-[11px] font-extrabold tracking-wide leading-tight drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)]">{{ phStatus.text }}</span>
+                      <span v-if="phCardState.isAlert" class="text-[9px] sm:text-[10px] font-bold text-white/95 border-t border-white/25 pt-0.5 tracking-tight whitespace-nowrap">
+                        {{ phCardState.min }}–{{ phCardState.max }}
+                      </span>
+                    </div>
                   </div>
                   <div class="flex items-baseline gap-1 mt-1 relative z-10">
                     <span class="text-xl sm:text-2xl font-extrabold tracking-tight text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.2)]">
@@ -1647,19 +1700,30 @@ onUnmounted(() => {
                 <!-- Suhu Tanah Card (Dynamic 3-State: Dingin: Biru Ice | Optimal: Oranye Hangat | Panas: Merah Rose Alert) -->
                 <div 
                   :class="[
-                    'relative overflow-hidden p-2.5 sm:p-3 rounded-2xl text-white shadow-xs border border-white/20 flex flex-col justify-between min-h-[78px] group hover:scale-[1.01] transition-transform',
+                    'relative overflow-hidden p-2.5 sm:p-3 rounded-2xl text-white shadow-xs border border-white/20 flex flex-col justify-between min-h-[92px] sm:min-h-[96px] group hover:scale-[1.01] transition-transform',
                     soilTempCardState.gradient,
                     soilTempCardState.shadow
                   ]"
                 >
                   <DotPattern :width="12" :height="12" :cx="6" :cy="6" :cr="1" class="text-white/20" />
-                  <div class="flex items-center justify-between gap-1.5 relative z-10">
-                    <span class="text-[11px] sm:text-xs font-semibold text-white/95 truncate drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)]">
+                  <div class="flex items-start justify-between gap-1.5 relative z-10">
+                    <span class="text-[11px] sm:text-xs font-semibold text-white/95 line-clamp-2 leading-tight flex-1 drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)]">
                       {{ soilTempMetric?.name || 'Suhu Tanah' }}
                     </span>
-                    <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-white/25 backdrop-blur-md text-white border border-white/40 shadow-2xs whitespace-nowrap drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)]">
-                      {{ soilTempStatus.text }}
-                    </span>
+                    <!-- Unified Status & Threshold Capsule -->
+                    <div 
+                      :class="[
+                        'bg-white/25 hover:bg-white/30 backdrop-blur-md text-white border border-white/40 shadow-2xs transition-all shrink-0 select-none',
+                        soilTempCardState.isAlert 
+                          ? 'px-2 py-0.5 rounded-xl flex flex-col items-center gap-0.5' 
+                          : 'px-2 py-0.5 rounded-full flex items-center'
+                      ]"
+                    >
+                      <span class="text-[10px] sm:text-[11px] font-extrabold tracking-wide leading-tight drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)]">{{ soilTempStatus.text }}</span>
+                      <span v-if="soilTempCardState.isAlert" class="text-[9px] sm:text-[10px] font-bold text-white/95 border-t border-white/25 pt-0.5 tracking-tight whitespace-nowrap">
+                        {{ soilTempCardState.min }}–{{ soilTempCardState.max }}°
+                      </span>
+                    </div>
                   </div>
                   <div class="flex items-baseline gap-1 mt-1 relative z-10">
                     <span class="text-xl sm:text-2xl font-extrabold tracking-tight text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.2)]">
@@ -1674,19 +1738,30 @@ onUnmounted(() => {
                 <!-- EC (Electrical Conductivity) Card (Dynamic 3-State: Rendah: Amber | Optimal: Lime/Emerald | Pekat: Merah Salin) -->
                 <div 
                   :class="[
-                    'relative overflow-hidden p-2.5 sm:p-3 rounded-2xl text-white shadow-xs border border-white/20 flex flex-col justify-between min-h-[78px] group hover:scale-[1.01] transition-transform',
+                    'relative overflow-hidden p-2.5 sm:p-3 rounded-2xl text-white shadow-xs border border-white/20 flex flex-col justify-between min-h-[92px] sm:min-h-[96px] group hover:scale-[1.01] transition-transform',
                     ecCardState.gradient,
                     ecCardState.shadow
                   ]"
                 >
                   <DotPattern :width="12" :height="12" :cx="6" :cy="6" :cr="1" class="text-white/20" />
-                  <div class="flex items-center justify-between gap-1.5 relative z-10">
-                    <span class="text-[11px] sm:text-xs font-semibold text-white/95 truncate drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)]">
+                  <div class="flex items-start justify-between gap-1.5 relative z-10">
+                    <span class="text-[11px] sm:text-xs font-semibold text-white/95 line-clamp-2 leading-tight flex-1 drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)]">
                       {{ ecMetric?.name || 'eC Tanah' }}
                     </span>
-                    <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-white/25 backdrop-blur-md text-white border border-white/40 shadow-2xs whitespace-nowrap drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)]">
-                      {{ ecStatus.text }}
-                    </span>
+                    <!-- Unified Status & Threshold Capsule -->
+                    <div 
+                      :class="[
+                        'bg-white/25 hover:bg-white/30 backdrop-blur-md text-white border border-white/40 shadow-2xs transition-all shrink-0 select-none',
+                        ecCardState.isAlert 
+                          ? 'px-2 py-0.5 rounded-xl flex flex-col items-center gap-0.5' 
+                          : 'px-2 py-0.5 rounded-full flex items-center'
+                      ]"
+                    >
+                      <span class="text-[10px] sm:text-[11px] font-extrabold tracking-wide leading-tight drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)]">{{ ecStatus.text }}</span>
+                      <span v-if="ecCardState.isAlert" class="text-[9px] sm:text-[10px] font-bold text-white/95 border-t border-white/25 pt-0.5 tracking-tight whitespace-nowrap">
+                        {{ ecCardState.min }}–{{ ecCardState.max }}
+                      </span>
+                    </div>
                   </div>
                   <div class="flex items-baseline gap-1 mt-1 relative z-10">
                     <span class="text-xl sm:text-2xl font-extrabold tracking-tight text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.2)]">
@@ -1703,7 +1778,7 @@ onUnmounted(() => {
           </Card>
 
           <!-- PORTLET 2: KONDISI IOT -->
-          <Card class="relative overflow-hidden border border-border/80 bg-white dark:bg-card shadow-none hover:-translate-y-1 hover:shadow-md transition-all duration-300 flex flex-col">
+          <Card class="relative overflow-hidden flex flex-col">
             <div class="p-4 flex flex-col gap-3 flex-1 justify-between">
               <!-- Portlet Header -->
               <div class="flex items-center justify-between pb-2 border-b border-border/40">
@@ -1794,19 +1869,30 @@ onUnmounted(() => {
                 <!-- Suhu Luar / Ambient (Dynamic 3-State: Sejuk: Biru | Optimal: Oranye Hangat | Panas: Merah Rose Alert) -->
                 <div 
                   :class="[
-                    'relative overflow-hidden p-2.5 sm:p-3 rounded-2xl text-white shadow-xs border border-white/20 flex flex-col justify-between min-h-[78px] group hover:scale-[1.01] transition-transform',
+                    'relative overflow-hidden p-2.5 sm:p-3 rounded-2xl text-white shadow-xs border border-white/20 flex flex-col justify-between min-h-[92px] sm:min-h-[96px] group hover:scale-[1.01] transition-transform',
                     airTempCardState.gradient,
                     airTempCardState.shadow
                   ]"
                 >
                   <DotPattern :width="12" :height="12" :cx="6" :cy="6" :cr="1" class="text-white/20" />
-                  <div class="flex items-center justify-between gap-1.5 relative z-10">
-                    <span class="text-[11px] sm:text-xs font-semibold text-white/95 truncate drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)]">
+                  <div class="flex items-start justify-between gap-1.5 relative z-10">
+                    <span class="text-[11px] sm:text-xs font-semibold text-white/95 line-clamp-2 leading-tight flex-1 drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)]">
                       {{ airTempMetric?.name || 'Suhu Luar' }}
                     </span>
-                    <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-white/25 backdrop-blur-md text-white border border-white/40 shadow-2xs whitespace-nowrap drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)]">
-                      {{ airTempStatus.text }}
-                    </span>
+                    <!-- Unified Status & Threshold Capsule -->
+                    <div 
+                      :class="[
+                        'bg-white/25 hover:bg-white/30 backdrop-blur-md text-white border border-white/40 shadow-2xs transition-all shrink-0 select-none',
+                        airTempCardState.isAlert 
+                          ? 'px-2 py-0.5 rounded-xl flex flex-col items-center gap-0.5' 
+                          : 'px-2 py-0.5 rounded-full flex items-center'
+                      ]"
+                    >
+                      <span class="text-[10px] sm:text-[11px] font-extrabold tracking-wide leading-tight drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)]">{{ airTempStatus.text }}</span>
+                      <span v-if="airTempCardState.isAlert" class="text-[9px] sm:text-[10px] font-bold text-white/95 border-t border-white/25 pt-0.5 tracking-tight whitespace-nowrap">
+                        {{ airTempCardState.min }}–{{ airTempCardState.max }}°
+                      </span>
+                    </div>
                   </div>
                   <div class="flex items-baseline gap-1 mt-1 relative z-10">
                     <span class="text-xl sm:text-2xl font-extrabold tracking-tight text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.2)]">
@@ -1821,19 +1907,30 @@ onUnmounted(() => {
                 <!-- Kelembaban Udara (Dynamic 3-State: Kering: Amber | Optimal: Sky Blue | Tinggi: Deep Ocean) -->
                 <div 
                   :class="[
-                    'relative overflow-hidden p-2.5 sm:p-3 rounded-2xl text-white shadow-xs border border-white/20 flex flex-col justify-between min-h-[78px] group hover:scale-[1.01] transition-transform',
+                    'relative overflow-hidden p-2.5 sm:p-3 rounded-2xl text-white shadow-xs border border-white/20 flex flex-col justify-between min-h-[92px] sm:min-h-[96px] group hover:scale-[1.01] transition-transform',
                     humidityCardState.gradient,
                     humidityCardState.shadow
                   ]"
                 >
                   <DotPattern :width="12" :height="12" :cx="6" :cy="6" :cr="1" class="text-white/20" />
-                  <div class="flex items-center justify-between gap-1.5 relative z-10">
-                    <span class="text-[11px] sm:text-xs font-semibold text-white/95 truncate drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)]">
+                  <div class="flex items-start justify-between gap-1.5 relative z-10">
+                    <span class="text-[11px] sm:text-xs font-semibold text-white/95 line-clamp-2 leading-tight flex-1 drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)]">
                       {{ humidityMetric?.name || 'Kelembaban' }}
                     </span>
-                    <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-white/25 backdrop-blur-md text-white border border-white/40 shadow-2xs whitespace-nowrap drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)]">
-                      {{ humidityStatus.text }}
-                    </span>
+                    <!-- Unified Status & Threshold Capsule -->
+                    <div 
+                      :class="[
+                        'bg-white/25 hover:bg-white/30 backdrop-blur-md text-white border border-white/40 shadow-2xs transition-all shrink-0 select-none',
+                        humidityCardState.isAlert 
+                          ? 'px-2 py-0.5 rounded-xl flex flex-col items-center gap-0.5' 
+                          : 'px-2 py-0.5 rounded-full flex items-center'
+                      ]"
+                    >
+                      <span class="text-[10px] sm:text-[11px] font-extrabold tracking-wide leading-tight drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)]">{{ humidityStatus.text }}</span>
+                      <span v-if="humidityCardState.isAlert" class="text-[9px] sm:text-[10px] font-bold text-white/95 border-t border-white/25 pt-0.5 tracking-tight whitespace-nowrap">
+                        {{ humidityCardState.min }}–{{ humidityCardState.max }}%
+                      </span>
+                    </div>
                   </div>
                   <div class="flex items-baseline gap-1 mt-1 relative z-10">
                     <span class="text-xl sm:text-2xl font-extrabold tracking-tight text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.2)]">
@@ -1848,18 +1945,18 @@ onUnmounted(() => {
                 <!-- Modbus Status (Dynamic Diagnostic Emerald/Rose Gradient) -->
                 <div 
                   :class="[
-                    'relative overflow-hidden p-2.5 sm:p-3 rounded-2xl text-white shadow-xs border border-white/20 flex flex-col justify-between min-h-[78px] group hover:scale-[1.01] transition-transform',
+                    'relative overflow-hidden p-2.5 sm:p-3 rounded-2xl text-white shadow-xs border border-white/20 flex flex-col justify-between min-h-[92px] sm:min-h-[96px] group hover:scale-[1.01] transition-transform',
                     (getLiveVal(modbusMetric) == null || getLiveVal(modbusMetric) == 0 || getLiveVal(modbusMetric) === '0')
                       ? 'bg-gradient-to-br from-[#00b200] via-[#008a00] to-[#006400]'
                       : 'bg-gradient-to-br from-rose-500 via-red-600 to-rose-700 animate-pulse'
                   ]"
                 >
                   <DotPattern :width="12" :height="12" :cx="6" :cy="6" :cr="1" class="text-white/20" />
-                  <div class="flex items-center justify-between gap-1.5 relative z-10">
-                    <span class="text-[11px] sm:text-xs font-semibold text-white/95 truncate drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)]">
+                  <div class="flex items-start justify-between gap-1.5 relative z-10">
+                    <span class="text-[11px] sm:text-xs font-semibold text-white/95 line-clamp-2 leading-tight flex-1 drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)]">
                       {{ modbusMetric?.name || 'Kode Error Modbus' }}
                     </span>
-                    <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-white/25 backdrop-blur-md text-white border border-white/40 shadow-2xs whitespace-nowrap drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)]">
+                    <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-white/25 backdrop-blur-md text-white border border-white/40 shadow-2xs whitespace-nowrap shrink-0 drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)]">
                       {{ (getLiveVal(modbusMetric) == null || getLiveVal(modbusMetric) == 0 || getLiveVal(modbusMetric) === '0') ? 'Normal' : 'Error' }}
                     </span>
                   </div>

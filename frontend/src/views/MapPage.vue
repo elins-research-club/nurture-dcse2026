@@ -48,16 +48,17 @@ const isNodeOnline = (node: any) => {
 
 const makeIcon = (online: boolean) =>
   L.divIcon({
-    html: `<div style="width:24px;height:32px">
-      <svg width="24" height="32" viewBox="0 0 24 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M12 0C5.373 0 0 5.373 0 12c0 9 12 20 12 20s12-11 12-20C24 5.373 18.627 0 12 0z" fill="${online ? '#22c55e' : '#ef4444'}"/>
-        <circle cx="12" cy="12" r="5" fill="white"/>
+    html: `<div style="position:relative;width:28px;height:36px;display:flex;align-items:center;justify-content:center;">
+      ${online ? '<span style="position:absolute;top:5px;left:4px;width:20px;height:20px;border-radius:50%;background:rgba(16,185,129,0.45);animation:ping 2s cubic-bezier(0,0,0.2,1) infinite;"></span>' : ''}
+      <svg width="24" height="32" viewBox="0 0 24 32" fill="none" xmlns="http://www.w3.org/2000/svg" style="position:relative;z-index:10;filter:drop-shadow(0 3px 6px rgba(0,0,0,0.28));">
+        <path d="M12 0C5.373 0 0 5.373 0 12c0 9 12 20 12 20s12-11 12-20C24 5.373 18.627 0 12 0z" fill="${online ? '#10b981' : '#ef4444'}"/>
+        <circle cx="12" cy="12" r="4.5" fill="white"/>
       </svg>
     </div>`,
     className: '',
-    iconSize: [24, 32],
-    iconAnchor: [12, 32],
-    popupAnchor: [0, -34],
+    iconSize: [28, 36],
+    iconAnchor: [14, 36],
+    popupAnchor: [0, -36],
   })
 
 const getSensorValue = (feed: any, nameQuery: string, sensors: any[]) => {
@@ -319,7 +320,7 @@ onUnmounted(() => {
   <DashboardLayout noPadding>
     <div class="relative overflow-hidden w-full h-screen">
       <!-- Map -->
-      <div ref="mapContainer" class="absolute inset-0 z-0 w-full h-full" />
+      <div ref="mapContainer" data-lenis-prevent class="absolute inset-0 z-0 w-full h-full" />
 
       <!-- Watermark -->
       <div class="absolute bottom-7 right-0 z-10 pointer-events-none opacity-50 bg-black/40 text-white px-4 py-1.5 rounded-l-lg backdrop-blur-sm border-y border-l border-white/10 font-medium text-[11px] tracking-wide">

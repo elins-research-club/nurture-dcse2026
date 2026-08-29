@@ -1,10 +1,8 @@
-﻿/**
+/**
  * G-CONNECT Executive PDF Report Generator
  * Generates high-fidelity, comprehensive agronomy and IoT station evaluation reports.
  */
 
-import jsPDF from 'jspdf'
-import autoTable from 'jspdf-autotable'
 import { formatWIBTime } from './csvExporter'
 
 export interface SensorStatItem {
@@ -41,7 +39,12 @@ export interface PDFReportOptions {
   thermalInsight?: string
 }
 
-export async function generateExecutivePDFReport(options: PDFReportOptions): Promise<jsPDF> {
+export async function generateExecutivePDFReport(options: PDFReportOptions): Promise<any> {
+  const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+    import('jspdf'),
+    import('jspdf-autotable')
+  ])
+
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',

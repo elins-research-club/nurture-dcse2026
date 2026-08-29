@@ -664,7 +664,7 @@ const confirmDeleteChannel = async () => {
                       </div>
 
                       <div v-if="getFieldSensor(channel, fieldNum)">
-                        <div class="font-bold text-xs text-foreground truncate" :title="getFieldSensor(channel, fieldNum)?.name">
+                        <div class="font-bold text-xs text-foreground line-clamp-2 leading-tight" :title="getFieldSensor(channel, fieldNum)?.name">
                           {{ getFieldSensor(channel, fieldNum)?.name }}
                         </div>
                         <div class="text-[10px] text-muted-foreground mt-0.5 flex items-center justify-between font-mono">

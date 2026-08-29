@@ -27,6 +27,7 @@ from app.services.telemetry_buffer import (
     set_initial_history,
     thingspeak_cold_lock
 )
+from app.services.thingspeak_poller import get_http_client
 import time
 
 HISTORY_CACHE = {}
@@ -55,11 +56,11 @@ async def get_latest_telemetry(
     async def fetch_channel_latest(channel):
         url = f"{settings.THINGSPEAK_BASE_URL}/channels/{channel.channel_id}/feeds/last.json"
         params = {"api_key": channel.read_api_key}
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            resp = await client.get(url, params=params)
-            if resp.status_code == 200:
-                return channel, resp.json()
-            return channel, None
+        client = get_http_client()
+        resp = await client.get(url, params=params)
+        if resp.status_code == 200:
+            return channel, resp.json()
+        return channel, None
 
     tasks = [fetch_channel_latest(c) for c in channels]
     results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -173,14 +174,14 @@ async def get_history_telemetry(
             params["api_key"] = channel.read_api_key
             url = f"{settings.THINGSPEAK_BASE_URL}/channels/{channel.channel_id}/feeds.json"
             
-            async with httpx.AsyncClient(timeout=15.0) as client:
-                resp = await client.get(url, params=params)
-                if resp.status_code == 200:
-                    return channel, resp.json()
-                elif resp.status_code == 429:
-                    raise HTTPException(status_code=429, detail="ThingSpeak rate limit exceeded")
-                else:
-                    return channel, None
+            client = get_http_client()
+            resp = await client.get(url, params=params)
+            if resp.status_code == 200:
+                return channel, resp.json()
+            elif resp.status_code == 429:
+                raise HTTPException(status_code=429, detail="ThingSpeak rate limit exceeded")
+            else:
+                return channel, None
 
         tasks = [fetch_channel_history(c) for c in channels]
         fetch_results = await asyncio.gather(*tasks, return_exceptions=True)

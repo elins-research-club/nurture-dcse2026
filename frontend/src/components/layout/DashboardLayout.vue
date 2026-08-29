@@ -34,15 +34,16 @@ const toggleTheme = () => {
 
 <template>
   <div class="min-h-screen relative flex flex-col font-sans">
-    <!-- TOPOGRAPHIC CONTOUR ELEVATION (ISOLINES) - NEUTRAL GRAY -->
-    <div class="fixed inset-0 pointer-events-none z-0 overflow-hidden select-none bg-[#F8FAFC] dark:bg-[#0B0F17]">
-      <!-- 1. Ambient Neutral Glows -->
-      <div class="absolute -top-32 -left-32 w-[700px] h-[600px] rounded-full bg-slate-200/50 dark:bg-slate-800/30 blur-[140px] pointer-events-none"></div>
-      <div class="absolute -bottom-32 -right-32 w-[750px] h-[650px] rounded-full bg-slate-200/40 dark:bg-slate-800/30 blur-[150px] pointer-events-none"></div>
+    <!-- FARMLAND TOPOGRAPHIC ELEVATION & NIGHT ATMOSPHERE -->
+    <div class="fixed inset-0 pointer-events-none z-0 overflow-hidden select-none bg-[#F8FAFC] dark:bg-[#050C10]">
+      <!-- 1. Ambient Natural Farmland Mist Glows -->
+      <div class="absolute -top-32 -left-32 w-[700px] h-[600px] rounded-full bg-slate-200/50 dark:bg-emerald-950/25 blur-[140px] pointer-events-none"></div>
+      <div class="absolute -bottom-32 -right-32 w-[750px] h-[650px] rounded-full bg-slate-200/40 dark:bg-teal-950/25 blur-[150px] pointer-events-none"></div>
+      <div class="hidden dark:block absolute top-1/4 right-1/4 w-[500px] h-[500px] rounded-full bg-emerald-900/10 blur-[160px] pointer-events-none"></div>
 
-      <!-- 2. High-Density Mathematical Topographic SVG -->
+      <!-- 2. Farmland Elevation Contour Isolines -->
       <div 
-        class="absolute inset-0 w-full h-full bg-slate-500 dark:bg-slate-400 opacity-[0.15] dark:opacity-[0.15]"
+        class="absolute inset-0 w-full h-full bg-slate-500 dark:bg-emerald-500/25 opacity-[0.12] dark:opacity-[0.14]"
         style="
           mask-image: url('/topography.svg'); 
           mask-size: cover; 
@@ -52,6 +53,9 @@ const toggleTheme = () => {
           -webkit-mask-position: center;
         "
       ></div>
+
+      <!-- 3. Soft Farmland Atmosphere Grain / Ambient Mist -->
+      <div class="absolute inset-0 bg-gradient-to-t from-emerald-950/15 via-transparent to-transparent pointer-events-none"></div>
     </div>
 
     <!-- Foreground UI Container with relative z-10 -->
@@ -68,7 +72,7 @@ const toggleTheme = () => {
         v-else 
         class="sticky top-3.5 z-40 w-full px-3 sm:px-6 pointer-events-none transition-all duration-300 mb-3.5"
       >
-        <div class="max-w-6xl mx-auto rounded-2xl bg-card/85 dark:bg-card/75 backdrop-blur-xl border border-border/80 shadow-lg shadow-black/5 dark:shadow-black/25 px-4 sm:px-6 py-2 sm:py-2.5 flex items-center justify-between gap-3 pointer-events-auto transition-all">
+        <div class="max-w-6xl mx-auto rounded-2xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl backdrop-saturate-150 border border-white/80 dark:border-white/10 ring-1 ring-slate-900/5 dark:ring-white/5 shadow-[inset_0_1.5px_0_0_rgba(255,255,255,1),inset_0_0_20px_0_rgba(255,255,255,0.35),0_6px_24px_-4px_rgba(15,23,42,0.07)] dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12),inset_0_0_20px_0_rgba(255,255,255,0.02),0_6px_24px_-4px_rgba(0,0,0,0.35)] px-4 sm:px-6 py-2 sm:py-2.5 flex items-center justify-between gap-3 pointer-events-auto transition-all">
           <!-- Logo & Branding -->
           <div class="flex items-center gap-2.5 shrink-0">
             <img src="/logo-icon.webp" alt="G-Connect Logo" class="w-7 h-7 sm:w-7.5 sm:h-7.5 object-contain shrink-0" />
@@ -173,13 +177,13 @@ const toggleTheme = () => {
       <!-- Main Content Container with dynamic left padding matching Sidebar state (at unzoomed 1.0x scale) -->
       <div 
         :class="[
-          'flex-1 flex flex-col min-w-0 transition-all duration-300',
+          'flex-1 flex flex-col min-w-0 transition-[padding-left] duration-300 ease-in-out',
           authStore.isAuthenticated() ? (isCollapsed ? 'pl-[68px]' : 'pl-64') : 'pl-0'
         ]"
       >
         <main 
           :class="[
-            'flex-1 transition-all duration-300 bg-transparent',
+            'flex-1 bg-transparent',
             !props.noPadding ? 'p-3 sm:p-5 overflow-y-auto' : 'overflow-hidden flex flex-col h-screen w-full'
           ]"
           :style="props.compactZoom ? 'zoom: 0.75;' : ''"

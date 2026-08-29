@@ -35,16 +35,16 @@ export function useEventLogs(options?: {
       params.set('level', level.value)
     }
 
+    const headers: Record<string, string> = {}
+    if (authStore.token) {
+      headers['Authorization'] = `Bearer ${authStore.token}`
+    }
+
     const response = await fetch(`${API_BASE_URL}/event-logs/?${params.toString()}`, {
-      headers: {
-        'Authorization': `Bearer ${authStore.token}`
-      }
+      headers
     })
 
     if (!response.ok) {
-      if (response.status === 401) {
-        authStore.logout()
-      }
       throw new Error('Failed to fetch event logs')
     }
 

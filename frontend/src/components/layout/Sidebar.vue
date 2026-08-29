@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { LayoutDashboard, Network, Settings, LogOut, ChevronLeft, ChevronRight, Bell, MapPin, BookmarkCheck, Trash2 } from 'lucide-vue-next'
+import { LayoutDashboard, Network, Settings, LogOut, ChevronLeft, ChevronRight, ScrollText, MapPin, BookmarkCheck, Trash2 } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import {
   Dialog,
@@ -27,10 +27,10 @@ const toggleCollapse = () => {
 
 const navItems = [
   { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-  { name: 'Nodes', path: '/nodes', icon: Network },
-  { name: 'Map', path: '/map', icon: MapPin },
-  { name: 'Alerts', path: '/alerts', icon: Bell },
-  { name: 'Settings', path: '/settings', icon: Settings },
+  { name: 'Alat IoT', path: '/nodes', icon: Network },
+  { name: 'Peta Lahan', path: '/map', icon: MapPin },
+  { name: 'Logs & Ekspor Data', path: '/logs', icon: ScrollText },
+  { name: 'Pengaturan', path: '/settings', icon: Settings },
 ]
 
 const navigate = (path: string) => {
@@ -49,33 +49,39 @@ const handleFullLogout = () => {
 
 const isActive = (path: string) => {
   if (path === '/nodes' && route.path.startsWith('/nodes')) return true
+  if (path === '/logs' && (route.path.startsWith('/logs') || route.path.startsWith('/alerts'))) return true
   return route.path === path
 }
 </script>
 
 <template>
   <aside :class="[
-    'border-r border-border/80 bg-white dark:bg-card flex flex-col h-screen fixed left-0 top-0 shadow-none z-40 transition-all duration-300 ease-in-out',
+    'border-r border-border/80 bg-white dark:bg-card flex flex-col h-screen fixed left-0 top-0 shadow-none z-40 transition-[width] duration-300 ease-in-out overflow-hidden select-none',
     collapsed ? 'w-[68px]' : 'w-64'
   ]">
     <div 
-      class="h-20 flex items-center border-b border-border/60 relative whitespace-nowrap overflow-hidden"
-      :class="collapsed ? 'justify-center px-0' : 'px-5'"
+      class="h-20 flex items-center border-b border-border/60 relative whitespace-nowrap overflow-hidden px-3.5"
     >
       <button 
         @click="toggleCollapse"
-        class="w-10 h-10 flex items-center justify-center shrink-0 cursor-pointer transition-transform duration-200 active:scale-95" 
+        class="w-11 h-11 flex items-center justify-center shrink-0 cursor-pointer group focus:outline-none select-none" 
         title="Toggle Sidebar"
       >
-        <img src="/logo-icon.webp" alt="G-CONNECT Logo" class="w-8 h-8 object-contain" />
+        <img 
+          src="/logo-icon.webp" 
+          alt="G-CONNECT Logo" 
+          class="w-8 h-8 object-contain shrink-0 transition-all duration-300 ease-out group-hover:drop-shadow-[0_0_12px_rgba(239,68,68,0.75)] group-hover:scale-105 group-active:scale-95" 
+        />
       </button>
 
-      <h1 
-        v-if="!collapsed"
-        class="text-xl font-extrabold text-foreground tracking-tight ml-3 whitespace-nowrap"
+      <div 
+        class="overflow-hidden transition-opacity duration-200 ease-in-out ml-3 min-w-0"
+        :class="collapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'"
       >
-        G-CONNECT
-      </h1>
+        <h1 class="text-xl font-extrabold text-foreground tracking-tight whitespace-nowrap">
+          G-CONNECT
+        </h1>
+      </div>
     </div>
 
     <!-- Navigation links -->
@@ -85,20 +91,23 @@ const isActive = (path: string) => {
         :key="item.path"
         @click="navigate(item.path)"
         :class="[
-          'w-full flex items-center gap-3.5 px-3 py-3 rounded-xl font-medium transition-colors duration-200 relative group cursor-pointer text-left',
+          'w-full flex items-center h-11 px-3 rounded-xl font-medium transition-colors duration-150 relative group cursor-pointer text-left overflow-hidden',
           isActive(item.path)
             ? 'bg-primary/10 text-primary font-semibold'
             : 'text-muted-foreground hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-foreground'
         ]"
+        :title="collapsed ? item.name : undefined"
       >
         <div 
           v-if="isActive(item.path)" 
           class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-r-full"
         ></div>
-        <component :is="item.icon" class="w-5 h-5 shrink-0" />
+        <div class="w-5 h-5 flex items-center justify-center shrink-0">
+          <component :is="item.icon" class="w-5 h-5" />
+        </div>
         <span 
-          class="whitespace-nowrap transition-all duration-200 text-sm"
-          :class="collapsed ? 'opacity-0 translate-x-4 pointer-events-none' : 'opacity-100 translate-x-0'"
+          class="whitespace-nowrap transition-opacity duration-200 ease-in-out text-sm ml-3 overflow-hidden"
+          :class="collapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'"
         >
           {{ item.name }}
         </span>
@@ -109,12 +118,15 @@ const isActive = (path: string) => {
     <div class="p-3 border-t border-border/60">
       <button
         @click="isLogoutModalOpen = true"
-        class="w-full flex items-center gap-3.5 px-3 py-3 rounded-xl font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors duration-200 group cursor-pointer"
+        class="w-full flex items-center h-11 px-3 rounded-xl font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors duration-150 group cursor-pointer overflow-hidden"
+        :title="collapsed ? 'Logout' : undefined"
       >
-        <LogOut class="w-5 h-5 shrink-0" />
+        <div class="w-5 h-5 flex items-center justify-center shrink-0">
+          <LogOut class="w-5 h-5" />
+        </div>
         <span 
-          class="whitespace-nowrap transition-all duration-200 text-sm"
-          :class="collapsed ? 'opacity-0 translate-x-4 pointer-events-none' : 'opacity-100 translate-x-0'"
+          class="whitespace-nowrap transition-opacity duration-200 ease-in-out text-sm ml-3 overflow-hidden"
+          :class="collapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'"
         >
           Logout
         </span>

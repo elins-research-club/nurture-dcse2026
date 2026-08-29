@@ -132,9 +132,10 @@ const goToMapWithNode = (event: Event) => {
       <!-- Node Bento Cards Grid View -->
       <div v-else class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         <Card 
-          v-for="node in nodesList" 
+          v-for="(node, idx) in nodesList" 
           :key="node.id" 
-          class="rounded-2xl border border-border/80 bg-white dark:bg-card shadow-xs hover:shadow-xl hover:border-primary/40 hover:-translate-y-1 transition-all duration-300 cursor-pointer overflow-hidden flex flex-col justify-between group"
+          class="animate-stagger-card rounded-2xl border border-border/80 bg-white dark:bg-card shadow-xs hover:shadow-xl hover:border-primary/40 hover:-translate-y-1.5 transition-all duration-300 cursor-pointer overflow-hidden flex flex-col justify-between group active:scale-[0.99]"
+          :style="{ animationDelay: `${idx * 75}ms` }"
           @click="goToNodeDetail(node.id)"
         >
           <div class="p-5 flex flex-col gap-4">

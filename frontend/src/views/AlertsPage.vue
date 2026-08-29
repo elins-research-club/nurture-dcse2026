@@ -6,15 +6,17 @@ import { Button } from '@/components/ui/button'
 import { useEventLogs, type EventLog } from '@/composables/useEventLogs'
 import { useAuthStore } from '@/stores/auth'
 import ExcelIcon from '@/components/icons/ExcelIcon.vue'
+import PdfIcon from '@/components/icons/PdfIcon.vue'
 import { 
   Info, AlertTriangle, XCircle, Clock, ChevronLeft, ChevronRight, 
-  ChevronsLeft, ChevronsRight, Bell, RefreshCw, Download, Loader2
+  ChevronsLeft, ChevronsRight, RefreshCw, Loader2, ScrollText
 } from 'lucide-vue-next'
 
 const currentPage = ref(1)
 const pageSize = ref<number>(25)
 const selectedLevel = ref<string | undefined>(undefined)
-const isExporting = ref(false)
+const isExportingCSV = ref(false)
+const isExportingPDF = ref(false)
 
 const authStore = useAuthStore()
 
@@ -89,28 +91,36 @@ const visiblePages = computed(() => {
   return pages
 })
 
+// Helper to fetch all logs for export based on filter
+const fetchExportLogs = async (): Promise<EventLog[]> => {
+  const params = new URLSearchParams()
+  params.set('skip', '0')
+  params.set('limit', String(Math.max(totalCount.value || 1000, 1000)))
+  if (selectedLevel.value) {
+    params.set('level', selectedLevel.value)
+  }
+
+  const headers: Record<string, string> = {}
+  if (authStore.token) {
+    headers['Authorization'] = `Bearer ${authStore.token}`
+  }
+
+  const response = await fetch(`/api/v1/event-logs/?${params.toString()}`, {
+    headers
+  })
+
+  if (!response.ok) {
+    throw new Error('Gagal mengambil data event logs')
+  }
+
+  return await response.json()
+}
+
 const exportToCSV = async () => {
-  if (isExporting.value) return
-  isExporting.value = true
+  if (isExportingCSV.value) return
+  isExportingCSV.value = true
   try {
-    const params = new URLSearchParams()
-    params.set('skip', '0')
-    params.set('limit', String(Math.max(totalCount.value || 1000, 1000)))
-    if (selectedLevel.value) {
-      params.set('level', selectedLevel.value)
-    }
-
-    const response = await fetch(`/api/v1/event-logs/?${params.toString()}`, {
-      headers: {
-        'Authorization': `Bearer ${authStore.token}`
-      }
-    })
-
-    if (!response.ok) {
-      throw new Error('Gagal mengambil data event logs')
-    }
-
-    const data: EventLog[] = await response.json()
+    const data = await fetchExportLogs()
     if (!data.length) {
       alert('Tidak ada data log untuk diekspor.')
       return
@@ -156,7 +166,190 @@ const exportToCSV = async () => {
     console.error('Export CSV error:', err)
     alert('Terjadi kesalahan saat mengunduh CSV. Silakan coba lagi.')
   } finally {
-    isExporting.value = false
+    isExportingCSV.value = false
+  }
+}
+
+const exportToPDF = async () => {
+  if (isExportingPDF.value) return
+  isExportingPDF.value = true
+  try {
+    const data = await fetchExportLogs()
+    if (!data.length) {
+      alert('Tidak ada data log untuk diekspor ke PDF.')
+      return
+    }
+
+    const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+      import('jspdf'),
+      import('jspdf-autotable')
+    ])
+
+    const doc = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4'
+    })
+
+    const pageWidth = doc.internal.pageSize.getWidth()
+    const pageHeight = doc.internal.pageSize.getHeight()
+    const margin = 14
+    let y = margin
+
+    // Top Header Banner
+    doc.setFillColor(15, 23, 42) // Slate 900
+    doc.roundedRect(margin, y, pageWidth - (margin * 2), 22, 2.5, 2.5, 'F')
+
+    // Title & Subtitle in Header
+    doc.setTextColor(255, 255, 255)
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(13)
+    doc.text('G-CONNECT — LAPORAN LOG & RIWAYAT SISTEM', margin + 6, y + 9)
+
+    doc.setTextColor(148, 163, 184) // Slate 400
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(8)
+    doc.text('Platform Smart Farming IoT Lab ELINS UGM — Dokumen Resmi Riwayat Aktivitas & Event', margin + 6, y + 16)
+
+    y += 26
+
+    // Metadata Summary Box
+    doc.setFillColor(248, 250, 252) // Slate 50
+    doc.setDrawColor(226, 232, 240) // Slate 200
+    doc.roundedRect(margin, y, pageWidth - (margin * 2), 16, 2, 2, 'FD')
+
+    const now = new Date()
+    const printTimeStr = new Intl.DateTimeFormat('id-ID', {
+      day: 'numeric', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+    }).format(now) + ' WIB'
+
+    // Left Column Metadata
+    doc.setFontSize(8)
+    doc.setTextColor(71, 85, 105) // Slate 600
+    doc.setFont('helvetica', 'normal')
+    doc.text('Waktu Cetak: ', margin + 5, y + 6)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(15, 23, 42)
+    doc.text(printTimeStr, margin + 25, y + 6)
+
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(71, 85, 105)
+    doc.text('Level Filter: ', margin + 5, y + 11.5)
+    doc.setFont('helvetica', 'bold')
+    const filterLabel = selectedLevel.value ? selectedLevel.value : 'SEMUA TINGKAT (ALL)'
+    if (selectedLevel.value === 'ERROR') {
+      doc.setTextColor(225, 29, 72) // Rose
+    } else if (selectedLevel.value === 'WARNING') {
+      doc.setTextColor(217, 119, 6) // Amber
+    } else if (selectedLevel.value === 'INFO') {
+      doc.setTextColor(37, 99, 235) // Blue
+    } else {
+      doc.setTextColor(15, 23, 42)
+    }
+    doc.text(filterLabel, margin + 25, y + 11.5)
+
+    // Right Column Metadata
+    const col2X = pageWidth / 2 + 5
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(71, 85, 105)
+    doc.text('Total Entri Log: ', col2X, y + 6)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(15, 23, 42)
+    doc.text(`${data.length} Baris Aktivitas`, col2X + 26, y + 6)
+
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(71, 85, 105)
+    doc.text('Dicetak Oleh: ', col2X, y + 11.5)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(15, 23, 42)
+    doc.text(authStore.user?.username || 'Administrator', col2X + 26, y + 11.5)
+
+    y += 20
+
+    // AutoTable for Log Records
+    const tableHeaders = [['No', 'Waktu (WIB)', 'Level', 'Kode Node', 'Nama Stasiun', 'Pesan Log / Kejadian']]
+    const tableBody = data.map((log, index) => {
+      return [
+        String(index + 1),
+        formatDate(log.created_at),
+        log.level || 'INFO',
+        log.node_code || '-',
+        log.node_name || '-',
+        log.message || '-'
+      ]
+    })
+
+    autoTable(doc, {
+      startY: y,
+      head: tableHeaders,
+      body: tableBody,
+      theme: 'grid',
+      headStyles: {
+        fillColor: [15, 23, 42],
+        textColor: [255, 255, 255],
+        fontStyle: 'bold',
+        fontSize: 7.5,
+        halign: 'left',
+        cellPadding: 2.2
+      },
+      bodyStyles: {
+        fontSize: 7,
+        textColor: [30, 41, 59],
+        cellPadding: 2,
+        valign: 'middle'
+      },
+      alternateRowStyles: {
+        fillColor: [248, 250, 252]
+      },
+      columnStyles: {
+        0: { cellWidth: 8, halign: 'center' },
+        1: { cellWidth: 32 },
+        2: { cellWidth: 16, halign: 'center', fontStyle: 'bold' },
+        3: { cellWidth: 22, fontStyle: 'bold' },
+        4: { cellWidth: 28 },
+        5: { cellWidth: 'auto' }
+      },
+      didParseCell: (cellData) => {
+        if (cellData.section === 'body' && cellData.column.index === 2) {
+          const raw = String(cellData.cell.raw).toUpperCase()
+          if (raw === 'ERROR') {
+            cellData.cell.styles.textColor = [225, 29, 72] // Rose
+          } else if (raw === 'WARNING') {
+            cellData.cell.styles.textColor = [217, 119, 6] // Amber
+          } else if (raw === 'INFO') {
+            cellData.cell.styles.textColor = [37, 99, 235] // Blue
+          }
+        }
+      },
+      didDrawPage: (dataInfo) => {
+        const totalPagesCount = (doc as any).internal.getNumberOfPages()
+        const currentPageNum = dataInfo.pageNumber
+        doc.setFontSize(7)
+        doc.setFont('helvetica', 'normal')
+        doc.setTextColor(148, 163, 184)
+        doc.text(
+          'G-CONNECT Smart Farming System — Dokumen Log Resmi',
+          margin,
+          pageHeight - 7
+        )
+        doc.text(
+          `Halaman ${currentPageNum} dari ${totalPagesCount}`,
+          pageWidth - margin - 20,
+          pageHeight - 7
+        )
+      },
+      margin: { left: margin, right: margin, bottom: 14 }
+    })
+
+    const timestampStr = now.toISOString().slice(0, 10) + '_' + String(now.getHours()).padStart(2, '0') + '-' + String(now.getMinutes()).padStart(2, '0')
+    const filterTag = selectedLevel.value ? selectedLevel.value.toLowerCase() : 'all'
+    doc.save(`gconnect_event_logs_${filterTag}_${timestampStr}.pdf`)
+  } catch (err) {
+    console.error('Export PDF error:', err)
+    alert('Terjadi kesalahan saat membuat dokumen PDF. Silakan coba lagi.')
+  } finally {
+    isExportingPDF.value = false
   }
 }
 </script>
@@ -165,11 +358,10 @@ const exportToCSV = async () => {
   <DashboardLayout>
     <div class="flex flex-col space-y-5">
       
-      <!-- Page Header with Micro-animations -->
+      <!-- Page Header with Clean Title and Action Buttons -->
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">Alerts & Event Logs</h2>
-          <p class="text-xs sm:text-sm text-muted-foreground font-medium mt-1">Riwayat notifikasi, log sistem, dan anomali parameter lapangan.</p>
+          <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">Logs & Ekspor Data</h2>
         </div>
 
         <div class="flex items-center gap-2.5 flex-wrap">
@@ -230,14 +422,27 @@ const exportToCSV = async () => {
           <!-- Download CSV Button (Soft Tinted Green) -->
           <Button
             @click="exportToCSV"
-            :disabled="isExporting || totalCount === 0"
+            :disabled="isExportingCSV || isExportingPDF || totalCount === 0"
             variant="outline"
             class="h-10 px-4 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 font-bold text-xs sm:text-sm flex items-center gap-2 shadow-2xs border border-emerald-500/30 cursor-pointer hover:scale-[1.02] active:scale-95 transition-all"
-            title="Download log aktivitas dalam format CSV"
+            title="Download log aktivitas dalam format CSV (Excel)"
           >
-            <Loader2 v-if="isExporting" class="w-4 h-4 animate-spin text-emerald-600 dark:text-emerald-400" />
+            <Loader2 v-if="isExportingCSV" class="w-4 h-4 animate-spin text-emerald-600 dark:text-emerald-400" />
             <ExcelIcon v-else />
-            <span>{{ isExporting ? 'Mengekspor...' : 'Export CSV' }}</span>
+            <span>{{ isExportingCSV ? 'Mengekspor...' : 'Export CSV' }}</span>
+          </Button>
+
+          <!-- Download PDF Button (Soft Tinted Rose) -->
+          <Button
+            @click="exportToPDF"
+            :disabled="isExportingCSV || isExportingPDF || totalCount === 0"
+            variant="outline"
+            class="h-10 px-4 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-700 dark:text-rose-300 font-bold text-xs sm:text-sm flex items-center gap-2 shadow-2xs border border-rose-500/30 cursor-pointer hover:scale-[1.02] active:scale-95 transition-all"
+            title="Download log aktivitas dalam format PDF resmi"
+          >
+            <Loader2 v-if="isExportingPDF" class="w-4 h-4 animate-spin text-rose-600 dark:text-rose-400" />
+            <PdfIcon v-else />
+            <span>{{ isExportingPDF ? 'Membuat PDF...' : 'Laporan PDF' }}</span>
           </Button>
         </div>
       </div>
@@ -247,15 +452,15 @@ const exportToCSV = async () => {
         <!-- Card Header with Count & Refresh -->
         <CardHeader class="p-5 border-b border-border/60 flex flex-row items-center justify-between space-y-0">
           <div class="flex items-center gap-2.5">
-            <Bell class="w-5 h-5 text-primary" />
-            <CardTitle class="text-base sm:text-lg font-bold text-foreground">Daftar Logs</CardTitle>
+            <ScrollText class="w-5 h-5 text-primary" />
+            <CardTitle class="text-base sm:text-lg font-bold text-foreground">Daftar Log Aktivitas</CardTitle>
             
             <span class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
               {{ totalCount }} Total
             </span>
           </div>
 
-          <!-- ═══════════════ MICRO-ANIMATION 3: KINETIC REFRESH BUTTON ═══════════════ -->
+          <!-- KINETIC REFRESH BUTTON -->
           <Button 
             variant="outline" 
             size="sm" 
@@ -287,7 +492,7 @@ const exportToCSV = async () => {
 
           <!-- Empty State -->
           <div v-else-if="!logsQuery.data.value || logsQuery.data.value.length === 0" class="py-16 text-center text-muted-foreground border border-dashed rounded-2xl">
-            <Bell class="w-10 h-10 mx-auto mb-2.5 opacity-40 text-primary" />
+            <ScrollText class="w-10 h-10 mx-auto mb-2.5 opacity-40 text-primary" />
             <p class="font-bold text-base text-foreground">Tidak ada log peristiwa yang ditemukan</p>
             <p class="text-xs sm:text-sm text-muted-foreground mt-1">Belum ada aktivitas atau filter yang dipilih tidak memiliki rekaman.</p>
           </div>
