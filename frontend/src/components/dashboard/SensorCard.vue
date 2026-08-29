@@ -196,10 +196,10 @@ const semanticTheme = computed(() => {
       class="text-white/20" 
     />
     
-    <div class="flex items-center justify-between relative z-10 gap-2">
-      <div class="min-w-0">
-        <p class="font-semibold text-sm sm:text-base text-white tracking-wide drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)] truncate">{{ title }}</p>
-        <div class="flex items-baseline gap-1.5 mt-0.5">
+    <div class="flex items-start justify-between relative z-10 gap-2">
+      <div class="min-w-0 flex-1">
+        <p class="font-semibold text-sm sm:text-base text-white tracking-wide drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)] line-clamp-2 leading-snug">{{ title }}</p>
+        <div class="flex items-baseline gap-1.5 mt-1">
           <h3 class="font-black tracking-tight text-white text-3xl sm:text-4xl drop-shadow-[0_1.5px_3px_rgba(0,0,0,0.4)]">
             {{ value !== null && value !== undefined ? value : '--' }}
           </h3>

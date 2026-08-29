@@ -12,7 +12,6 @@ import {
   MapPin, 
   Radio, 
   Check, 
-  Plus, 
   Layers, 
   CornerDownLeft, 
   ChevronDown
@@ -325,7 +324,7 @@ onUnmounted(() => {
 
               <!-- Footer Guidance -->
               <div class="px-4 py-2.5 border-t border-border/80 bg-slate-50 dark:bg-slate-900/60 flex items-center justify-between text-xs text-muted-foreground">
-                <div class="hidden sm:flex items-center gap-3 text-[11px] font-mono">
+                <div class="flex items-center gap-3 text-[11px] font-mono">
                   <span class="flex items-center gap-1">
                     <kbd class="px-1 rounded bg-slate-200 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-[10px]">↑↓</kbd> Navigasi
                   </span>
@@ -336,15 +335,6 @@ onUnmounted(() => {
                     <kbd class="px-1 rounded bg-slate-200 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-[10px]">ESC</kbd> Tutup
                   </span>
                 </div>
-
-                <a 
-                  href="/nodes"
-                  @click="closePalette"
-                  class="font-bold text-primary hover:underline text-xs flex items-center gap-1 cursor-pointer ml-auto"
-                >
-                  <Plus class="w-3.5 h-3.5" />
-                  <span>Kelola Seluruh Node Lapangan</span>
-                </a>
               </div>
 
             </div>
