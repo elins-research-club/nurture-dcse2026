@@ -695,8 +695,25 @@ const reportSensorStats = computed(() => {
   const feeds = chartData.value || []
 
   return nonActuators.map(s => {
-    const key = `${s.channel_id}_${s.thingspeak_field}`
-    const rawVals = feeds.map((f: any) => parseFloat(f[key] ?? f[s.name])).filter((v: number) => Number.isFinite(v))
+    const channelId = s.channel_id ? String(s.channel_id).toLowerCase() : ''
+    const tsField = (s.thingspeak_field || s.field_key || s.channel_field || '').toLowerCase()
+    const compositeKey = channelId && tsField ? `${channelId}_${tsField}` : ''
+
+    const rawVals = feeds.map((f: any) => {
+      let val = compositeKey ? f[compositeKey] : undefined
+      if (val === undefined && s.field_key) val = f[s.field_key]
+      if (val === undefined && s.thingspeak_field) val = f[s.thingspeak_field]
+      if (val === undefined && s.name) val = f[s.name]
+      if (val === undefined) {
+        const entry = Object.entries(f).find(([k]) => {
+          if (tsField && (k.toLowerCase() === tsField || k.toLowerCase().endsWith(`_${tsField}`))) return true
+          if (s.name && k.toLowerCase() === s.name.toLowerCase()) return true
+          return false
+        })
+        if (entry) val = entry[1]
+      }
+      return parseFloat(val)
+    }).filter((v: number) => Number.isFinite(v))
 
     const lastVal = rawVals.length ? Number(rawVals[rawVals.length - 1].toFixed(1)) : getLiveVal(s)
     const min = rawVals.length ? Number(Math.min(...rawVals).toFixed(1)) : (getLiveVal(s) ?? '--')
@@ -1995,9 +2012,11 @@ onUnmounted(() => {
     :node-id="nodeId"
     :node-name="nodeName || 'Stasiun Agro'"
     :location="nodeCoords ? `${nodeCoords.lat.toFixed(4)}, ${nodeCoords.lng.toFixed(4)}` : 'Kebun Pertanian / Greenhouse'"
-    :stats="reportSensorStats"
+    :sensors="sensors"
+    :current-feeds="chartData"
+    :initial-range="selectedRange"
+    :initial-category="selectedCategory"
     :range-label="rangeLabel"
-    :data-points-count="chartData.length"
     :npk-ratio="analyticsData?.distributionWidget?.subtitle"
     :soil-avg-moisture="getLiveVal(avgMoistureMetric)"
     :ph-val="getLiveVal(phMetric)"
