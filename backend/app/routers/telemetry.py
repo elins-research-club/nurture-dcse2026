@@ -110,7 +110,7 @@ async def get_history_telemetry(
     # -------------------------------------------------------------
     # 🚀 HOT PATH: In-Memory Ring Buffer (1h, 1d / Live 24 Hours)
     # -------------------------------------------------------------
-    is_hot_path = time_range in ("1h", "1d", None) and not (start or end)
+    is_hot_path = time_range in ("1h", "1d", None) and not (start or end) and not average
     if is_hot_path:
         duration_hrs = 1.0 if time_range == "1h" else 24.0
         hot_data = get_hot_path_history(node_id, duration_hours=duration_hrs)
