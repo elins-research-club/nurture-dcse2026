@@ -71,7 +71,7 @@ export async function generateExecutivePDFReport(options: PDFReportOptions): Pro
   y = 12
 
   // -------------------------------------------------------------
-  // 2. INSTITUTIONAL HEADER (KOP RESMI)
+  // 2. INSTITUTIONAL HEADER (KOP DOKUMEN)
   // -------------------------------------------------------------
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(13)
@@ -82,7 +82,7 @@ export async function generateExecutivePDFReport(options: PDFReportOptions): Pro
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(8.5)
   doc.setTextColor(...slateText)
-  doc.text('Laboratorium Elektronika & Instrumentasi  |  Departemen Ilmu Komputer dan Elektronika FMIPA UGM', margin, y)
+  doc.text('Sistem Monitoring & Evaluasi Telemetri Lahan Pertanian Presisi', margin, y)
 
   y += 4
   doc.setDrawColor(...borderGray)
@@ -96,7 +96,7 @@ export async function generateExecutivePDFReport(options: PDFReportOptions): Pro
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(15)
   doc.setTextColor(...darkHeading)
-  doc.text('LAPORAN EVALUASI STASIUN & KESEHATAN LAHAN', margin, y)
+  doc.text('LAPORAN RINGKASAN & EVALUASI TELEMETRI LAHAN', margin, y)
 
   y += 5.5
   doc.setFont('helvetica', 'normal')
@@ -142,21 +142,21 @@ export async function generateExecutivePDFReport(options: PDFReportOptions): Pro
   doc.text('Waktu Cetak:', col2X, textY)
   doc.setFont('helvetica', 'normal')
   doc.setTextColor(...slateText)
-  doc.text(formatWIBTime(new Date().toISOString()), col2X + 24, textY)
+  doc.text(formatWIBTime(new Date().toISOString()), col2X + 28, textY)
 
   doc.setFont('helvetica', 'bold')
   doc.setTextColor(...darkHeading)
   doc.text('Penyusun:', col2X, textY + 5.5)
   doc.setFont('helvetica', 'normal')
   doc.setTextColor(...slateText)
-  doc.text(options.generatedBy || 'Administrator Sistem', col2X + 24, textY + 5.5)
+  doc.text(options.generatedBy || 'Pengelola Lahan / Peneliti', col2X + 28, textY + 5.5)
 
   doc.setFont('helvetica', 'bold')
   doc.setTextColor(...darkHeading)
   doc.text('Status Node:', col2X, textY + 11)
   doc.setFont('helvetica', 'bold')
   doc.setTextColor(16, 185, 129) // emerald-500
-  doc.text('● ONLINE & AKTIF TERHUBUNG', col2X + 24, textY + 11)
+  doc.text('● AKTIF TERHUBUNG', col2X + 28, textY + 11)
 
   y = metaBoxY + 28
 
@@ -166,7 +166,7 @@ export async function generateExecutivePDFReport(options: PDFReportOptions): Pro
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(11)
   doc.setTextColor(...darkHeading)
-  doc.text('1. Ringkasan Eksekutif Key Performance Indicator (KPI)', margin, y)
+  doc.text('1. Ringkasan Parameter Utama (KPI)', margin, y)
 
   y += 4
   const cardWidth = (pageWidth - (margin * 2) - (3 * 3)) / 4
@@ -243,12 +243,28 @@ export async function generateExecutivePDFReport(options: PDFReportOptions): Pro
     const formatNum = (val: any) => {
       if (val === null || val === undefined || val === '') return '--'
       if (typeof val === 'number') return Number.isInteger(val) ? String(val) : val.toFixed(1)
+      if (!isNaN(Number(val))) {
+        const num = Number(val)
+        return Number.isInteger(num) ? String(num) : num.toFixed(1)
+      }
       return String(val)
     }
 
     const thresholdText = (s.minThreshold != null || s.maxThreshold != null)
       ? `${s.minThreshold ?? 0} - ${s.maxThreshold ?? '∞'}`
-      : 'Normal'
+      : 'Standar'
+
+    let statusText = s.status || 'Optimal'
+    const numVal = typeof s.lastVal === 'number' ? s.lastVal : (s.lastVal && !isNaN(Number(s.lastVal)) ? Number(s.lastVal) : null)
+    if (numVal !== null) {
+      if (s.maxThreshold != null && numVal > s.maxThreshold) {
+        statusText = 'Melebihi Batas'
+      } else if (s.minThreshold != null && numVal < s.minThreshold) {
+        statusText = 'Kurang / Rendah'
+      } else {
+        statusText = 'Optimal'
+      }
+    }
 
     return [
       String(idx + 1),
@@ -260,7 +276,7 @@ export async function generateExecutivePDFReport(options: PDFReportOptions): Pro
       formatNum(s.min),
       formatNum(s.max),
       thresholdText,
-      s.status || 'Normal'
+      statusText
     ]
   })
 
@@ -314,7 +330,7 @@ export async function generateExecutivePDFReport(options: PDFReportOptions): Pro
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(11)
   doc.setTextColor(...darkHeading)
-  doc.text('3. Catatan Evaluasi & Rekomendasi Agronomi', margin, y)
+  doc.text('3. Catatan & Analisis Kondisi Lahan', margin, y)
   y += 4
 
   const insightBoxY = y
@@ -324,7 +340,7 @@ export async function generateExecutivePDFReport(options: PDFReportOptions): Pro
   const defaultThermal = options.thermalInsight ||
     `Suhu boks panel mikrokontroler terpantau stabil dalam batas aman termal (< ${options.enclosureSafeLimit || 55}°C). Sistem proteksi dan ventilasi beroperasi secara optimal.`
 
-  const combinedInsight = `• Rekomendasi Lahan: ${defaultInsight}\n• Kondisi Perangkat IoT: ${defaultThermal}${options.notes ? `\n• Catatan Tambahan: ${options.notes}` : ''}`
+  const combinedInsight = `• Kondisi Lahan & Tanah: ${defaultInsight}\n• Kondisi Perangkat IoT: ${defaultThermal}${options.notes ? `\n• Catatan Tambahan: ${options.notes}` : ''}`
 
   doc.setFillColor(...lightBg)
   doc.setDrawColor(...borderGray)
@@ -361,17 +377,17 @@ export async function generateExecutivePDFReport(options: PDFReportOptions): Pro
   y += 4
   doc.setFont('helvetica', 'bold')
   doc.setTextColor(...darkHeading)
-  doc.text('Tim Pengembang & Peneliti IoT', signX, y)
+  doc.text('Penyusun / Penanggung Jawab Lahan', signX, y)
 
   y += 14
   doc.setFont('helvetica', 'bold')
-  doc.text(options.generatedBy || 'Laboratorium ELINS DIKE UGM', signX, y)
+  doc.text(options.generatedBy || 'Pengelola Lahan / Peneliti', signX, y)
   
   y += 3.5
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(7)
   doc.setTextColor(...slateText)
-  doc.text('Universitas Gadjah Mada', signX, y)
+  doc.text('G-Connect Smart Farming Platform', signX, y)
 
   // -------------------------------------------------------------
   // 8. FOOTER WITH PAGE NUMBERS (Across all pages)
@@ -386,7 +402,7 @@ export async function generateExecutivePDFReport(options: PDFReportOptions): Pro
     doc.setFont('helvetica', 'normal')
     doc.setFontSize(7)
     doc.setTextColor(...slateText)
-    doc.text('G-CONNECT Platform  •  Dokumen Laporan Resmi Terverifikasi Sistem', margin, pageHeight - 6)
+    doc.text('G-CONNECT Platform  •  Dokumen Ringkasan Telemetri Pertanian Presisi', margin, pageHeight - 6)
     doc.text(`Halaman ${i} dari ${totalPages}`, pageWidth - margin - 20, pageHeight - 6)
   }
 
