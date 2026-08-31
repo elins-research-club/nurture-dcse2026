@@ -39,10 +39,38 @@ export interface PDFReportOptions {
   thermalInsight?: string
 }
 
+async function loadLogoAsPngDataUrl(src: string): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new Image()
+    img.crossOrigin = 'Anonymous'
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas')
+        canvas.width = img.naturalWidth || img.width
+        canvas.height = img.naturalHeight || img.height
+        const ctx = canvas.getContext('2d')
+        if (ctx) {
+          ctx.drawImage(img, 0, 0)
+          resolve(canvas.toDataURL('image/png'))
+        } else {
+          resolve('')
+        }
+      } catch {
+        resolve('')
+      }
+    }
+    img.onerror = () => resolve('')
+    img.src = src
+  })
+}
+
 export async function generateExecutivePDFReport(options: PDFReportOptions): Promise<any> {
-  const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
-    import('jspdf'),
-    import('jspdf-autotable')
+  const [[{ default: jsPDF }, { default: autoTable }], logoUgm, logoDike, logoElins, logoWebdev] = await Promise.all([
+    Promise.all([import('jspdf'), import('jspdf-autotable')]),
+    loadLogoAsPngDataUrl('/Logo-UGM.png'),
+    loadLogoAsPngDataUrl('/Logo-DIKE.png'),
+    loadLogoAsPngDataUrl('/logo-icon.webp'),
+    loadLogoAsPngDataUrl('/logo-webdev.webp')
   ])
 
   const doc = new jsPDF({
@@ -67,24 +95,48 @@ export async function generateExecutivePDFReport(options: PDFReportOptions): Pro
   // 1. TOP BRAND ACCENT BAR
   // -------------------------------------------------------------
   doc.setFillColor(...emeraldPrimary)
-  doc.rect(0, 0, pageWidth, 5, 'F')
-  y = 12
+  doc.rect(0, 0, pageWidth, 4, 'F')
 
   // -------------------------------------------------------------
-  // 2. INSTITUTIONAL HEADER (KOP DOKUMEN)
+  // 2. INSTITUTIONAL HEADER (KOP DOKUMEN & 4 LOGOS)
   // -------------------------------------------------------------
+  const headerTopY = 9
+
+  // Left Column: Title & Subtitles
   doc.setFont('helvetica', 'bold')
-  doc.setFontSize(13)
+  doc.setFontSize(11.5)
   doc.setTextColor(...emeraldPrimary)
-  doc.text('G-CONNECT  •  SMART FARMING & AGRO-IOT PLATFORM', margin, y)
+  doc.text('G-CONNECT SMART FARMING PLATFORM REPORT', margin, headerTopY + 4)
 
-  y += 5
   doc.setFont('helvetica', 'normal')
-  doc.setFontSize(8.5)
+  doc.setFontSize(8)
   doc.setTextColor(...slateText)
-  doc.text('Sistem Monitoring & Evaluasi Telemetri Lahan Pertanian Presisi', margin, y)
+  doc.text('Sistem Monitoring & Evaluasi Telemetri Lahan Pertanian Presisi', margin, headerTopY + 8.5)
 
-  y += 4
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(7.5)
+  doc.setTextColor(100, 116, 139) // slate-500
+  doc.text('Community Service Program  •  Lab ELINS & DIKE UGM', margin, headerTopY + 12.5)
+
+  // Right Column: 4 Official Logos Row
+  const logosStartX = pageWidth - margin - 58
+  const logosY = headerTopY + 1.5
+
+  if (logoUgm) {
+    doc.addImage(logoUgm, 'PNG', logosStartX, logosY, 11, 10.5)
+  }
+  if (logoDike) {
+    doc.addImage(logoDike, 'PNG', logosStartX + 13, logosY + 1.2, 17, 8)
+  }
+  if (logoElins) {
+    doc.addImage(logoElins, 'PNG', logosStartX + 32, logosY + 1, 9, 8.5)
+  }
+  if (logoWebdev) {
+    doc.addImage(logoWebdev, 'PNG', logosStartX + 43, logosY + 1, 9, 8.5)
+  }
+
+  // Separator Line
+  y = headerTopY + 16.5
   doc.setDrawColor(...borderGray)
   doc.setLineWidth(0.4)
   doc.line(margin, y, pageWidth - margin, y)
@@ -92,13 +144,13 @@ export async function generateExecutivePDFReport(options: PDFReportOptions): Pro
   // -------------------------------------------------------------
   // 3. REPORT TITLE & METADATA SECTION
   // -------------------------------------------------------------
-  y += 8
+  y += 6
   doc.setFont('helvetica', 'bold')
-  doc.setFontSize(15)
+  doc.setFontSize(14)
   doc.setTextColor(...darkHeading)
   doc.text('LAPORAN RINGKASAN & EVALUASI TELEMETRI LAHAN', margin, y)
 
-  y += 5.5
+  y += 5
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(9)
   doc.setTextColor(...slateText)
