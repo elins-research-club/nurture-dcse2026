@@ -142,75 +142,75 @@ export async function generateExecutivePDFReport(options: PDFReportOptions): Pro
   doc.line(margin, y, pageWidth - margin, y)
 
   // -------------------------------------------------------------
-  // 3. REPORT TITLE & METADATA SECTION
+  // 3. METADATA SUMMARY SECTION
   // -------------------------------------------------------------
-  y += 6
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(14)
-  doc.setTextColor(...darkHeading)
-  doc.text('LAPORAN RINGKASAN & EVALUASI TELEMETRI LAHAN', margin, y)
-
-  y += 5
-  doc.setFont('helvetica', 'normal')
-  doc.setFontSize(9)
-  doc.setTextColor(...slateText)
-  
-  // Metadata 2-Column Info Box
-  const metaBoxY = y
+  const metaBoxY = headerTopY + 19.5
   doc.setFillColor(...lightBg)
   doc.roundedRect(margin, metaBoxY, pageWidth - (margin * 2), 22, 2.5, 2.5, 'F')
   doc.setDrawColor(...borderGray)
   doc.roundedRect(margin, metaBoxY, pageWidth - (margin * 2), 22, 2.5, 2.5, 'S')
 
-  const col1X = margin + 4
-  const col2X = margin + 92
-  let textY = metaBoxY + 5.5
+  const col1LabelX = margin + 4
+  const col1ValX = margin + 20
+  const col2LabelX = margin + 94
+  const col2ValX = margin + 116
+  const textY = metaBoxY + 5.5
+
+  const truncate = (str: string, maxLen: number) => {
+    if (!str) return '-'
+    return str.length > maxLen ? str.slice(0, maxLen - 1) + '…' : str
+  }
 
   // Left Column
   doc.setFont('helvetica', 'bold')
+  doc.setFontSize(8.5)
   doc.setTextColor(...darkHeading)
-  doc.text('Stasiun:', col1X, textY)
+  doc.text('Stasiun:', col1LabelX, textY)
   doc.setFont('helvetica', 'normal')
   doc.setTextColor(...slateText)
-  doc.text(`${options.nodeName} (${options.nodeCode || '-'})`, col1X + 22, textY)
+  doc.text(truncate(`${options.nodeName} (${options.nodeCode || '-'})`, 36), col1ValX, textY)
 
   doc.setFont('helvetica', 'bold')
   doc.setTextColor(...darkHeading)
-  doc.text('Lokasi:', col1X, textY + 5.5)
+  doc.text('Lokasi:', col1LabelX, textY + 5.5)
   doc.setFont('helvetica', 'normal')
   doc.setTextColor(...slateText)
-  doc.text(`${options.location || 'Kebun Pertanian / Greenhouse'}`, col1X + 22, textY + 5.5)
+  doc.text(truncate(`${options.location || 'Kebun Pertanian / Greenhouse'}`, 36), col1ValX, textY + 5.5)
 
   doc.setFont('helvetica', 'bold')
   doc.setTextColor(...darkHeading)
-  doc.text('Periode:', col1X, textY + 11)
+  doc.text('Periode:', col1LabelX, textY + 11)
   doc.setFont('helvetica', 'normal')
   doc.setTextColor(...slateText)
-  doc.text(`${options.rangeLabel} (${options.dataPointsCount} data teragregasi)`, col1X + 22, textY + 11)
+  doc.text(`${options.rangeLabel} (${options.dataPointsCount} data teragregasi)`, col1ValX, textY + 11)
 
   // Right Column
   doc.setFont('helvetica', 'bold')
   doc.setTextColor(...darkHeading)
-  doc.text('Waktu Cetak:', col2X, textY)
+  doc.text('Waktu Cetak:', col2LabelX, textY)
   doc.setFont('helvetica', 'normal')
   doc.setTextColor(...slateText)
-  doc.text(formatWIBTime(new Date().toISOString()), col2X + 28, textY)
+  doc.text(formatWIBTime(new Date().toISOString()), col2ValX, textY)
 
   doc.setFont('helvetica', 'bold')
   doc.setTextColor(...darkHeading)
-  doc.text('Penyusun:', col2X, textY + 5.5)
+  doc.text('Penyusun:', col2LabelX, textY + 5.5)
   doc.setFont('helvetica', 'normal')
   doc.setTextColor(...slateText)
-  doc.text(options.generatedBy || 'Pengelola Lahan / Peneliti', col2X + 28, textY + 5.5)
+  doc.text(truncate(options.generatedBy || 'Pengelola Lahan / Peneliti', 28), col2ValX, textY + 5.5)
 
   doc.setFont('helvetica', 'bold')
   doc.setTextColor(...darkHeading)
-  doc.text('Status Node:', col2X, textY + 11)
-  doc.setFont('helvetica', 'bold')
-  doc.setTextColor(16, 185, 129) // emerald-500
-  doc.text('● AKTIF TERHUBUNG', col2X + 28, textY + 11)
+  doc.text('Status Node:', col2LabelX, textY + 11)
 
-  y = metaBoxY + 28
+  // Vector solid dot for status (prevents unicode font encoding glitches)
+  doc.setFillColor(16, 185, 129) // emerald-500
+  doc.circle(col2ValX + 1.2, textY + 10.2, 1.2, 'F')
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(16, 185, 129)
+  doc.text('AKTIF TERHUBUNG', col2ValX + 4.5, textY + 11)
+
+  y = metaBoxY + 27
 
   // -------------------------------------------------------------
   // 4. EXECUTIVE KPI CARDS (4-Column Summary)
