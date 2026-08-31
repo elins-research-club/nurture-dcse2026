@@ -96,7 +96,7 @@ export async function generateExecutivePDFReport(options: PDFReportOptions): Pro
   let y = margin
 
   // Color Palette Constants
-  const emeraldPrimary: [number, number, number] = [5, 150, 105] // #059669
+  const brandGreen: [number, number, number] = [0, 143, 0]       // #008F00 Brand Primary
   const darkHeading: [number, number, number] = [15, 23, 42]     // #0F172A
   const slateText: [number, number, number] = [71, 85, 105]       // #475569
   const lightBg: [number, number, number] = [248, 250, 252]      // #F8FAFC
@@ -105,7 +105,7 @@ export async function generateExecutivePDFReport(options: PDFReportOptions): Pro
   // -------------------------------------------------------------
   // 1. TOP BRAND ACCENT BAR
   // -------------------------------------------------------------
-  doc.setFillColor(...emeraldPrimary)
+  doc.setFillColor(...brandGreen)
   doc.rect(0, 0, pageWidth, 4, 'F')
 
   // -------------------------------------------------------------
@@ -116,7 +116,7 @@ export async function generateExecutivePDFReport(options: PDFReportOptions): Pro
   // Left Column: Title & Subtitles
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(11.5)
-  doc.setTextColor(...emeraldPrimary)
+  doc.setTextColor(...brandGreen)
   doc.text('G-CONNECT SMART FARMING PLATFORM REPORT', margin, headerTopY + 5)
 
   doc.setFont('helvetica', 'bold')
@@ -253,7 +253,7 @@ export async function generateExecutivePDFReport(options: PDFReportOptions): Pro
       title: 'Keseimbangan NPK',
       value: options.npkRatio || 'Seimbang',
       sub: 'Rasio N : P : K',
-      color: [16, 185, 129] as [number, number, number] // emerald-500
+      color: brandGreen // [0, 143, 0]
     },
     {
       title: 'Kualitas Kimiawi',
@@ -357,7 +357,7 @@ export async function generateExecutivePDFReport(options: PDFReportOptions): Pro
     body: tableRows,
     theme: 'grid',
     headStyles: {
-      fillColor: emeraldPrimary,
+      fillColor: brandGreen,
       textColor: [255, 255, 255],
       fontStyle: 'bold',
       fontSize: 8,
