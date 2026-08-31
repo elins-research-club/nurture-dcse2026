@@ -117,17 +117,12 @@ export async function generateExecutivePDFReport(options: PDFReportOptions): Pro
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(11.5)
   doc.setTextColor(...emeraldPrimary)
-  doc.text('G-CONNECT SMART FARMING PLATFORM REPORT', margin, headerTopY + 4)
-
-  doc.setFont('helvetica', 'normal')
-  doc.setFontSize(8)
-  doc.setTextColor(...slateText)
-  doc.text('Sistem Monitoring & Evaluasi Telemetri Lahan Pertanian Presisi', margin, headerTopY + 8.5)
+  doc.text('G-CONNECT SMART FARMING PLATFORM REPORT', margin, headerTopY + 5)
 
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(7.5)
   doc.setTextColor(100, 116, 139) // slate-500
-  doc.text('Community Service Program  •  Lab ELINS & DIKE UGM', margin, headerTopY + 12.5)
+  doc.text('Community Service Program  •  Lab ELINS & DIKE UGM', margin, headerTopY + 10.5)
 
   // Right Column: 4 Official Logos Row
   const logosStartX = pageWidth - margin - 58
