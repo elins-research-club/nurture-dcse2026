@@ -80,6 +80,16 @@ export async function generateExecutivePDFReport(options: PDFReportOptions): Pro
     format: 'a4'
   })
 
+  // Set official PDF document properties so browser tabs show a clean title instead of random blob UUID
+  const reportDocTitle = `G-CONNECT REPORT - ${options.nodeName || options.nodeCode || 'Telemetri'}`
+  doc.setProperties({
+    title: reportDocTitle,
+    subject: 'G-CONNECT SMART FARMING PLATFORM REPORT',
+    author: options.generatedBy || 'Pengelola Lahan / Peneliti',
+    keywords: 'G-Connect, Smart Farming, Telemetri, IoT, Agronomi',
+    creator: 'G-Connect Smart Farming Platform'
+  })
+
   const pageWidth = doc.internal.pageSize.getWidth()
   const pageHeight = doc.internal.pageSize.getHeight()
   const margin = 14

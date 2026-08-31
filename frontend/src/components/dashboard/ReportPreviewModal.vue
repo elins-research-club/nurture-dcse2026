@@ -228,8 +228,11 @@ const handleGeneratePDF = async (isPrint = false) => {
 
     if (isPrint) {
       doc.autoPrint()
-      const blobUrl = doc.output('bloburl')
-      window.open(blobUrl, '_blank')
+      const blobUrl = doc.output('bloburl', { filename })
+      const win = window.open(blobUrl, '_blank')
+      if (win) {
+        win.document.title = filename.replace('.pdf', '')
+      }
     } else {
       downloadExecutivePDFReport(doc, filename)
     }
