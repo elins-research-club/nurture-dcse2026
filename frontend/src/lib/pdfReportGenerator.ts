@@ -143,71 +143,87 @@ export async function generateExecutivePDFReport(options: PDFReportOptions): Pro
   doc.line(margin, y, pageWidth - margin, y)
 
   // -------------------------------------------------------------
-  // 3. METADATA SUMMARY SECTION
+  // 3. METADATA SUMMARY SECTION (Dynamic Multi-Line Text Wrapping)
   // -------------------------------------------------------------
   const metaBoxY = headerTopY + 19.5
-  doc.setFillColor(...lightBg)
-  doc.roundedRect(margin, metaBoxY, pageWidth - (margin * 2), 22, 2.5, 2.5, 'F')
-  doc.setDrawColor(...borderGray)
-  doc.roundedRect(margin, metaBoxY, pageWidth - (margin * 2), 22, 2.5, 2.5, 'S')
-
   const col1LabelX = margin + 4
   const col1ValX = margin + 25
   const col2LabelX = margin + 95
   const col2ValX = margin + 119
-  const textY = metaBoxY + 5.5
+  const col1ValMaxWidth = 58
+  const col2ValMaxWidth = 60
 
-  const truncate = (str: string, maxLen: number) => {
-    if (!str) return '-'
-    return str.length > maxLen ? str.slice(0, maxLen - 1) + '…' : str
-  }
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(8)
 
-  // Left Column
+  // Split texts to fit exact column widths (no truncation, automatic downward wrap)
+  const stationLines: string[] = doc.splitTextToSize(`${options.nodeName} (${options.nodeCode || '-'})`, col1ValMaxWidth)
+  const timeLines: string[] = doc.splitTextToSize(formatWIBTime(new Date().toISOString()), col2ValMaxWidth)
+
+  const locationLines: string[] = doc.splitTextToSize(options.location || 'Kebun Pertanian / Greenhouse', col1ValMaxWidth)
+  const coordLines: string[] = doc.splitTextToSize(options.coordinates || '-7.6846, 110.3400', col2ValMaxWidth)
+
+  const periodLines: string[] = doc.splitTextToSize(`${options.rangeLabel} (${options.dataPointsCount} data teragregasi)`, col1ValMaxWidth)
+  const authorLines: string[] = doc.splitTextToSize(options.generatedBy || 'Pengelola Lahan / Peneliti', col2ValMaxWidth)
+
+  const lineHeight = 3.6
+  const rowSpacing = 2.0
+  const boxPaddingTop = 4.5
+  const boxPaddingBottom = 4.0
+
+  const row1Height = Math.max(stationLines.length, timeLines.length) * lineHeight
+  const row2Height = Math.max(locationLines.length, coordLines.length) * lineHeight
+  const row3Height = Math.max(periodLines.length, authorLines.length) * lineHeight
+
+  const totalBoxHeight = boxPaddingTop + row1Height + rowSpacing + row2Height + rowSpacing + row3Height + boxPaddingBottom
+
+  // Draw dynamic box background & border
+  doc.setFillColor(...lightBg)
+  doc.roundedRect(margin, metaBoxY, pageWidth - (margin * 2), totalBoxHeight, 2.5, 2.5, 'F')
+  doc.setDrawColor(...borderGray)
+  doc.roundedRect(margin, metaBoxY, pageWidth - (margin * 2), totalBoxHeight, 2.5, 2.5, 'S')
+
+  let currY = metaBoxY + boxPaddingTop + 3.0
+
+  // Row 1: Stasiun & Waktu Cetak
   doc.setFont('helvetica', 'bold')
-  doc.setFontSize(8.5)
+  doc.setFontSize(8)
   doc.setTextColor(...darkHeading)
-  doc.text('Stasiun:', col1LabelX, textY)
+  doc.text('Stasiun:', col1LabelX, currY)
+  doc.text('Waktu Cetak:', col2LabelX, currY)
+
   doc.setFont('helvetica', 'normal')
   doc.setTextColor(...slateText)
-  doc.text(truncate(`${options.nodeName} (${options.nodeCode || '-'})`, 34), col1ValX, textY)
+  doc.text(stationLines, col1ValX, currY)
+  doc.text(timeLines, col2ValX, currY)
 
+  currY += row1Height + rowSpacing
+
+  // Row 2: Lokasi Lahan & Koordinat GPS
   doc.setFont('helvetica', 'bold')
   doc.setTextColor(...darkHeading)
-  doc.text('Lokasi Lahan:', col1LabelX, textY + 5.5)
+  doc.text('Lokasi Lahan:', col1LabelX, currY)
+  doc.text('Koordinat GPS:', col2LabelX, currY)
+
   doc.setFont('helvetica', 'normal')
   doc.setTextColor(...slateText)
-  doc.text(truncate(options.location || 'Kebun Pertanian / Greenhouse', 34), col1ValX, textY + 5.5)
+  doc.text(locationLines, col1ValX, currY)
+  doc.text(coordLines, col2ValX, currY)
 
+  currY += row2Height + rowSpacing
+
+  // Row 3: Periode Data & Penyusun
   doc.setFont('helvetica', 'bold')
   doc.setTextColor(...darkHeading)
-  doc.text('Periode Data:', col1LabelX, textY + 11)
+  doc.text('Periode Data:', col1LabelX, currY)
+  doc.text('Penyusun:', col2LabelX, currY)
+
   doc.setFont('helvetica', 'normal')
   doc.setTextColor(...slateText)
-  doc.text(`${options.rangeLabel} (${options.dataPointsCount} data)`, col1ValX, textY + 11)
+  doc.text(periodLines, col1ValX, currY)
+  doc.text(authorLines, col2ValX, currY)
 
-  // Right Column
-  doc.setFont('helvetica', 'bold')
-  doc.setTextColor(...darkHeading)
-  doc.text('Waktu Cetak:', col2LabelX, textY)
-  doc.setFont('helvetica', 'normal')
-  doc.setTextColor(...slateText)
-  doc.text(formatWIBTime(new Date().toISOString()), col2ValX, textY)
-
-  doc.setFont('helvetica', 'bold')
-  doc.setTextColor(...darkHeading)
-  doc.text('Koordinat GPS:', col2LabelX, textY + 5.5)
-  doc.setFont('helvetica', 'normal')
-  doc.setTextColor(...slateText)
-  doc.text(options.coordinates || '-7.6846, 110.3400', col2ValX, textY + 5.5)
-
-  doc.setFont('helvetica', 'bold')
-  doc.setTextColor(...darkHeading)
-  doc.text('Penyusun:', col2LabelX, textY + 11)
-  doc.setFont('helvetica', 'normal')
-  doc.setTextColor(...slateText)
-  doc.text(truncate(options.generatedBy || 'Pengelola Lahan / Peneliti', 26), col2ValX, textY + 11)
-
-  y = metaBoxY + 27
+  y = metaBoxY + totalBoxHeight + 6.0
 
   // -------------------------------------------------------------
   // 4. EXECUTIVE KPI CARDS (4-Column Summary)
