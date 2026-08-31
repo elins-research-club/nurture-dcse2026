@@ -23,6 +23,7 @@ export interface PDFReportOptions {
   nodeName: string
   nodeCode: string
   location?: string
+  coordinates?: string
   rangeLabel: string
   dataPointsCount: number
   generatedBy?: string
@@ -151,9 +152,9 @@ export async function generateExecutivePDFReport(options: PDFReportOptions): Pro
   doc.roundedRect(margin, metaBoxY, pageWidth - (margin * 2), 22, 2.5, 2.5, 'S')
 
   const col1LabelX = margin + 4
-  const col1ValX = margin + 20
-  const col2LabelX = margin + 94
-  const col2ValX = margin + 116
+  const col1ValX = margin + 25
+  const col2LabelX = margin + 95
+  const col2ValX = margin + 119
   const textY = metaBoxY + 5.5
 
   const truncate = (str: string, maxLen: number) => {
@@ -168,21 +169,21 @@ export async function generateExecutivePDFReport(options: PDFReportOptions): Pro
   doc.text('Stasiun:', col1LabelX, textY)
   doc.setFont('helvetica', 'normal')
   doc.setTextColor(...slateText)
-  doc.text(truncate(`${options.nodeName} (${options.nodeCode || '-'})`, 36), col1ValX, textY)
+  doc.text(truncate(`${options.nodeName} (${options.nodeCode || '-'})`, 34), col1ValX, textY)
 
   doc.setFont('helvetica', 'bold')
   doc.setTextColor(...darkHeading)
-  doc.text('Lokasi:', col1LabelX, textY + 5.5)
+  doc.text('Lokasi Lahan:', col1LabelX, textY + 5.5)
   doc.setFont('helvetica', 'normal')
   doc.setTextColor(...slateText)
-  doc.text(truncate(`${options.location || 'Kebun Pertanian / Greenhouse'}`, 36), col1ValX, textY + 5.5)
+  doc.text(truncate(options.location || 'Kebun Pertanian / Greenhouse', 34), col1ValX, textY + 5.5)
 
   doc.setFont('helvetica', 'bold')
   doc.setTextColor(...darkHeading)
-  doc.text('Periode:', col1LabelX, textY + 11)
+  doc.text('Periode Data:', col1LabelX, textY + 11)
   doc.setFont('helvetica', 'normal')
   doc.setTextColor(...slateText)
-  doc.text(`${options.rangeLabel} (${options.dataPointsCount} data teragregasi)`, col1ValX, textY + 11)
+  doc.text(`${options.rangeLabel} (${options.dataPointsCount} data)`, col1ValX, textY + 11)
 
   // Right Column
   doc.setFont('helvetica', 'bold')
@@ -194,21 +195,17 @@ export async function generateExecutivePDFReport(options: PDFReportOptions): Pro
 
   doc.setFont('helvetica', 'bold')
   doc.setTextColor(...darkHeading)
-  doc.text('Penyusun:', col2LabelX, textY + 5.5)
+  doc.text('Koordinat GPS:', col2LabelX, textY + 5.5)
   doc.setFont('helvetica', 'normal')
   doc.setTextColor(...slateText)
-  doc.text(truncate(options.generatedBy || 'Pengelola Lahan / Peneliti', 28), col2ValX, textY + 5.5)
+  doc.text(options.coordinates || '-7.6846, 110.3400', col2ValX, textY + 5.5)
 
   doc.setFont('helvetica', 'bold')
   doc.setTextColor(...darkHeading)
-  doc.text('Status Node:', col2LabelX, textY + 11)
-
-  // Vector solid dot for status (prevents unicode font encoding glitches)
-  doc.setFillColor(16, 185, 129) // emerald-500
-  doc.circle(col2ValX + 1.2, textY + 10.2, 1.2, 'F')
-  doc.setFont('helvetica', 'bold')
-  doc.setTextColor(16, 185, 129)
-  doc.text('AKTIF TERHUBUNG', col2ValX + 4.5, textY + 11)
+  doc.text('Penyusun:', col2LabelX, textY + 11)
+  doc.setFont('helvetica', 'normal')
+  doc.setTextColor(...slateText)
+  doc.text(truncate(options.generatedBy || 'Pengelola Lahan / Peneliti', 26), col2ValX, textY + 11)
 
   y = metaBoxY + 27
 

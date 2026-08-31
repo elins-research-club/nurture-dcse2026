@@ -616,6 +616,7 @@ const thermalStatus = computed(() => {
 const miniMapContainer = ref<HTMLElement | null>(null)
 const miniMapReady = ref(false)
 const nodeCoords = ref<{ lat: number; lng: number } | null>(null)
+const nodeLocation = ref<string>('')
 let miniMap: L.Map | null = null
 
 const initMiniMap = (lat: number, lng: number) => {
@@ -660,6 +661,9 @@ const fetchNodeCoords = async () => {
     })
     if (!res.ok) return
     const node = await res.json()
+    if (node.location) {
+      nodeLocation.value = node.location
+    }
     if (node.latitude != null && node.longitude != null) {
       nodeCoords.value = { lat: node.latitude, lng: node.longitude }
     }
@@ -2011,7 +2015,8 @@ onUnmounted(() => {
     @update:open="isReportModalOpen = $event"
     :node-id="nodeId"
     :node-name="nodeName || 'Stasiun Agro'"
-    :location="nodeCoords ? `${nodeCoords.lat.toFixed(4)}, ${nodeCoords.lng.toFixed(4)}` : 'Kebun Pertanian / Greenhouse'"
+    :location="nodeLocation || 'Kebun Pertanian / Greenhouse'"
+    :coordinates="nodeCoords ? `${nodeCoords.lat.toFixed(4)}, ${nodeCoords.lng.toFixed(4)}` : '-7.6846, 110.3400'"
     :sensors="sensors"
     :current-feeds="chartData"
     :initial-range="selectedRange"

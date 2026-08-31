@@ -23,6 +23,7 @@ const props = withDefaults(defineProps<{
   nodeId: string
   nodeName: string
   location?: string
+  coordinates?: string
   sensors?: any[]
   currentFeeds?: any[]
   initialRange?: '1d' | '1w' | '1M' | 'custom'
@@ -201,6 +202,7 @@ const handleGeneratePDF = async (isPrint = false) => {
       nodeName: props.nodeName,
       nodeCode: props.nodeId,
       location: props.location,
+      coordinates: props.coordinates || (props.location && props.location.includes(',') ? props.location : undefined),
       rangeLabel: selectedRangeLabel.value,
       dataPointsCount: modalFeeds.value.length || 100,
       generatedBy: authorName.value.trim() || 'Pengelola Lahan / Pengguna',
