@@ -23,6 +23,7 @@ export interface PDFReportOptions {
   nodeName: string
   nodeCode: string
   location?: string
+  coordinates?: string
   rangeLabel: string
   dataPointsCount: number
   generatedBy?: string
@@ -39,10 +40,38 @@ export interface PDFReportOptions {
   thermalInsight?: string
 }
 
+async function loadLogoAsPngDataUrl(src: string): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new Image()
+    img.crossOrigin = 'Anonymous'
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas')
+        canvas.width = img.naturalWidth || img.width
+        canvas.height = img.naturalHeight || img.height
+        const ctx = canvas.getContext('2d')
+        if (ctx) {
+          ctx.drawImage(img, 0, 0)
+          resolve(canvas.toDataURL('image/png'))
+        } else {
+          resolve('')
+        }
+      } catch {
+        resolve('')
+      }
+    }
+    img.onerror = () => resolve('')
+    img.src = src
+  })
+}
+
 export async function generateExecutivePDFReport(options: PDFReportOptions): Promise<any> {
-  const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
-    import('jspdf'),
-    import('jspdf-autotable')
+  const [[{ default: jsPDF }, { default: autoTable }], logoUgm, logoDike, logoElins, logoWebdev] = await Promise.all([
+    Promise.all([import('jspdf'), import('jspdf-autotable')]),
+    loadLogoAsPngDataUrl('/Logo-UGM.png'),
+    loadLogoAsPngDataUrl('/Logo-DIKE.png'),
+    loadLogoAsPngDataUrl('/logo-icon.webp'),
+    loadLogoAsPngDataUrl('/logo-webdev.webp')
   ])
 
   const doc = new jsPDF({
@@ -51,13 +80,23 @@ export async function generateExecutivePDFReport(options: PDFReportOptions): Pro
     format: 'a4'
   })
 
+  // Set official PDF document properties so browser tabs show a clean title instead of random blob UUID
+  const reportDocTitle = `G-CONNECT REPORT - ${options.nodeName || options.nodeCode || 'Telemetri'}`
+  doc.setProperties({
+    title: reportDocTitle,
+    subject: 'G-CONNECT SMART FARMING PLATFORM REPORT',
+    author: options.generatedBy || 'Pengelola Lahan / Peneliti',
+    keywords: 'G-Connect, Smart Farming, Telemetri, IoT, Agronomi',
+    creator: 'G-Connect Smart Farming Platform'
+  })
+
   const pageWidth = doc.internal.pageSize.getWidth()
   const pageHeight = doc.internal.pageSize.getHeight()
   const margin = 14
   let y = margin
 
   // Color Palette Constants
-  const emeraldPrimary: [number, number, number] = [5, 150, 105] // #059669
+  const brandGreen: [number, number, number] = [0, 143, 0]       // #008F00 Brand Primary
   const darkHeading: [number, number, number] = [15, 23, 42]     // #0F172A
   const slateText: [number, number, number] = [71, 85, 105]       // #475569
   const lightBg: [number, number, number] = [248, 250, 252]      // #F8FAFC
@@ -66,99 +105,130 @@ export async function generateExecutivePDFReport(options: PDFReportOptions): Pro
   // -------------------------------------------------------------
   // 1. TOP BRAND ACCENT BAR
   // -------------------------------------------------------------
-  doc.setFillColor(...emeraldPrimary)
-  doc.rect(0, 0, pageWidth, 5, 'F')
-  y = 12
+  doc.setFillColor(...brandGreen)
+  doc.rect(0, 0, pageWidth, 4, 'F')
 
   // -------------------------------------------------------------
-  // 2. INSTITUTIONAL HEADER (KOP RESMI)
+  // 2. INSTITUTIONAL HEADER (KOP DOKUMEN & 4 LOGOS)
   // -------------------------------------------------------------
+  const headerTopY = 9
+
+  // Left Column: Title & Subtitles
   doc.setFont('helvetica', 'bold')
-  doc.setFontSize(13)
-  doc.setTextColor(...emeraldPrimary)
-  doc.text('G-CONNECT  •  SMART FARMING & AGRO-IOT PLATFORM', margin, y)
+  doc.setFontSize(11.5)
+  doc.setTextColor(...brandGreen)
+  doc.text('G-CONNECT SMART FARMING PLATFORM REPORT', margin, headerTopY + 5)
 
-  y += 5
-  doc.setFont('helvetica', 'normal')
-  doc.setFontSize(8.5)
-  doc.setTextColor(...slateText)
-  doc.text('Laboratorium Elektronika & Instrumentasi  |  Departemen Ilmu Komputer dan Elektronika FMIPA UGM', margin, y)
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(7.5)
+  doc.setTextColor(100, 116, 139) // slate-500
+  doc.text('Community Service Program  •  Lab ELINS & DIKE UGM', margin, headerTopY + 10.5)
 
-  y += 4
+  // Right Column: 4 Official Logos Row
+  const logosStartX = pageWidth - margin - 58
+  const logosY = headerTopY + 1.5
+
+  if (logoUgm) {
+    doc.addImage(logoUgm, 'PNG', logosStartX, logosY, 11, 10.5)
+  }
+  if (logoDike) {
+    doc.addImage(logoDike, 'PNG', logosStartX + 13, logosY + 1.2, 17, 8)
+  }
+  if (logoElins) {
+    doc.addImage(logoElins, 'PNG', logosStartX + 32, logosY + 1, 9, 8.5)
+  }
+  if (logoWebdev) {
+    doc.addImage(logoWebdev, 'PNG', logosStartX + 43, logosY + 1, 9, 8.5)
+  }
+
+  // Separator Line
+  y = headerTopY + 16.5
   doc.setDrawColor(...borderGray)
   doc.setLineWidth(0.4)
   doc.line(margin, y, pageWidth - margin, y)
 
   // -------------------------------------------------------------
-  // 3. REPORT TITLE & METADATA SECTION
+  // 3. METADATA SUMMARY SECTION (Dynamic Multi-Line Text Wrapping)
   // -------------------------------------------------------------
-  y += 8
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(15)
-  doc.setTextColor(...darkHeading)
-  doc.text('LAPORAN EVALUASI STASIUN & KESEHATAN LAHAN', margin, y)
+  const metaBoxY = headerTopY + 19.5
+  const col1LabelX = margin + 4
+  const col1ValX = margin + 25
+  const col2LabelX = margin + 95
+  const col2ValX = margin + 119
+  const col1ValMaxWidth = 58
+  const col2ValMaxWidth = 60
 
-  y += 5.5
   doc.setFont('helvetica', 'normal')
-  doc.setFontSize(9)
-  doc.setTextColor(...slateText)
-  
-  // Metadata 2-Column Info Box
-  const metaBoxY = y
+  doc.setFontSize(8)
+
+  // Split texts to fit exact column widths (no truncation, automatic downward wrap)
+  const stationLines: string[] = doc.splitTextToSize(`${options.nodeName} (${options.nodeCode || '-'})`, col1ValMaxWidth)
+  const timeLines: string[] = doc.splitTextToSize(formatWIBTime(new Date().toISOString()), col2ValMaxWidth)
+
+  const locationLines: string[] = doc.splitTextToSize(options.location || 'Kebun Pertanian / Greenhouse', col1ValMaxWidth)
+  const coordLines: string[] = doc.splitTextToSize(options.coordinates || '-7.6846, 110.3400', col2ValMaxWidth)
+
+  const periodLines: string[] = doc.splitTextToSize(`${options.rangeLabel} (${options.dataPointsCount} data teragregasi)`, col1ValMaxWidth)
+  const authorLines: string[] = doc.splitTextToSize(options.generatedBy || 'Pengelola Lahan / Peneliti', col2ValMaxWidth)
+
+  const lineHeight = 3.6
+  const rowSpacing = 2.0
+  const boxPaddingTop = 4.5
+  const boxPaddingBottom = 4.0
+
+  const row1Height = Math.max(stationLines.length, timeLines.length) * lineHeight
+  const row2Height = Math.max(locationLines.length, coordLines.length) * lineHeight
+  const row3Height = Math.max(periodLines.length, authorLines.length) * lineHeight
+
+  const totalBoxHeight = boxPaddingTop + row1Height + rowSpacing + row2Height + rowSpacing + row3Height + boxPaddingBottom
+
+  // Draw dynamic box background & border
   doc.setFillColor(...lightBg)
-  doc.roundedRect(margin, metaBoxY, pageWidth - (margin * 2), 22, 2.5, 2.5, 'F')
+  doc.roundedRect(margin, metaBoxY, pageWidth - (margin * 2), totalBoxHeight, 2.5, 2.5, 'F')
   doc.setDrawColor(...borderGray)
-  doc.roundedRect(margin, metaBoxY, pageWidth - (margin * 2), 22, 2.5, 2.5, 'S')
+  doc.roundedRect(margin, metaBoxY, pageWidth - (margin * 2), totalBoxHeight, 2.5, 2.5, 'S')
 
-  const col1X = margin + 4
-  const col2X = margin + 92
-  let textY = metaBoxY + 5.5
+  let currY = metaBoxY + boxPaddingTop + 3.0
 
-  // Left Column
+  // Row 1: Stasiun & Waktu Cetak
   doc.setFont('helvetica', 'bold')
+  doc.setFontSize(8)
   doc.setTextColor(...darkHeading)
-  doc.text('Stasiun:', col1X, textY)
+  doc.text('Stasiun:', col1LabelX, currY)
+  doc.text('Waktu Cetak:', col2LabelX, currY)
+
   doc.setFont('helvetica', 'normal')
   doc.setTextColor(...slateText)
-  doc.text(`${options.nodeName} (${options.nodeCode || '-'})`, col1X + 22, textY)
+  doc.text(stationLines, col1ValX, currY)
+  doc.text(timeLines, col2ValX, currY)
 
+  currY += row1Height + rowSpacing
+
+  // Row 2: Lokasi Lahan & Koordinat GPS
   doc.setFont('helvetica', 'bold')
   doc.setTextColor(...darkHeading)
-  doc.text('Lokasi:', col1X, textY + 5.5)
+  doc.text('Lokasi Lahan:', col1LabelX, currY)
+  doc.text('Koordinat GPS:', col2LabelX, currY)
+
   doc.setFont('helvetica', 'normal')
   doc.setTextColor(...slateText)
-  doc.text(`${options.location || 'Kebun Pertanian / Greenhouse'}`, col1X + 22, textY + 5.5)
+  doc.text(locationLines, col1ValX, currY)
+  doc.text(coordLines, col2ValX, currY)
 
+  currY += row2Height + rowSpacing
+
+  // Row 3: Periode Data & Penyusun
   doc.setFont('helvetica', 'bold')
   doc.setTextColor(...darkHeading)
-  doc.text('Periode:', col1X, textY + 11)
+  doc.text('Periode Data:', col1LabelX, currY)
+  doc.text('Penyusun:', col2LabelX, currY)
+
   doc.setFont('helvetica', 'normal')
   doc.setTextColor(...slateText)
-  doc.text(`${options.rangeLabel} (${options.dataPointsCount} data teragregasi)`, col1X + 22, textY + 11)
+  doc.text(periodLines, col1ValX, currY)
+  doc.text(authorLines, col2ValX, currY)
 
-  // Right Column
-  doc.setFont('helvetica', 'bold')
-  doc.setTextColor(...darkHeading)
-  doc.text('Waktu Cetak:', col2X, textY)
-  doc.setFont('helvetica', 'normal')
-  doc.setTextColor(...slateText)
-  doc.text(formatWIBTime(new Date().toISOString()), col2X + 24, textY)
-
-  doc.setFont('helvetica', 'bold')
-  doc.setTextColor(...darkHeading)
-  doc.text('Penyusun:', col2X, textY + 5.5)
-  doc.setFont('helvetica', 'normal')
-  doc.setTextColor(...slateText)
-  doc.text(options.generatedBy || 'Administrator Sistem', col2X + 24, textY + 5.5)
-
-  doc.setFont('helvetica', 'bold')
-  doc.setTextColor(...darkHeading)
-  doc.text('Status Node:', col2X, textY + 11)
-  doc.setFont('helvetica', 'bold')
-  doc.setTextColor(16, 185, 129) // emerald-500
-  doc.text('● ONLINE & AKTIF TERHUBUNG', col2X + 24, textY + 11)
-
-  y = metaBoxY + 28
+  y = metaBoxY + totalBoxHeight + 6.0
 
   // -------------------------------------------------------------
   // 4. EXECUTIVE KPI CARDS (4-Column Summary)
@@ -166,7 +236,7 @@ export async function generateExecutivePDFReport(options: PDFReportOptions): Pro
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(11)
   doc.setTextColor(...darkHeading)
-  doc.text('1. Ringkasan Eksekutif Key Performance Indicator (KPI)', margin, y)
+  doc.text('1. Ringkasan Parameter Utama (KPI)', margin, y)
 
   y += 4
   const cardWidth = (pageWidth - (margin * 2) - (3 * 3)) / 4
@@ -183,7 +253,7 @@ export async function generateExecutivePDFReport(options: PDFReportOptions): Pro
       title: 'Keseimbangan NPK',
       value: options.npkRatio || 'Seimbang',
       sub: 'Rasio N : P : K',
-      color: [16, 185, 129] as [number, number, number] // emerald-500
+      color: brandGreen // [0, 143, 0]
     },
     {
       title: 'Kualitas Kimiawi',
@@ -243,12 +313,28 @@ export async function generateExecutivePDFReport(options: PDFReportOptions): Pro
     const formatNum = (val: any) => {
       if (val === null || val === undefined || val === '') return '--'
       if (typeof val === 'number') return Number.isInteger(val) ? String(val) : val.toFixed(1)
+      if (!isNaN(Number(val))) {
+        const num = Number(val)
+        return Number.isInteger(num) ? String(num) : num.toFixed(1)
+      }
       return String(val)
     }
 
     const thresholdText = (s.minThreshold != null || s.maxThreshold != null)
       ? `${s.minThreshold ?? 0} - ${s.maxThreshold ?? '∞'}`
-      : 'Normal'
+      : 'Standar'
+
+    let statusText = s.status || 'Optimal'
+    const numVal = typeof s.lastVal === 'number' ? s.lastVal : (s.lastVal && !isNaN(Number(s.lastVal)) ? Number(s.lastVal) : null)
+    if (numVal !== null) {
+      if (s.maxThreshold != null && numVal > s.maxThreshold) {
+        statusText = 'Melebihi Batas'
+      } else if (s.minThreshold != null && numVal < s.minThreshold) {
+        statusText = 'Kurang / Rendah'
+      } else {
+        statusText = 'Optimal'
+      }
+    }
 
     return [
       String(idx + 1),
@@ -260,7 +346,7 @@ export async function generateExecutivePDFReport(options: PDFReportOptions): Pro
       formatNum(s.min),
       formatNum(s.max),
       thresholdText,
-      s.status || 'Normal'
+      statusText
     ]
   })
 
@@ -271,7 +357,7 @@ export async function generateExecutivePDFReport(options: PDFReportOptions): Pro
     body: tableRows,
     theme: 'grid',
     headStyles: {
-      fillColor: emeraldPrimary,
+      fillColor: brandGreen,
       textColor: [255, 255, 255],
       fontStyle: 'bold',
       fontSize: 8,
@@ -314,7 +400,7 @@ export async function generateExecutivePDFReport(options: PDFReportOptions): Pro
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(11)
   doc.setTextColor(...darkHeading)
-  doc.text('3. Catatan Evaluasi & Rekomendasi Agronomi', margin, y)
+  doc.text('3. Catatan & Analisis Kondisi Lahan', margin, y)
   y += 4
 
   const insightBoxY = y
@@ -324,7 +410,7 @@ export async function generateExecutivePDFReport(options: PDFReportOptions): Pro
   const defaultThermal = options.thermalInsight ||
     `Suhu boks panel mikrokontroler terpantau stabil dalam batas aman termal (< ${options.enclosureSafeLimit || 55}°C). Sistem proteksi dan ventilasi beroperasi secara optimal.`
 
-  const combinedInsight = `• Rekomendasi Lahan: ${defaultInsight}\n• Kondisi Perangkat IoT: ${defaultThermal}${options.notes ? `\n• Catatan Tambahan: ${options.notes}` : ''}`
+  const combinedInsight = `• Kondisi Lahan & Tanah: ${defaultInsight}\n• Kondisi Perangkat IoT: ${defaultThermal}${options.notes ? `\n• Catatan Tambahan: ${options.notes}` : ''}`
 
   doc.setFillColor(...lightBg)
   doc.setDrawColor(...borderGray)
@@ -361,17 +447,17 @@ export async function generateExecutivePDFReport(options: PDFReportOptions): Pro
   y += 4
   doc.setFont('helvetica', 'bold')
   doc.setTextColor(...darkHeading)
-  doc.text('Tim Pengembang & Peneliti IoT', signX, y)
+  doc.text('Penyusun / Penanggung Jawab Lahan', signX, y)
 
   y += 14
   doc.setFont('helvetica', 'bold')
-  doc.text(options.generatedBy || 'Laboratorium ELINS DIKE UGM', signX, y)
+  doc.text(options.generatedBy || 'Pengelola Lahan / Peneliti', signX, y)
   
   y += 3.5
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(7)
   doc.setTextColor(...slateText)
-  doc.text('Universitas Gadjah Mada', signX, y)
+  doc.text('G-Connect Smart Farming Platform', signX, y)
 
   // -------------------------------------------------------------
   // 8. FOOTER WITH PAGE NUMBERS (Across all pages)
@@ -386,7 +472,7 @@ export async function generateExecutivePDFReport(options: PDFReportOptions): Pro
     doc.setFont('helvetica', 'normal')
     doc.setFontSize(7)
     doc.setTextColor(...slateText)
-    doc.text('G-CONNECT Platform  •  Dokumen Laporan Resmi Terverifikasi Sistem', margin, pageHeight - 6)
+    doc.text('G-CONNECT Platform  •  Dokumen Ringkasan Telemetri Pertanian Presisi', margin, pageHeight - 6)
     doc.text(`Halaman ${i} dari ${totalPages}`, pageWidth - margin - 20, pageHeight - 6)
   }
 

@@ -14,6 +14,11 @@ router = APIRouter(prefix="/nodes")
 async def list_sensors(node_id: str, skip: int = 0, limit: int = 100, db: AsyncSession = Depends(get_db), current_user: Optional[User] = Depends(get_optional_current_user)):
     node = await node_repo.get_by_node_id(db, node_id)
     if not node:
+        try:
+            node = await node_repo.get_by_id(db, UUID(node_id))
+        except (ValueError, TypeError):
+            pass
+    if not node:
         raise HTTPException(status_code=404, detail="Node not found")
     return await sensor_repo.list_by_node(db, node.id, skip=skip, limit=limit)
 

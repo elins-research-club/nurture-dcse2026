@@ -66,3 +66,8 @@ fix_pwd2.sql
 
 # Frontend boilerplate README (diganti README.md di root)
 frontend/README.md
+
+# Mobile Flutter project (Separate Git Repo)
+/mobile/
+/gconnect_mobile/
+

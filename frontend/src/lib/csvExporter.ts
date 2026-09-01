@@ -1,4 +1,4 @@
-﻿/**
+/**
  * G-CONNECT Telemetry CSV Exporter Utility
  * Formats time-series sensor telemetry data into structured CSV files with UTF-8 BOM for Microsoft Excel compatibility.
  */
@@ -77,16 +77,50 @@ export function exportTelemetryToCSV(options: TelemetryExportOptions): { success
     activeSensors.forEach(sensor => {
       let val: any = undefined
       
-      if (feed[sensor.name] !== undefined) {
-        val = feed[sensor.name]
-      } else if (sensor.field_key && feed[sensor.field_key] !== undefined) {
+      const channelId = sensor.channel_id ? String(sensor.channel_id).toLowerCase() : ''
+      const tsField = (sensor.thingspeak_field || sensor.field_key || sensor.channel_field || '').toLowerCase()
+      const compositeKey = channelId && tsField ? `${channelId}_${tsField}` : ''
+
+      // 1. Direct composite key (UUID_fieldX)
+      if (compositeKey && feed[compositeKey] !== undefined) {
+        val = feed[compositeKey]
+      }
+      // 2. Direct sensor name or field_key / channel_field / thingspeak_field / type
+      else if (sensor.field_key && feed[sensor.field_key] !== undefined) {
         val = feed[sensor.field_key]
       } else if (sensor.channel_field && feed[sensor.channel_field] !== undefined) {
         val = feed[sensor.channel_field]
+      } else if (sensor.thingspeak_field && feed[sensor.thingspeak_field] !== undefined) {
+        val = feed[sensor.thingspeak_field]
+      } else if (sensor.name && feed[sensor.name] !== undefined) {
+        val = feed[sensor.name]
+      } else if (sensor.type && feed[sensor.type] !== undefined) {
+        val = feed[sensor.type]
       } else {
-        const matchKey = Object.keys(feed).find(k => k.toLowerCase() === sensor.name.toLowerCase())
-        if (matchKey) {
-          val = feed[matchKey]
+        // 3. Robust key scanning across all feed entries
+        const feedEntries = Object.entries(feed)
+        
+        // Match by composite key case-insensitively
+        const compEntry = compositeKey ? feedEntries.find(([k]) => k.toLowerCase() === compositeKey) : undefined
+        if (compEntry !== undefined) {
+          val = compEntry[1]
+        } else {
+          // Match by suffix _fieldX (if single channel or field matching)
+          const fieldEntry = tsField ? feedEntries.find(([k]) => k.toLowerCase() === tsField || k.toLowerCase().endsWith(`_${tsField}`)) : undefined
+          if (fieldEntry !== undefined) {
+            val = fieldEntry[1]
+          } else {
+            // Match by sensor name or sensor type
+            const nameEntry = sensor.name ? feedEntries.find(([k]) => k.toLowerCase() === sensor.name.toLowerCase()) : undefined
+            if (nameEntry !== undefined) {
+              val = nameEntry[1]
+            } else {
+              const typeEntry = (sensor as any).type ? feedEntries.find(([k]) => k.toLowerCase() === (sensor as any).type.toLowerCase()) : undefined
+              if (typeEntry !== undefined) {
+                val = typeEntry[1]
+              }
+            }
+          }
         }
       }
 
@@ -94,6 +128,9 @@ export function exportTelemetryToCSV(options: TelemetryExportOptions): { success
         rowValues.push('""')
       } else if (typeof val === 'number') {
         rowValues.push(Number.isInteger(val) ? val : Number(val.toFixed(2)))
+      } else if (!isNaN(Number(val)) && typeof val === 'string' && val.trim() !== '') {
+        const num = Number(val)
+        rowValues.push(Number.isInteger(num) ? num : Number(num.toFixed(2)))
       } else {
         rowValues.push(`"${String(val).replace(/"/g, '""')}"`)
       }
