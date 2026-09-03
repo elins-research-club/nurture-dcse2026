@@ -1,8 +1,9 @@
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from uuid import UUID
 from app.core.database import get_db
-from app.dependencies.auth import require_admin
+from app.dependencies.auth import get_optional_current_user, require_admin
 from app.models.user import User
 from app.schemas.thingspeak_channel import ChannelResponse, ChannelCreate, ChannelUpdate
 from app.repositories import channel_repo, node_repo
@@ -34,16 +35,25 @@ CHANNEL_2_TEMPLATES = [
 
 router = APIRouter(prefix="/nodes")
 
-@router.get("/{node_id}/channels/", response_model=list[ChannelResponse])
-async def list_channels(node_id: str, db: AsyncSession = Depends(get_db), current_user: User = Depends(require_admin)):
+async def _find_node(db: AsyncSession, node_id: str):
     node = await node_repo.get_by_node_id(db, node_id)
+    if not node:
+        try:
+            node = await node_repo.get_by_id(db, UUID(node_id))
+        except (ValueError, TypeError):
+            pass
+    return node
+
+@router.get("/{node_id}/channels/", response_model=list[ChannelResponse])
+async def list_channels(node_id: str, db: AsyncSession = Depends(get_db), current_user: Optional[User] = Depends(get_optional_current_user)):
+    node = await _find_node(db, node_id)
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
     return await channel_repo.get_by_node_id(db, node.id)
 
 @router.get("/{node_id}/channels/{channel_id}/", response_model=ChannelResponse)
 async def get_channel(node_id: str, channel_id: UUID, db: AsyncSession = Depends(get_db), current_user: User = Depends(require_admin)):
-    node = await node_repo.get_by_node_id(db, node_id)
+    node = await _find_node(db, node_id)
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
     channel = await channel_repo.get_by_id(db, channel_id)
@@ -53,7 +63,7 @@ async def get_channel(node_id: str, channel_id: UUID, db: AsyncSession = Depends
 
 @router.post("/{node_id}/channels/", response_model=ChannelResponse, status_code=status.HTTP_201_CREATED)
 async def create_channel(node_id: str, channel_data: ChannelCreate, db: AsyncSession = Depends(get_db), current_user: User = Depends(require_admin)):
-    node = await node_repo.get_by_node_id(db, node_id)
+    node = await _find_node(db, node_id)
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
     
@@ -88,7 +98,7 @@ async def create_channel(node_id: str, channel_data: ChannelCreate, db: AsyncSes
 
 @router.put("/{node_id}/channels/{channel_id}/", response_model=ChannelResponse)
 async def update_channel(node_id: str, channel_id: UUID, channel_data: ChannelUpdate, db: AsyncSession = Depends(get_db), current_user: User = Depends(require_admin)):
-    node = await node_repo.get_by_node_id(db, node_id)
+    node = await _find_node(db, node_id)
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
     channel = await channel_repo.get_by_id(db, channel_id)
@@ -98,7 +108,7 @@ async def update_channel(node_id: str, channel_id: UUID, channel_data: ChannelUp
 
 @router.delete("/{node_id}/channels/{channel_id}/", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_channel(node_id: str, channel_id: UUID, db: AsyncSession = Depends(get_db), current_user: User = Depends(require_admin)):
-    node = await node_repo.get_by_node_id(db, node_id)
+    node = await _find_node(db, node_id)
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
     channel = await channel_repo.get_by_id(db, channel_id)

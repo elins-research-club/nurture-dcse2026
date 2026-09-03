@@ -33,13 +33,25 @@ import time
 HISTORY_CACHE = {}
 router = APIRouter()
 
+import uuid
+
+async def _find_node(db: AsyncSession, node_id: str):
+    node = await node_repo.get_by_node_id(db, node_id)
+    if not node:
+        try:
+            u = uuid.UUID(node_id)
+            node = await node_repo.get_by_id(db, u)
+        except Exception:
+            pass
+    return node
+
 @router.get("/nodes/{node_id}/telemetry/latest")
 async def get_latest_telemetry(
     node_id: str,
     db: AsyncSession = Depends(get_db),
     current_user = Depends(get_optional_current_user)
 ):
-    node = await node_repo.get_by_node_id(db, node_id)
+    node = await _find_node(db, node_id)
     if not node:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Node not found")
         
@@ -93,8 +105,9 @@ async def get_latest_telemetry(
 
 
 @router.get("/nodes/{node_id}/telemetry/history")
+@router.get("/telemetry/history")
 async def get_history_telemetry(
-    node_id: str,
+    node_id: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
     current_user = Depends(get_optional_current_user),
     time_range: Optional[Literal["1h", "1d", "1w", "1M"]] = Query(None, alias="range", description="Preset range shortcut: 1h, 1d, 1w, 1M"),
@@ -103,7 +116,9 @@ async def get_history_telemetry(
     results: Optional[int] = Query(None, ge=1, le=8000, description="Max number of results (ThingSpeak cap: 8000)"),
     average: Optional[int] = Query(None, ge=1, le=1440, description="Aggregate: average per N minutes (e.g. 10, 60)")
 ):
-    node = await node_repo.get_by_node_id(db, node_id)
+    if not node_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="node_id is required")
+    node = await _find_node(db, node_id)
     if not node:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Node not found")
 

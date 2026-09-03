@@ -16,7 +16,7 @@ const tabList = [
   { value: 'appearance', label: 'Tampilan' },
   { value: 'system', label: 'Sistem' },
   { value: 'alerts', label: 'Notifikasi' },
-  { value: 'thresholds', label: 'Ambang Batas' },
+  { value: 'thresholds', label: 'Sensor & Batas' },
   { value: 'security', label: 'Keamanan' },
   { value: 'about', label: 'Tentang' }
 ]
@@ -135,14 +135,17 @@ const ujiWebpush = async () => {
 const loadSystemConfig = async () => {
   try {
     isLoadingConfig.value = true
-    const res = await fetch(`${API_BASE_URL}/system/config`, {
-      headers: { 'Authorization': `Bearer ${authStore.token}` }
-    })
+    const headers: Record<string, string> = {}
+    if (authStore.token) {
+      headers['Authorization'] = `Bearer ${authStore.token}`
+    }
+    const res = await fetch(`${API_BASE_URL}/system/config`, { headers })
     if (res.ok) {
       const data = await res.json()
       systemConfig.value = {
-        ...systemConfig.value,
-        ...data
+        offline_threshold_mins: data.offline_threshold_mins ?? 20,
+        telegram_bot_token: data.telegram_bot_token ?? '',
+        telegram_chat_id: data.telegram_chat_id ?? ''
       }
     }
   } catch (error) {
@@ -151,6 +154,14 @@ const loadSystemConfig = async () => {
     isLoadingConfig.value = false
   }
 }
+
+watch(activeTab, (newTab) => {
+  if (newTab === 'system') {
+    loadSystemConfig()
+  } else if (newTab === 'thresholds') {
+    fetchSensors()
+  }
+})
 
 const saveSystemConfig = async () => {
   try {
@@ -164,6 +175,7 @@ const saveSystemConfig = async () => {
       body: JSON.stringify(systemConfig.value)
     })
     if (res.ok) {
+      await loadSystemConfig()
       modalType.value = 'success'
       modalMessage.value = 'Pengaturan sistem berhasil disimpan'
       showModal.value = true
@@ -246,13 +258,15 @@ const fetchSensors = async () => {
     
     const enrichedNodes: any[] = []
     for (const node of nodes) {
+      const nodeIdentifier = node.node_id || node.id
+      const headers: Record<string, string> = {}
+      if (authStore.token) {
+        headers['Authorization'] = `Bearer ${authStore.token}`
+      }
+
       const [resSensors, resChannels] = await Promise.all([
-        fetch(`${API_BASE_URL}/nodes/${node.node_id}/sensors/`, {
-          headers: { 'Authorization': `Bearer ${authStore.token}` }
-        }),
-        fetch(`${API_BASE_URL}/nodes/${node.node_id}/channels/`, {
-          headers: { 'Authorization': `Bearer ${authStore.token}` }
-        })
+        fetch(`${API_BASE_URL}/nodes/${nodeIdentifier}/sensors/`, { headers }),
+        fetch(`${API_BASE_URL}/nodes/${nodeIdentifier}/channels/`, { headers })
       ])
       
       let sensors: any[] = []
@@ -268,44 +282,55 @@ const fetchSensors = async () => {
       node.sensors = sensors
       
       if (sensors.length > 0) {
-        // Group sensors by channel
+        // Group sensors by channel from database
         const channelGroups: any[] = []
+        const channelMap = new Map<string, any>()
         
-        if (channels.length > 0) {
-          channels.forEach((ch: any, idx: number) => {
-            const chSensors = sensors
-              .filter((s: any) => s.channel_id === ch.id)
-              .sort((a: any, b: any) => getFieldNum(a.thingspeak_field) - getFieldNum(b.thingspeak_field))
-
-            channelGroups.push({
-              id: ch.id,
-              channel_id: ch.channel_id,
-              label: ch.label || `Channel ${idx + 1}`,
-              sensors: chSensors
-            })
+        channels.forEach((ch: any, idx: number) => {
+          const key = String(ch.id).toLowerCase()
+          channelMap.set(key, {
+            id: ch.id,
+            channel_id: ch.channel_id,
+            label: ch.label || `Channel ${idx + 1}`,
+            sensors: []
           })
-          
-          // Check for any unassigned sensors
-          const unassigned = sensors
-            .filter((s: any) => !channels.some((c: any) => c.id === s.channel_id))
-            .sort((a: any, b: any) => getFieldNum(a.thingspeak_field) - getFieldNum(b.thingspeak_field))
-          
-          if (unassigned.length > 0) {
-            channelGroups.push({
-              id: 'unassigned',
-              channel_id: '-',
-              label: 'Lainnya',
-              sensors: unassigned
-            })
+        })
+
+        // Put sensors into corresponding channel groups
+        const unassignedSensors: any[] = []
+        sensors.forEach((s: any) => {
+          const sChanKey = s.channel_id ? String(s.channel_id).toLowerCase() : ''
+          if (sChanKey && channelMap.has(sChanKey)) {
+            channelMap.get(sChanKey).sensors.push(s)
+          } else {
+            unassignedSensors.push(s)
           }
-        } else {
-          // No channels configured, put all in one group
-          const sorted = [...sensors].sort((a: any, b: any) => getFieldNum(a.thingspeak_field) - getFieldNum(b.thingspeak_field))
-          channelGroups.push({
-            id: 'default',
-            channel_id: '-',
-            label: 'Semua Sensor',
-            sensors: sorted
+        })
+
+        // Collect channel groups in order
+        channelMap.forEach((group) => {
+          group.sensors.sort((a: any, b: any) => getFieldNum(a.thingspeak_field) - getFieldNum(b.thingspeak_field))
+          channelGroups.push(group)
+        })
+
+        // If there are unassigned sensors or if channels were empty, group by sensor.channel_id
+        if (unassignedSensors.length > 0) {
+          const fallbackGroups = new Map<string, any[]>()
+          unassignedSensors.forEach((s: any) => {
+            const cId = s.channel_id ? String(s.channel_id) : 'unknown'
+            if (!fallbackGroups.has(cId)) fallbackGroups.set(cId, [])
+            fallbackGroups.get(cId)!.push(s)
+          })
+
+          let autoIdx = channelGroups.length + 1
+          fallbackGroups.forEach((sList, cId) => {
+            sList.sort((a: any, b: any) => getFieldNum(a.thingspeak_field) - getFieldNum(b.thingspeak_field))
+            channelGroups.push({
+              id: cId,
+              channel_id: cId === 'unknown' ? '-' : cId,
+              label: `Channel ${autoIdx++}`,
+              sensors: sList
+            })
           })
         }
         
@@ -340,10 +365,12 @@ const saveThresholds = async (node: any, sensor: any) => {
   try {
     sensor.isSaving = true
     const payload = {
+      name: sensor.name?.trim() || 'Sensor',
+      unit: sensor.unit ?? '',
       min_threshold: sensor.min_threshold === '' || sensor.min_threshold === null ? null : Number(sensor.min_threshold),
       max_threshold: sensor.max_threshold === '' || sensor.max_threshold === null ? null : Number(sensor.max_threshold)
     }
-    await fetch(`${API_BASE_URL}/nodes/${node.node_id}/sensors/${sensor.id}`, {
+    const res = await fetch(`${API_BASE_URL}/nodes/${node.node_id}/sensors/${sensor.id}`, {
       method: 'PUT',
       headers: {
         'Authorization': `Bearer ${authStore.token}`,
@@ -351,10 +378,21 @@ const saveThresholds = async (node: any, sensor: any) => {
       },
       body: JSON.stringify(payload)
     })
-    sensor.saved = true
-    setTimeout(() => { sensor.saved = false }, 2000)
+    if (res.ok) {
+      sensor.saved = true
+      telemetryStore.fetchSensors(node.node_id)
+      setTimeout(() => { sensor.saved = false }, 2000)
+    } else {
+      const err = await res.json().catch(() => ({}))
+      modalType.value = 'error'
+      modalMessage.value = `Gagal menyimpan: ${err.detail || 'Terjadi kesalahan'}`
+      showModal.value = true
+    }
   } catch(e) {
     console.error(e)
+    modalType.value = 'error'
+    modalMessage.value = 'Gagal menghubungi server untuk menyimpan data sensor.'
+    showModal.value = true
   } finally {
     sensor.isSaving = false
   }
@@ -563,7 +601,8 @@ const updatePassword = async () => {
                 <!-- Offline Threshold -->
                 <div class="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div class="space-y-0.5">
-                    <Label class="text-base font-medium">Jeda Maksimal Sebelum Dinyatakan Offline</Label>
+                    <Label class="text-base font-medium">Batas Waktu Offline</Label>
+                    <p class="text-sm text-muted-foreground">Perangkat dianggap offline jika tidak mengirimkan data dalam rentang waktu ini.</p>
                   </div>
                   <div class="w-full sm:w-40 flex items-center gap-2">
                     <Input type="number" v-model="systemConfig.offline_threshold_mins" placeholder="15" min="1" />
@@ -576,17 +615,16 @@ const updatePassword = async () => {
                   <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
                     <div>
                       <h4 class="text-base font-medium">Integrasi Bot Telegram</h4>
-                      <p class="text-sm text-muted-foreground">Menerima pesan peringatan di Telegram jika kondisi sensor melewati ambang batas atau alat kehilangan koneksi.</p>
                     </div>
                   </div>
                   <div class="grid gap-4 sm:grid-cols-2">
                     <div class="space-y-2">
                       <Label>Token Bot</Label>
-                      <Input v-model="systemConfig.telegram_bot_token" placeholder="Contoh: 123456789:ABCdef..." />
+                      <Input v-model="systemConfig.telegram_bot_token" placeholder="Contoh: 7123456789:AAFlmQ9xW8ZkL0vYq..." />
                     </div>
                     <div class="space-y-2">
                       <Label>ID Obrolan (Chat ID)</Label>
-                      <Input v-model="systemConfig.telegram_chat_id" placeholder="Contoh: -100123456789" />
+                      <Input v-model="systemConfig.telegram_chat_id" placeholder="Contoh: -1001234567890 atau 1234567890" />
                     </div>
                   </div>
                   <div class="mt-4 flex justify-end">
@@ -616,7 +654,7 @@ const updatePassword = async () => {
                   <div class="space-y-0.5">
                     <h4 class="text-base font-medium">Notifikasi HP & PC</h4>
                     <p class="text-sm text-muted-foreground">
-                      Menampilkan pop-up peringatan di notifikasi HP/PC saat terdeteksi anomali pada lahan pertanian.
+                      Peringatan langsung saat terdeteksi anomali sensor pada lahan.
                     </p>
                   </div>
                   <div class="flex items-center gap-2 shrink-0">
@@ -646,7 +684,8 @@ const updatePassword = async () => {
         <TabsContent value="thresholds">
           <Card>
             <CardHeader>
-              <CardTitle>Ambang Batas Sensor</CardTitle>
+              <CardTitle>Ambang Batas & Pemetaan Sensor</CardTitle>
+              <CardDescription>Sesuaikan nama sensor, satuan, serta ambang batas aman untuk setiap field ThingSpeak.</CardDescription>
             </CardHeader>
             <CardContent>
               <div class="border border-muted-foreground/30 rounded-lg bg-card">
@@ -726,26 +765,38 @@ const updatePassword = async () => {
                               <div 
                                 v-for="sensor in channelGroup.sensors" 
                                 :key="sensor.id" 
-                                class="pt-3 first:pt-0 flex flex-col sm:flex-row gap-3 sm:items-center justify-between"
+                                class="pt-3 first:pt-0 grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-end"
                               >
-                                <!-- Field & Sensor Title -->
-                                <div class="w-full sm:w-2/5 flex items-center gap-3">
-                                  <span class="text-xs font-mono font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2.5 py-1 rounded-md border border-slate-200 dark:border-slate-700 shrink-0">
-                                    {{ sensor.thingspeak_field }}
-                                  </span>
-                                  <div class="space-y-0.5 min-w-0">
-                                    <Label class="text-xs font-bold text-foreground block truncate">
-                                      {{ sensor.name }}
-                                    </Label>
-                                    <span class="text-[11px] text-muted-foreground block">
-                                      Satuan: <strong class="text-foreground">{{ sensor.unit || '-' }}</strong>
+                                <!-- Field Badge & Sensor Name (col-span-4) -->
+                                <div class="sm:col-span-4 space-y-1">
+                                  <div class="flex items-center gap-1.5">
+                                    <span class="text-[10px] font-mono font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700 shrink-0">
+                                      {{ sensor.thingspeak_field }}
                                     </span>
+                                    <Label class="text-[10px] text-muted-foreground uppercase font-bold tracking-wider truncate">Nama Sensor / Parameter</Label>
                                   </div>
+                                  <Input 
+                                    type="text" 
+                                    v-model="sensor.name" 
+                                    placeholder="Nama Sensor" 
+                                    class="h-8 text-xs font-semibold bg-slate-50/50 dark:bg-slate-900/50" 
+                                  />
                                 </div>
 
-                                <!-- Min Threshold -->
-                                <div class="w-full sm:w-1/4">
-                                  <Label class="text-[10px] text-muted-foreground mb-1 block uppercase font-bold tracking-wider">Batas Minimum</Label>
+                                <!-- Satuan (col-span-2) -->
+                                <div class="sm:col-span-2 space-y-1">
+                                  <Label class="text-[10px] text-muted-foreground uppercase font-bold tracking-wider block">Satuan</Label>
+                                  <Input 
+                                    type="text" 
+                                    v-model="sensor.unit" 
+                                    placeholder="cth: mg/kg, %" 
+                                    class="h-8 text-xs font-mono bg-slate-50/50 dark:bg-slate-900/50" 
+                                  />
+                                </div>
+
+                                <!-- Min Threshold (col-span-2) -->
+                                <div class="sm:col-span-2 space-y-1">
+                                  <Label class="text-[10px] text-muted-foreground uppercase font-bold tracking-wider block">Batas Min</Label>
                                   <Input 
                                     type="number" 
                                     step="any" 
@@ -755,9 +806,9 @@ const updatePassword = async () => {
                                   />
                                 </div>
 
-                                <!-- Max Threshold -->
-                                <div class="w-full sm:w-1/4">
-                                  <Label class="text-[10px] text-muted-foreground mb-1 block uppercase font-bold tracking-wider">Batas Maksimum</Label>
+                                <!-- Max Threshold (col-span-2) -->
+                                <div class="sm:col-span-2 space-y-1">
+                                  <Label class="text-[10px] text-muted-foreground uppercase font-bold tracking-wider block">Batas Max</Label>
                                   <Input 
                                     type="number" 
                                     step="any" 
@@ -767,16 +818,19 @@ const updatePassword = async () => {
                                   />
                                 </div>
 
-                                <!-- Save Button -->
-                                <Button 
-                                  variant="outline" 
-                                  size="sm" 
-                                  class="h-8 w-20 shrink-0 whitespace-nowrap self-end sm:self-center font-semibold" 
-                                  :disabled="sensor.isSaving" 
-                                  @click="saveThresholds(node, sensor)"
-                                >
-                                  {{ sensor.saved ? 'Tersimpan!' : (sensor.isSaving ? '...' : 'Simpan') }}
-                                </Button>
+                                <!-- Save Button (col-span-2) -->
+                                <div class="sm:col-span-2 flex justify-end">
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    class="h-8 w-full font-semibold transition-all" 
+                                    :class="sensor.saved ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 font-bold' : ''"
+                                    :disabled="sensor.isSaving" 
+                                    @click="saveThresholds(node, sensor)"
+                                  >
+                                    {{ sensor.saved ? 'Tersimpan!' : (sensor.isSaving ? '...' : 'Simpan') }}
+                                  </Button>
+                                </div>
                               </div>
                             </div>
                           </Transition>
