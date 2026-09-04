@@ -16,16 +16,21 @@ async def list_all(db: AsyncSession, skip: int = 0, limit: int = 100) -> list[No
     result = await db.execute(select(Node).offset(skip).limit(limit))
     return list(result.scalars().all())
 
-async def create(db: AsyncSession, node_id: str, name: str, location: str | None) -> Node:
-    node = Node(node_id=node_id, name=name, location=location)
+async def create(db: AsyncSession, node_id: str, name: str, location: str | None,
+                 field_layout: str = "node2_plain") -> Node:
+    node = Node(node_id=node_id, name=name, location=location, field_layout=field_layout)
     db.add(node)
     await db.commit()
     await db.refresh(node)
     return node
 
 async def update(db: AsyncSession, node: Node, **kwargs) -> Node:
+    # Router sudah menyaring lewat model_dump(exclude_unset=True), jadi kunci yang
+    # sampai ke sini memang sengaja dikirim. Menolak nilai None/False di sini
+    # membuat is_active=False mustahil disimpan -- node tidak pernah bisa
+    # dinonaktifkan lewat API.
     for key, value in kwargs.items():
-        if hasattr(node, key) and value is not None:
+        if hasattr(node, key):
             setattr(node, key, value)
     await db.commit()
     await db.refresh(node)
