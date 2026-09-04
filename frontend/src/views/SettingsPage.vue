@@ -633,28 +633,34 @@ const updatePassword = async () => {
           </div>
 
           <!-- Body / Steps -->
-          <div class="p-5 space-y-4 max-h-[60vh] overflow-y-auto">
+          <div class="p-4 space-y-3 max-h-[75vh] overflow-y-auto">
             <!-- TAB 1: Akun Pribadi -->
-            <div v-if="guideTab === 'personal'" class="space-y-4">
-              <div class="p-3 rounded-lg bg-muted/40 border border-border/50 text-xs text-muted-foreground leading-relaxed">
-                Chat ID pribadi berupa <span class="font-semibold text-foreground">angka positif</span> (contoh: <code class="font-mono bg-background px-1.5 py-0.5 rounded border border-border/50 text-foreground font-semibold">6416827532</code>).
+            <div v-if="guideTab === 'personal'" class="space-y-2.5">
+              <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-300 dark:border-slate-700 text-xs text-foreground leading-relaxed flex items-center justify-between gap-3 shadow-xs">
+                <div class="flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full bg-[#2AABEE]"></span>
+                  <span>Chat ID pribadi berupa <strong class="font-semibold text-foreground">angka positif</strong></span>
+                </div>
+                <code class="font-mono font-bold text-xs bg-white dark:bg-slate-800 px-2 py-0.5 rounded-md border border-slate-300 dark:border-slate-600 text-foreground shadow-xs">
+                  6416827532
+                </code>
               </div>
 
               <!-- Langkah 1 -->
-              <div class="flex gap-3 text-xs">
-                <div class="w-6 h-6 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center shrink-0 mt-0.5 text-xs">
+              <div class="p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/40 flex gap-3 text-xs shadow-xs">
+                <div class="w-6 h-6 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center shrink-0 mt-0.5 border border-primary/20">
                   1
                 </div>
-                <div class="space-y-1.5 flex-1">
-                  <span class="font-semibold text-foreground text-xs">Dapatkan ID Telegram Anda</span>
+                <div class="space-y-1 flex-1">
+                  <span class="font-semibold text-foreground text-xs block">Dapatkan ID Telegram Anda</span>
                   <p class="text-muted-foreground text-[12px] leading-relaxed">
                     Buka bot pencari ID resmi di Telegram, lalu tekan tombol <b>Start</b>. Bot akan membalas dengan nomor ID akun Anda.
                   </p>
                   <div class="pt-0.5">
                     <a href="https://t.me/userinfobot" target="_blank" rel="noopener noreferrer">
-                      <Button size="sm" variant="outline" class="h-7 text-xs gap-1.5 font-medium border-[#2AABEE]/40 text-[#2AABEE] hover:bg-[#2AABEE]/10 cursor-pointer">
+                      <Button size="sm" variant="outline" class="h-8 text-xs gap-1.5 font-bold border-2 border-[#2AABEE] text-[#0088cc] dark:text-[#38bdf8] bg-sky-50/50 dark:bg-sky-950/20 hover:bg-[#2AABEE]/15 shadow-xs cursor-pointer">
                         <span>Buka @userinfobot</span>
-                        <ExternalLink class="w-3 h-3" />
+                        <ExternalLink class="w-3.5 h-3.5" />
                       </Button>
                     </a>
                   </div>
@@ -662,23 +668,23 @@ const updatePassword = async () => {
               </div>
 
               <!-- Langkah 2 (PENTING) -->
-              <div class="flex gap-3 text-xs">
-                <div class="w-6 h-6 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 font-bold flex items-center justify-center shrink-0 mt-0.5 text-xs">
+              <div class="p-3 rounded-xl border border-amber-300 dark:border-amber-700/80 bg-amber-50/40 dark:bg-amber-950/20 flex gap-3 text-xs shadow-xs">
+                <div class="w-6 h-6 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-400 font-bold flex items-center justify-center shrink-0 mt-0.5 border border-amber-500/40">
                   2
                 </div>
-                <div class="space-y-1.5 flex-1">
-                  <div class="flex items-center gap-1.5">
+                <div class="space-y-1 flex-1">
+                  <div class="flex items-center gap-2">
                     <span class="font-semibold text-foreground text-xs">Aktifkan Bot G-Connect</span>
-                    <span class="text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded">Wajib</span>
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300 bg-amber-200/80 dark:bg-amber-900/60 border border-amber-400 dark:border-amber-600 px-1.5 py-0.5 rounded">Wajib</span>
                   </div>
                   <p class="text-muted-foreground text-[12px] leading-relaxed">
                     Telegram melarang bot memulai obrolan ke pengguna baru secara sepihak. Buka bot sistem kita lalu tekan tombol <b>START</b> satu kali di Telegram.
                   </p>
-                  <div class="pt-0.5" v-if="telegramBotInfo?.link">
-                    <a :href="telegramBotInfo.link" target="_blank" rel="noopener noreferrer">
-                      <Button size="sm" class="h-7 text-xs gap-1.5 bg-[#2AABEE] hover:bg-[#2297d4] text-white font-medium shadow-sm cursor-pointer">
-                        <span>Buka @{{ telegramBotInfo.username }} & Tekan Start</span>
-                        <ExternalLink class="w-3 h-3" />
+                  <div class="pt-0.5">
+                    <a :href="telegramBotInfo?.link || `https://t.me/${telegramBotInfo?.username || 'Raden_Mentimun_bot'}`" target="_blank" rel="noopener noreferrer">
+                      <Button size="sm" class="h-8 text-xs gap-1.5 bg-[#2AABEE] hover:bg-[#2297d4] text-white font-semibold shadow-xs cursor-pointer">
+                        <span>Buka @{{ telegramBotInfo?.username || 'Raden_Mentimun_bot' }} & Tekan Start</span>
+                        <ExternalLink class="w-3.5 h-3.5" />
                       </Button>
                     </a>
                   </div>
@@ -686,12 +692,12 @@ const updatePassword = async () => {
               </div>
 
               <!-- Langkah 3 -->
-              <div class="flex gap-3 text-xs">
-                <div class="w-6 h-6 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center shrink-0 mt-0.5 text-xs">
+              <div class="p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/40 flex gap-3 text-xs shadow-xs">
+                <div class="w-6 h-6 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-bold flex items-center justify-center shrink-0 mt-0.5 border border-emerald-500/30">
                   3
                 </div>
-                <div class="space-y-1.5 flex-1">
-                  <span class="font-semibold text-foreground text-xs">Salin & Uji Koneksi</span>
+                <div class="space-y-1 flex-1">
+                  <span class="font-semibold text-foreground text-xs block">Salin & Uji Koneksi</span>
                   <p class="text-muted-foreground text-[12px] leading-relaxed">
                     Salin nomor ID tersebut ke kolom <b>ID Obrolan (Chat ID)</b> di halaman ini, lalu klik tombol <b>Uji Koneksi</b> untuk memastikan pesan pengujian terkirim.
                   </p>
@@ -700,49 +706,55 @@ const updatePassword = async () => {
             </div>
 
             <!-- TAB 2: Grup Tim / Petani -->
-            <div v-else class="space-y-4">
-              <div class="p-3 rounded-lg bg-muted/40 border border-border/50 text-xs text-muted-foreground leading-relaxed">
-                Chat ID grup selalu berupa <span class="font-semibold text-foreground">angka negatif</span> yang diawali tanda minus (contoh: <code class="font-mono bg-background px-1.5 py-0.5 rounded border border-border/50 text-foreground font-semibold">-1001982736450</code>).
+            <div v-else class="space-y-2.5">
+              <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-300 dark:border-slate-700 text-xs text-foreground leading-relaxed flex items-center justify-between gap-3 shadow-xs">
+                <div class="flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full bg-[#2AABEE]"></span>
+                  <span>Format ID grup berupa <strong class="font-semibold text-foreground">angka negatif (-100...)</strong></span>
+                </div>
+                <code class="font-mono font-bold text-xs bg-white dark:bg-slate-800 px-2 py-0.5 rounded-md border border-slate-300 dark:border-slate-600 text-foreground shadow-xs">
+                  -1001982736450
+                </code>
               </div>
 
               <!-- Langkah 1 -->
-              <div class="flex gap-3 text-xs">
-                <div class="w-6 h-6 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center shrink-0 mt-0.5 text-xs">
+              <div class="p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/40 flex gap-3 text-xs shadow-xs">
+                <div class="w-6 h-6 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center shrink-0 mt-0.5 border border-primary/20">
                   1
                 </div>
-                <div class="space-y-1.5 flex-1">
-                  <span class="font-semibold text-foreground text-xs">Masukkan Bot ke Grup Telegram</span>
+                <div class="space-y-1 flex-1">
+                  <span class="font-semibold text-foreground text-xs block">Masukkan Bot ke Grup Telegram</span>
                   <p class="text-muted-foreground text-[12px] leading-relaxed">
-                    Buka grup tim/lahan Anda di Telegram, undang (Add Member) bot <b class="text-foreground">@{{ telegramBotInfo?.username || 'Raden_Mentimun_bot' }}</b> ke dalam grup, dan pastikan bot memiliki izin kirim pesan.
+                    Buka grup tim/lahan Anda di Telegram, undang (Add Member) bot <span class="font-mono font-bold text-foreground bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-300 dark:border-slate-600">@{{ telegramBotInfo?.username || 'Raden_Mentimun_bot' }}</span> ke dalam grup, dan pastikan bot memiliki izin kirim pesan.
                   </p>
                 </div>
               </div>
 
               <!-- Langkah 2 -->
-              <div class="flex gap-3 text-xs">
-                <div class="w-6 h-6 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center shrink-0 mt-0.5 text-xs">
+              <div class="p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/40 flex gap-3 text-xs shadow-xs">
+                <div class="w-6 h-6 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center shrink-0 mt-0.5 border border-primary/20">
                   2
                 </div>
-                <div class="space-y-1.5 flex-1">
-                  <span class="font-semibold text-foreground text-xs">Ketahui ID Grup via Bot Pembantu</span>
+                <div class="space-y-1 flex-1">
+                  <span class="font-semibold text-foreground text-xs block">Ketahui ID Grup via Bot Pembantu</span>
                   <p class="text-muted-foreground text-[12px] leading-relaxed">
-                    Undang bot pembantu <code class="font-mono text-[#2AABEE] font-semibold">@RawDataBot</code> ke grup tersebut sebentar. Bot akan membalas dengan data JSON. Cari baris <code class="font-mono text-foreground font-semibold">"id": -100xxxxxxxxxx</code>.
+                    Undang bot pembantu <span class="font-mono font-bold text-[#0088cc] dark:text-[#38bdf8] bg-sky-50 dark:bg-sky-950/40 px-1.5 py-0.5 rounded border border-sky-300 dark:border-sky-700">@RawDataBot</span> ke grup tersebut sebentar. Bot akan membalas dengan data JSON. Cari baris <code class="font-mono text-foreground font-semibold bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-300 dark:border-slate-600">"id": -100xxxxxxxxxx</code>.
                   </p>
                   <p class="text-[11px] text-muted-foreground italic">
-                    *Catatan: Setelah ID dicatat lengkap dengan tanda minusnya (<code class="font-mono">-</code>), bot @RawDataBot dapat langsung dikeluarkan dari grup.
+                    *Catatan: Setelah ID dicatat lengkap dengan tanda minusnya (<code class="font-mono font-bold">-</code>), bot @RawDataBot dapat langsung dikeluarkan dari grup.
                   </p>
                 </div>
               </div>
 
               <!-- Langkah 3 -->
-              <div class="flex gap-3 text-xs">
-                <div class="w-6 h-6 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center shrink-0 mt-0.5 text-xs">
+              <div class="p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/40 flex gap-3 text-xs shadow-xs">
+                <div class="w-6 h-6 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-bold flex items-center justify-center shrink-0 mt-0.5 border border-emerald-500/30">
                   3
                 </div>
-                <div class="space-y-1.5 flex-1">
-                  <span class="font-semibold text-foreground text-xs">Salin & Uji Koneksi</span>
+                <div class="space-y-1 flex-1">
+                  <span class="font-semibold text-foreground text-xs block">Salin & Uji Koneksi</span>
                   <p class="text-muted-foreground text-[12px] leading-relaxed">
-                    Salin ID grup (misal: <code class="font-mono text-foreground font-semibold">-1001982736450</code>) ke kolom <b>ID Obrolan</b>, lalu klik tombol <b>Uji Koneksi</b>.
+                    Salin ID grup (misal: <code class="font-mono font-bold text-foreground bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-300 dark:border-slate-600">-1001982736450</code>) ke kolom <b>ID Obrolan</b>, lalu klik tombol <b>Uji Koneksi</b>.
                   </p>
                 </div>
               </div>
