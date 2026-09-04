@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
 import { Sun, Moon, CheckCircle, XCircle, Loader2, ChevronDown, ChevronRight, Sprout, Bot, ExternalLink, Send, AlertCircle, HelpCircle, User, Users } from 'lucide-vue-next'
 
@@ -575,12 +575,12 @@ const updatePassword = async () => {
                 </svg>
               </template>
             </div>
-            <h3 :class="['text-2xl font-semibold tracking-tight', modalType === 'success' ? 'text-foreground' : 'text-destructive']">
+            <DialogTitle :class="['text-2xl font-semibold tracking-tight', modalType === 'success' ? 'text-foreground' : 'text-destructive']">
               {{ modalType === 'success' ? 'Berhasil!' : 'Terjadi Kesalahan!' }}
-            </h3>
-            <p class="text-sm text-muted-foreground mt-2 text-center whitespace-pre-line leading-relaxed">
+            </DialogTitle>
+            <DialogDescription class="text-sm text-muted-foreground mt-2 text-center whitespace-pre-line leading-relaxed">
               {{ modalMessage }}
-            </p>
+            </DialogDescription>
             <!-- Direct Shortcut to Open Bot if User Needs to Press START -->
             <div v-if="modalType === 'error' && telegramBotInfo?.link && modalMessage.includes('START')" class="mt-4 flex justify-center">
               <a :href="telegramBotInfo.link" target="_blank" rel="noopener noreferrer">
@@ -604,8 +604,8 @@ const updatePassword = async () => {
                 <HelpCircle class="w-5 h-5" />
               </div>
               <div>
-                <h3 class="text-lg font-bold text-foreground leading-tight">Panduan Mendapatkan Chat ID</h3>
-                <p class="text-xs text-muted-foreground mt-0.5">Pilih tujuan pengiriman notifikasi yang Anda inginkan:</p>
+                <DialogTitle class="text-lg font-bold text-foreground leading-tight">Panduan Mendapatkan Chat ID</DialogTitle>
+                <DialogDescription class="text-xs text-muted-foreground mt-0.5">Pilih tujuan pengiriman notifikasi yang Anda inginkan:</DialogDescription>
               </div>
             </div>
 
