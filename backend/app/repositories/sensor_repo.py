@@ -20,7 +20,7 @@ async def create(db: AsyncSession, node_id: UUID, channel_id: UUID, type: str, n
 
 async def update(db: AsyncSession, sensor: Sensor, **kwargs) -> Sensor:
     for key, value in kwargs.items():
-        if hasattr(sensor, key) and value is not None:
+        if hasattr(sensor, key):
             setattr(sensor, key, value)
     await db.commit()
     await db.refresh(sensor)

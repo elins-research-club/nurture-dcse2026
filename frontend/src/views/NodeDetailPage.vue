@@ -25,11 +25,13 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import AddChannelDialog from '@/components/dashboard/AddChannelDialog.vue'
 import { useChannels } from '@/composables/useChannels'
+import { useAuthStore } from '@/stores/auth'
 
 const route = useRoute()
 const router = useRouter()
 const nodeId = route.params.id as string
 
+const authStore = useAuthStore()
 const telemetryStore = useTelemetryStore()
 const nodes = ref<NodeDeviceWithData[]>([])
 
@@ -44,6 +46,77 @@ const { channelsQuery, deleteChannelMutation } = useChannels(nodeStringId)
 
 // Sensors mapping & live telemetry for 8-Field Accordion
 const sensors = ref<any[]>([])
+
+const isSensorModalOpen = ref(false)
+const isSavingSensor = ref(false)
+const editingSensor = ref({
+  id: null as string | null,
+  channelId: '',
+  fieldNum: 1,
+  name: '',
+  unit: '',
+  minThreshold: '' as string | number,
+  maxThreshold: '' as string | number,
+})
+
+const openSensorModal = (channel: any, fieldNum: number) => {
+  const existing = getFieldSensor(channel, fieldNum)
+  editingSensor.value = {
+    id: existing?.id || null,
+    channelId: channel.id,
+    fieldNum,
+    name: existing?.name || '',
+    unit: existing?.unit || '',
+    minThreshold: existing?.min_threshold ?? '',
+    maxThreshold: existing?.max_threshold ?? '',
+  }
+  isSensorModalOpen.value = true
+}
+
+const saveSensorMapping = async () => {
+  if (!nodeStringId.value) return
+  isSavingSensor.value = true
+  try {
+    const payload = {
+      name: editingSensor.value.name.trim() || `Field ${editingSensor.value.fieldNum}`,
+      unit: editingSensor.value.unit.trim(),
+      thingspeak_field: `field${editingSensor.value.fieldNum}`,
+      min_threshold: editingSensor.value.minThreshold === '' ? null : Number(editingSensor.value.minThreshold),
+      max_threshold: editingSensor.value.maxThreshold === '' ? null : Number(editingSensor.value.maxThreshold),
+    }
+
+    if (editingSensor.value.id) {
+      await fetch(`/api/v1/nodes/${nodeStringId.value}/sensors/${editingSensor.value.id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${authStore.token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      })
+    } else {
+      await fetch(`/api/v1/nodes/${nodeStringId.value}/sensors/`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${authStore.token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          ...payload,
+          channel_id: editingSensor.value.channelId,
+          type: 'general'
+        })
+      })
+    }
+    await loadSensors()
+    telemetryStore.fetchSensors(nodeStringId.value)
+    isSensorModalOpen.value = false
+  } catch (e) {
+    console.error(e)
+  } finally {
+    isSavingSensor.value = false
+  }
+}
 
 const loadSensors = async () => {
   if (nodeStringId.value) {
@@ -494,6 +567,77 @@ const confirmDeleteChannel = async () => {
         </DialogContent>
       </Dialog>
       
+      <!-- Edit Sensor / Field Mapping Dialog -->
+      <Dialog v-model:open="isSensorModalOpen">
+        <DialogContent class="sm:max-w-md p-6 rounded-2xl">
+          <DialogHeader>
+            <DialogTitle class="flex items-center gap-2 text-base sm:text-lg font-extrabold text-foreground">
+              <Sliders class="w-5 h-5 text-primary" />
+              <span>Pemetaan Sensor — Field {{ editingSensor.fieldNum }}</span>
+            </DialogTitle>
+            <DialogDescription class="text-xs text-muted-foreground">
+              Sesuaikan nama parameter sensor, satuan, dan ambang batas yang dikirimkan hardware pada field ini.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div class="space-y-3.5 py-3">
+            <div class="space-y-1.5">
+              <Label class="text-xs font-bold text-foreground">Nama Sensor / Parameter</Label>
+              <Input 
+                v-model="editingSensor.name" 
+                placeholder="Contoh: Nitrogen, Oksigen, Suhu Tanah" 
+                class="rounded-xl h-9 text-xs sm:text-sm font-semibold"
+              />
+            </div>
+
+            <div class="space-y-1.5">
+              <Label class="text-xs font-bold text-foreground">Satuan Nilai</Label>
+              <Input 
+                v-model="editingSensor.unit" 
+                placeholder="Contoh: mg/kg, ppm, %, °C" 
+                class="rounded-xl h-9 text-xs sm:text-sm font-mono"
+              />
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div class="space-y-1.5">
+                <Label class="text-xs font-bold text-foreground">Batas Minimum (Opsional)</Label>
+                <Input 
+                  type="number"
+                  step="any"
+                  v-model="editingSensor.minThreshold" 
+                  placeholder="Tanpa Batas" 
+                  class="rounded-xl h-9 text-xs sm:text-sm"
+                />
+              </div>
+
+              <div class="space-y-1.5">
+                <Label class="text-xs font-bold text-foreground">Batas Maksimum (Opsional)</Label>
+                <Input 
+                  type="number"
+                  step="any"
+                  v-model="editingSensor.maxThreshold" 
+                  placeholder="Tanpa Batas" 
+                  class="rounded-xl h-9 text-xs sm:text-sm"
+                />
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter class="gap-2 sm:gap-0 pt-2 border-t border-border/80">
+            <Button variant="outline" class="rounded-xl font-semibold text-xs cursor-pointer" @click="isSensorModalOpen = false">Batal</Button>
+            <Button 
+              class="rounded-xl font-bold text-xs bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs cursor-pointer"
+              @click="saveSensorMapping" 
+              :disabled="isSavingSensor"
+            >
+              <Loader2 v-if="isSavingSensor" class="w-3.5 h-3.5 animate-spin mr-1.5" />
+              {{ isSavingSensor ? 'Menyimpan...' : 'Simpan Pemetaan' }}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
       <div v-if="!activeNode && !nodesQuery.isLoading.value" class="py-12 text-center text-destructive">
         Node not found.
       </div>
@@ -653,18 +797,23 @@ const confirmDeleteChannel = async () => {
                     <div 
                       v-for="fieldNum in 8" 
                       :key="fieldNum"
-                      class="p-2.5 rounded-xl border bg-white dark:bg-card transition-all"
-                      :class="getFieldSensor(channel, fieldNum) ? 'border-slate-200 dark:border-slate-700 shadow-2xs' : 'border-dashed border-slate-200/80 dark:border-slate-800 opacity-60'"
+                      class="p-2.5 rounded-xl border bg-white dark:bg-card transition-all cursor-pointer hover:border-primary/60 hover:shadow-xs group/field relative select-none"
+                      :class="getFieldSensor(channel, fieldNum) ? 'border-slate-200 dark:border-slate-700 shadow-2xs' : 'border-dashed border-slate-200/80 dark:border-slate-800 opacity-70 hover:opacity-100 hover:border-solid'"
+                      @click="openSensorModal(channel, fieldNum)"
+                      title="Klik untuk ubah nama atau batas sensor field ini"
                     >
                       <div class="flex items-center justify-between gap-1 mb-1">
-                        <span class="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                        <span class="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 group-hover/field:bg-primary/10 group-hover/field:text-primary transition-colors">
                           Field {{ fieldNum }}
                         </span>
-                        <span v-if="getFieldSensor(channel, fieldNum)" class="w-1.5 h-1.5 rounded-full bg-emerald-500" title="Sensor Terhubung"></span>
+                        <div class="flex items-center gap-1">
+                          <span v-if="getFieldSensor(channel, fieldNum)" class="w-1.5 h-1.5 rounded-full bg-emerald-500" title="Sensor Terhubung"></span>
+                          <span v-else class="text-[9px] text-muted-foreground font-semibold">+ Petakan</span>
+                        </div>
                       </div>
 
                       <div v-if="getFieldSensor(channel, fieldNum)">
-                        <div class="font-bold text-xs text-foreground line-clamp-2 leading-tight" :title="getFieldSensor(channel, fieldNum)?.name">
+                        <div class="font-bold text-xs text-foreground line-clamp-2 leading-tight group-hover/field:text-primary transition-colors" :title="getFieldSensor(channel, fieldNum)?.name">
                           {{ getFieldSensor(channel, fieldNum)?.name }}
                         </div>
                         <div class="text-[10px] text-muted-foreground mt-0.5 flex items-center justify-between font-mono">
@@ -675,8 +824,8 @@ const confirmDeleteChannel = async () => {
                         </div>
                       </div>
 
-                      <div v-else class="text-xs text-muted-foreground/60 italic py-1 text-center">
-                        Belum dipetakan
+                      <div v-else class="text-xs text-muted-foreground/60 italic py-1 text-center group-hover/field:text-primary transition-colors">
+                        + Petakan Sensor
                       </div>
                     </div>
                   </div>

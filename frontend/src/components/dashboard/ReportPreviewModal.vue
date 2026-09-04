@@ -17,6 +17,7 @@ import {
 } from 'lucide-vue-next'
 import { generateExecutivePDFReport, downloadExecutivePDFReport, type PDFReportOptions } from '@/lib/pdfReportGenerator'
 import { useTelemetryStore } from '@/stores/telemetry'
+import { filterSensorsByCategory } from '@/lib/sensorTaxonomy'
 
 const props = withDefaults(defineProps<{
   open: boolean
@@ -28,6 +29,7 @@ const props = withDefaults(defineProps<{
   currentFeeds?: any[]
   initialRange?: '1d' | '1w' | '1M' | 'custom'
   initialCategory?: 'all' | 'npk' | 'soil' | 'environment'
+  summaryMetrics?: string[]
   rangeLabel?: string
   npkRatio?: string
   soilAvgMoisture?: string | number
@@ -123,26 +125,15 @@ const selectedRangeLabel = computed(() => {
   return rangeOptions.find(r => r.id === selectedRange.value)?.label || '24 Jam Terakhir'
 })
 
-// Filtered Sensors by chosen category
-const filteredSensors = computed(() => {
-  const all = (props.sensors || []).filter(s => s && s.name !== 'Status aktuator')
-  if (selectedCategory.value === 'all') return all
-
-  return all.filter(s => {
-    const name = (s.name || '').toLowerCase()
-    const type = (s.type || '').toLowerCase()
-    if (selectedCategory.value === 'npk') {
-      return name.includes('nitrogen') || name.includes('phosphor') || name.includes('kalium') || name.includes('npk') || type.includes('nitrogen') || type.includes('phosphorus') || type.includes('potassium')
-    }
-    if (selectedCategory.value === 'soil') {
-      return name.includes('kelembaban') || name.includes('moisture') || name.includes('ph') || name.includes('ec') || name.includes('suhu tanah') || type.includes('soil')
-    }
-    if (selectedCategory.value === 'environment') {
-      return name.includes('panel') || name.includes('box') || name.includes('enclosure') || name.includes('udara') || name.includes('baterai') || name.includes('suhu lingkungan') || type.includes('enclosure') || type.includes('temperature')
-    }
-    return true
-  })
+// Category Label Computed
+const selectedCategoryLabel = computed(() => {
+  return categoryOptions.find(c => c.id === selectedCategory.value)?.label || 'Semua Parameter'
 })
+
+// Filtered Sensors by chosen category
+const filteredSensors = computed(() =>
+  filterSensorsByCategory(props.sensors || [], selectedCategory.value)
+)
 
 // Computed Statistics from Feeds
 const computedStats = computed(() => {
@@ -153,18 +144,13 @@ const computedStats = computed(() => {
     const compositeKey = channelId && tsField ? `${channelId}_${tsField}` : ''
 
     const rawVals = feeds.map((f: any) => {
+      // Resolve strictly by the channel-scoped key, exactly as the dashboard does.
+      // The previous fallback chain ended in an endsWith('_' + field) scan that
+      // could match the SAME field number on a DIFFERENT channel, which is how EC
+      // readings ended up as the max of a moisture probe column.
       let val = compositeKey ? f[compositeKey] : undefined
       if (val === undefined && s.field_key) val = f[s.field_key]
-      if (val === undefined && s.thingspeak_field) val = f[s.thingspeak_field]
       if (val === undefined && s.name) val = f[s.name]
-      if (val === undefined) {
-        const entry = Object.entries(f).find(([k]) => {
-          if (tsField && (k.toLowerCase() === tsField || k.toLowerCase().endsWith(`_${tsField}`))) return true
-          if (s.name && k.toLowerCase() === s.name.toLowerCase()) return true
-          return false
-        })
-        if (entry) val = entry[1]
-      }
       return parseFloat(val)
     }).filter((v: number) => Number.isFinite(v))
 
@@ -204,6 +190,10 @@ const handleGeneratePDF = async (isPrint = false) => {
       location: props.location,
       coordinates: props.coordinates || (props.location && props.location.includes(',') ? props.location : undefined),
       rangeLabel: selectedRangeLabel.value,
+      categoryLabel: selectedCategoryLabel.value,
+      // Only mirror the dashboard's ikhtisar while the report still covers the
+      // same category; once the user picks another, those names no longer apply.
+      highlightParams: selectedCategory.value === props.initialCategory ? props.summaryMetrics : undefined,
       dataPointsCount: modalFeeds.value.length || 100,
       generatedBy: authorName.value.trim() || 'Pengelola Lahan / Pengguna',
       notes: customNotes.value,

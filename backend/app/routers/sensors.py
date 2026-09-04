@@ -10,21 +10,25 @@ from app.repositories import sensor_repo, node_repo, channel_repo
 
 router = APIRouter(prefix="/nodes")
 
-@router.get("/{node_id}/sensors/", response_model=list[SensorResponse])
-async def list_sensors(node_id: str, skip: int = 0, limit: int = 100, db: AsyncSession = Depends(get_db), current_user: Optional[User] = Depends(get_optional_current_user)):
+async def _find_node(db: AsyncSession, node_id: str):
     node = await node_repo.get_by_node_id(db, node_id)
     if not node:
         try:
             node = await node_repo.get_by_id(db, UUID(node_id))
         except (ValueError, TypeError):
             pass
+    return node
+
+@router.get("/{node_id}/sensors/", response_model=list[SensorResponse])
+async def list_sensors(node_id: str, skip: int = 0, limit: int = 100, db: AsyncSession = Depends(get_db), current_user: Optional[User] = Depends(get_optional_current_user)):
+    node = await _find_node(db, node_id)
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
     return await sensor_repo.list_by_node(db, node.id, skip=skip, limit=limit)
 
 @router.post("/{node_id}/sensors/", response_model=SensorResponse, status_code=status.HTTP_201_CREATED)
 async def create_sensor(node_id: str, sensor_data: SensorCreate, db: AsyncSession = Depends(get_db), current_user: User = Depends(require_admin)):
-    node = await node_repo.get_by_node_id(db, node_id)
+    node = await _find_node(db, node_id)
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
         
@@ -44,7 +48,7 @@ async def create_sensor(node_id: str, sensor_data: SensorCreate, db: AsyncSessio
 
 @router.put("/{node_id}/sensors/{sensor_id}", response_model=SensorResponse)
 async def update_sensor(node_id: str, sensor_id: UUID, sensor_data: SensorUpdate, db: AsyncSession = Depends(get_db), current_user: User = Depends(require_admin)):
-    node = await node_repo.get_by_node_id(db, node_id)
+    node = await _find_node(db, node_id)
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
     sensor = await sensor_repo.get_by_id(db, sensor_id)
@@ -54,7 +58,7 @@ async def update_sensor(node_id: str, sensor_id: UUID, sensor_data: SensorUpdate
 
 @router.delete("/{node_id}/sensors/{sensor_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_sensor(node_id: str, sensor_id: UUID, db: AsyncSession = Depends(get_db), current_user: User = Depends(require_admin)):
-    node = await node_repo.get_by_node_id(db, node_id)
+    node = await _find_node(db, node_id)
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
     sensor = await sensor_repo.get_by_id(db, sensor_id)
