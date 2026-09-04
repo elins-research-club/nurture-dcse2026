@@ -247,26 +247,35 @@ const testTelegramConnection = async () => {
     isTestingTelegram.value = true
     const res = await fetch(`${API_BASE_URL}/system/test-telegram`, {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${authStore.token}` }
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authStore.token}` 
+      },
+      body: JSON.stringify({
+        telegram_bot_token: systemConfig.value.telegram_bot_token,
+        telegram_chat_id: systemConfig.value.telegram_chat_id
+      })
     })
     
     if (res.ok) {
       modalType.value = 'success'
-      modalMessage.value = 'Pesan uji coba berhasil dikirim ke Telegram!'
+      modalMessage.value = 'Pesan uji coba berhasil terkirim ke Telegram!\nSilakan periksa ruang obrolan bot atau grup Anda.'
       showModal.value = true
       fetchTelegramBotInfo()
       setTimeout(() => {
         showModal.value = false
-      }, 2000)
+      }, 3000)
     } else {
       const err = await res.json()
       modalType.value = 'error'
-      modalMessage.value = `Gagal mengirim ke Telegram:\n${err.detail || res.statusText}`
+      modalMessage.value = err.detail || 'Gagal mengirim pesan uji coba ke Telegram.'
       showModal.value = true
       fetchTelegramBotInfo()
     }
   } catch (error) {
-    alert('Gagal menguji koneksi. Pastikan pengaturan sudah disimpan terlebih dahulu.')
+    modalType.value = 'error'
+    modalMessage.value = 'Gagal menghubungi server untuk menguji koneksi Telegram.'
+    showModal.value = true
   } finally {
     isTestingTelegram.value = false
   }
@@ -567,9 +576,18 @@ const updatePassword = async () => {
             <h3 :class="['text-2xl font-semibold tracking-tight', modalType === 'success' ? 'text-foreground' : 'text-destructive']">
               {{ modalType === 'success' ? 'Berhasil!' : 'Terjadi Kesalahan!' }}
             </h3>
-            <p class="text-sm text-muted-foreground mt-2 text-center whitespace-pre-line">
+            <p class="text-sm text-muted-foreground mt-2 text-center whitespace-pre-line leading-relaxed">
               {{ modalMessage }}
             </p>
+            <!-- Direct Shortcut to Open Bot if User Needs to Press START -->
+            <div v-if="modalType === 'error' && telegramBotInfo?.link && modalMessage.includes('START')" class="mt-4 flex justify-center">
+              <a :href="telegramBotInfo.link" target="_blank" rel="noopener noreferrer">
+                <Button size="sm" class="gap-1.5 bg-[#2AABEE] hover:bg-[#2297d4] text-white font-semibold text-xs shadow-sm">
+                  <span>Buka @{{ telegramBotInfo.username }} & Tekan Start</span>
+                  <ExternalLink class="w-3.5 h-3.5" />
+                </Button>
+              </a>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
