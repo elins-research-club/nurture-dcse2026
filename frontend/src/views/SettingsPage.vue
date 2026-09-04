@@ -854,36 +854,43 @@ const updatePassword = async () => {
                   </div>
                 </div>
 
-                <!-- Telegram Bot Integration -->
-                <div class="p-4 space-y-4">
-                  <div class="flex items-center justify-between gap-2">
-                    <h4 class="text-base font-medium flex items-center gap-2">
+                <!-- Telegram Bot Integration (Custom Telegram Theme) -->
+                <div class="p-5 space-y-4 bg-gradient-to-br from-[#2AABEE]/[0.07] via-sky-50/30 to-transparent dark:from-[#2AABEE]/15 dark:via-sky-950/20 dark:to-transparent relative overflow-hidden">
+                  <!-- Decorative Telegram Watermark Vector -->
+                  <svg class="absolute -right-6 -top-6 w-36 h-36 text-[#2AABEE]/[0.05] dark:text-[#2AABEE]/[0.07] pointer-events-none -rotate-12 select-none" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.75-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/>
+                  </svg>
+
+                  <div class="flex items-center justify-between gap-2 relative z-10">
+                    <div class="flex items-center gap-2">
                       <svg class="w-5 h-5 text-[#2AABEE]" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.75-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/>
                       </svg>
-                      Integrasi Bot Telegram
-                    </h4>
+                      <h4 class="text-base font-bold text-foreground">Integrasi Bot Telegram</h4>
+                    </div>
                   </div>
 
                   <!-- Bot Identity Card (Displayed when verified) -->
                   <div 
                     v-if="telegramBotInfo?.is_valid" 
-                    class="p-4 rounded-xl border border-[#2AABEE]/30 bg-gradient-to-r from-[#2AABEE]/5 via-sky-500/5 to-transparent dark:from-[#2AABEE]/15 dark:via-sky-950/20 dark:to-transparent flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm"
+                    class="p-4 rounded-xl border border-[#2AABEE]/40 bg-white/90 dark:bg-slate-900/80 backdrop-blur-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs relative z-10"
                   >
                     <div class="flex items-center gap-3">
-                      <div class="w-11 h-11 rounded-full bg-[#2AABEE]/15 flex items-center justify-center text-[#2AABEE] shrink-0 border border-[#2AABEE]/30 shadow-sm">
+                      <div class="w-11 h-11 rounded-full bg-gradient-to-br from-[#2AABEE] to-[#0088cc] text-white flex items-center justify-center shrink-0 shadow-sm shadow-[#2AABEE]/30">
                         <Bot class="w-6 h-6" />
                       </div>
                       <div>
                         <div class="flex items-center gap-2 flex-wrap">
                           <h5 class="text-sm font-bold text-foreground">{{ telegramBotInfo.first_name }}</h5>
-                          <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium bg-emerald-100/70 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60">
+                          <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium bg-emerald-100/80 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
                             <CheckCircle class="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
                             Terhubung
                           </span>
                         </div>
-                        <p class="text-xs text-muted-foreground flex items-center gap-2 mt-0.5 flex-wrap">
-                          <span class="font-mono text-[#2AABEE] font-semibold">@{{ telegramBotInfo.username }}</span>
+                        <p class="text-xs text-muted-foreground flex items-center gap-2 mt-1 flex-wrap">
+                          <span class="font-mono text-[#0088cc] dark:text-[#38bdf8] font-bold bg-[#2AABEE]/10 border border-[#2AABEE]/25 px-1.5 py-0.5 rounded text-[11px]">
+                            @{{ telegramBotInfo.username }}
+                          </span>
                           <span class="text-slate-400">&bull;</span>
                           <span class="text-[11px] font-mono text-muted-foreground">ID Bot: {{ telegramBotInfo.id }}</span>
                         </p>
@@ -897,7 +904,7 @@ const updatePassword = async () => {
                         target="_blank" 
                         rel="noopener noreferrer"
                       >
-                        <Button size="sm" class="h-8 gap-1.5 bg-[#2AABEE] hover:bg-[#2297d4] text-white font-semibold text-xs shadow-sm transition-all hover:scale-[1.02]">
+                        <Button size="sm" class="h-8 gap-1.5 bg-[#2AABEE] hover:bg-[#2297d4] text-white font-semibold text-xs shadow-sm shadow-[#2AABEE]/25 transition-all hover:scale-[1.02] cursor-pointer">
                           <span>Buka Bot di Telegram</span>
                           <ExternalLink class="w-3.5 h-3.5" />
                         </Button>
@@ -908,7 +915,7 @@ const updatePassword = async () => {
                   <!-- Bot Error / Invalid State -->
                   <div 
                     v-else-if="telegramBotInfo && !telegramBotInfo.is_valid && systemConfig.telegram_bot_token" 
-                    class="p-3.5 rounded-lg border border-amber-500/30 bg-amber-500/5 dark:bg-amber-950/20 flex items-start gap-2.5 text-xs text-amber-700 dark:text-amber-400"
+                    class="p-3.5 rounded-lg border border-amber-500/30 bg-amber-500/5 dark:bg-amber-950/20 flex items-start gap-2.5 text-xs text-amber-700 dark:text-amber-400 relative z-10"
                   >
                     <AlertCircle class="w-4 h-4 shrink-0 mt-0.5" />
                     <div class="space-y-0.5">
@@ -917,14 +924,14 @@ const updatePassword = async () => {
                     </div>
                   </div>
 
-                  <div class="grid gap-4 sm:grid-cols-2">
-                    <div class="space-y-2">
+                  <div class="grid gap-4 sm:grid-cols-2 relative z-10">
+                    <div class="space-y-1.5">
                       <div class="flex items-center justify-between">
-                        <Label>Token Bot</Label>
+                        <Label class="text-xs font-semibold text-foreground">Token Bot</Label>
                         <button 
                           type="button"
                           @click="fetchTelegramBotInfo(systemConfig.telegram_bot_token)" 
-                          class="text-[11px] text-[#2AABEE] hover:underline font-medium flex items-center gap-1 transition-opacity"
+                          class="text-[11px] text-[#0088cc] dark:text-[#38bdf8] hover:underline font-semibold flex items-center gap-1 transition-opacity cursor-pointer"
                           :class="isCheckingBot ? 'opacity-50' : ''"
                           :disabled="isCheckingBot || !systemConfig.telegram_bot_token"
                         >
@@ -936,57 +943,43 @@ const updatePassword = async () => {
                         v-model="systemConfig.telegram_bot_token" 
                         placeholder="Contoh: 7123456789:AAFlmQ9xW8ZkL0vYq..." 
                         @blur="fetchTelegramBotInfo(systemConfig.telegram_bot_token)"
+                        class="bg-white/95 dark:bg-slate-900/80 border-slate-300 dark:border-slate-700 focus-visible:ring-[#2AABEE] focus-visible:border-[#2AABEE]"
                       />
                     </div>
-                    <div class="space-y-2">
+                    <div class="space-y-1.5">
                       <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-1.5">
-                          <Label>ID Obrolan (Chat ID)</Label>
-                          <button 
-                            type="button"
-                            @click="showChatIdGuide = true"
-                            class="text-muted-foreground hover:text-[#2AABEE] transition-colors p-0.5 rounded-full hover:bg-muted cursor-pointer"
-                            title="Panduan cara mendapatkan Chat ID"
-                          >
-                            <HelpCircle class="w-3.5 h-3.5" />
-                          </button>
-                        </div>
+                        <Label class="text-xs font-semibold text-foreground">ID Obrolan (Chat ID)</Label>
                         <button 
                           type="button"
                           @click="showChatIdGuide = true"
-                          class="text-[11px] text-[#2AABEE] hover:underline font-medium flex items-center gap-1 cursor-pointer"
+                          class="text-[11px] text-[#0088cc] dark:text-[#38bdf8] hover:underline font-semibold flex items-center gap-1 cursor-pointer"
                         >
                           <HelpCircle class="w-3 h-3" />
                           <span>Cara dapat ID?</span>
                         </button>
                       </div>
-                      <Input v-model="systemConfig.telegram_chat_id" placeholder="Contoh: -1001234567890 atau 1234567890" />
+                      <Input 
+                        v-model="systemConfig.telegram_chat_id" 
+                        placeholder="Contoh: -1001234567890 atau 1234567890" 
+                        class="bg-white/95 dark:bg-slate-900/80 border-slate-300 dark:border-slate-700 focus-visible:ring-[#2AABEE] focus-visible:border-[#2AABEE]"
+                      />
                     </div>
                   </div>
 
-                  <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-1 border-t border-border/50">
-                    <p class="text-[11px] text-muted-foreground">
-                      <span class="font-semibold text-foreground">Butuh bantuan?</span>
-                      Gunakan Chat ID pribadi atau grup.
-                      <button 
-                        type="button" 
-                        @click="showChatIdGuide = true" 
-                        class="text-[#2AABEE] hover:underline font-semibold ml-1 inline-flex items-center gap-0.5 cursor-pointer"
-                      >
-                        <span>Lihat panduan mendapatkan Chat ID</span>
-                        <ChevronRight class="w-3 h-3" />
-                      </button>
+                  <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-3 border-t border-[#2AABEE]/20 relative z-10">
+                    <p class="text-[11px] text-muted-foreground flex items-center gap-1.5">
+                      <span class="w-1.5 h-1.5 rounded-full bg-[#2AABEE]"></span>
+                      Uji koneksi sebelum menyimpan untuk memastikan bot dapat mengirimkan pesan.
                     </p>
                     <div class="flex items-center gap-2 shrink-0 self-end sm:self-center">
                       <Button 
-                        variant="outline" 
                         size="sm" 
                         @click="testTelegramConnection" 
                         :disabled="isTestingTelegram || !systemConfig.telegram_bot_token || !systemConfig.telegram_chat_id"
-                        class="gap-1.5 font-semibold text-xs h-8"
+                        class="gap-1.5 font-bold text-xs h-8.5 px-3.5 bg-[#2AABEE] hover:bg-[#2297d4] text-white shadow-sm shadow-[#2AABEE]/30 cursor-pointer transition-all hover:scale-[1.02]"
                       >
                         <Loader2 v-if="isTestingTelegram" class="w-3.5 h-3.5 animate-spin" />
-                        <Send v-else class="w-3.5 h-3.5 text-primary" />
+                        <Send v-else class="w-3.5 h-3.5 text-white" />
                         {{ isTestingTelegram ? 'Menguji...' : 'Uji Koneksi' }}
                       </Button>
                     </div>
