@@ -681,10 +681,10 @@ const updatePassword = async () => {
                       <div>
                         <div class="flex items-center gap-2 flex-wrap">
                           <h5 class="text-sm font-bold text-foreground">{{ telegramBotInfo.first_name }}</h5>
-                          <Badge variant="outline" class="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 text-[10px] py-0.5 px-2 font-bold flex items-center gap-1">
-                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                            Terverifikasi Aktif
-                          </Badge>
+                          <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium bg-emerald-100/70 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60">
+                            <CheckCircle class="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                            Terhubung
+                          </span>
                         </div>
                         <p class="text-xs text-muted-foreground flex items-center gap-2 mt-0.5 flex-wrap">
                           <span class="font-mono text-[#2AABEE] font-semibold">@{{ telegramBotInfo.username }}</span>
