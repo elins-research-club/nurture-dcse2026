@@ -20,6 +20,7 @@ import {
 } from 'lucide-vue-next'
 import { exportTelemetryToCSV } from '@/lib/csvExporter'
 import { useAuthStore } from '@/stores/auth'
+import { filterSensorsByCategory } from '@/lib/sensorTaxonomy'
 
 const props = defineProps<{
   open: boolean
@@ -141,24 +142,9 @@ const domains = [
 ]
 
 // Filter active sensors by chosen domain
-const filteredSensors = computed(() => {
-  if (!props.sensors || props.sensors.length === 0) return []
-  if (selectedDomain.value === 'all') return props.sensors
-
-  return props.sensors.filter(s => {
-    const name = (s.name || '').toLowerCase()
-    if (selectedDomain.value === 'npk') {
-      return name.includes('nitrogen') || name.includes('phosphor') || name.includes('kalium') || name.includes('npk') || name.includes('potassium')
-    }
-    if (selectedDomain.value === 'soil') {
-      return name.includes('kelembaban') || name.includes('moisture') || name.includes('ph') || name.includes('ec') || name.includes('suhu tanah') || name.includes('soil')
-    }
-    if (selectedDomain.value === 'iot') {
-      return name.includes('panel') || name.includes('box') || name.includes('enclosure') || name.includes('udara') || name.includes('baterai') || name.includes('rssi') || name.includes('suhu lingkungan')
-    }
-    return true
-  })
-})
+const filteredSensors = computed(() =>
+  filterSensorsByCategory(props.sensors || [], selectedDomain.value)
+)
 
 // Readable summary labels for Step 3
 const selectedPresetLabel = computed(() => {
@@ -249,7 +235,10 @@ const handleExport = async () => {
       feeds,
       sensors: filteredSensors.value,
       timeRangeLabel: selectedPreset.value === 'custom' ? 'custom_range' : selectedPreset.value,
-      filenamePrefix: `telemetry_${selectedDomain.value}`
+      filenamePrefix: `telemetry_${selectedDomain.value}`,
+      periodLabel: selectedPresetLabel.value,
+      resolutionLabel: selectedAggregationLabel.value,
+      categoryLabel: selectedDomainLabel.value
     })
 
     exportedCount.value = result.count

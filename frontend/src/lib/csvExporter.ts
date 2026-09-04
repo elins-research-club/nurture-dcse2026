@@ -16,6 +16,10 @@ export interface TelemetryExportOptions {
   }>
   timeRangeLabel?: string
   filenamePrefix?: string
+  /* The three wizard selections, restated in the file's own header. */
+  periodLabel?: string
+  resolutionLabel?: string
+  categoryLabel?: string
 }
 
 export function formatWIBTime(dateString: string): string {
@@ -42,7 +46,11 @@ export function formatWIBTime(dateString: string): string {
 }
 
 export function exportTelemetryToCSV(options: TelemetryExportOptions): { success: boolean; count: number } {
-  const { nodeName, nodeCode, feeds, sensors, timeRangeLabel = 'Custom', filenamePrefix = 'telemetry' } = options
+  const {
+    nodeName, nodeCode, feeds, sensors,
+    timeRangeLabel = 'Custom', filenamePrefix = 'telemetry',
+    periodLabel, resolutionLabel, categoryLabel
+  } = options
 
   if (!feeds || feeds.length === 0) {
     throw new Error('Tidak ada data telemetri untuk diekspor.')
@@ -139,8 +147,27 @@ export function exportTelemetryToCSV(options: TelemetryExportOptions): { success
     rows.push(rowValues.join(','))
   })
 
-  // 3. Assemble Full CSV with UTF-8 BOM
-  const csvContent = '\uFEFF' + [headers.join(','), ...rows].join('\r\n')
+  // 3. Document preamble - restates the Periode / Resolusi / Kategori chosen
+  //    in the wizard, mirroring the PDF report's Identitas Dokumen block so
+  //    both exports describe themselves the same way.
+  const q = (v: any) => `"${String(v ?? '-').replace(/"/g, '""')}"`
+  const meta = (label: string, value: any) => `${q(label)},${q(value)}`
+
+  const preamble: string[] = [
+    q('LAPORAN TELEMETRI G-CONNECT'),
+    meta('Stasiun', nodeName),
+    meta('Kode Stasiun', nodeCode || '-'),
+    meta('Periode Laporan', periodLabel || timeRangeLabel),
+    meta('Resolusi Data', resolutionLabel || 'Data Mentah (Semua Titik)'),
+    meta('Kategori Parameter', categoryLabel || 'Semua Sensor'),
+    meta('Jumlah Sampel', `${feeds.length} titik data`),
+    meta('Jumlah Parameter', `${activeSensors.length} parameter`),
+    meta('Waktu Ekspor', formatWIBTime(new Date().toISOString())),
+    ''
+  ]
+
+  // 4. Assemble Full CSV with UTF-8 BOM
+  const csvContent = '\uFEFF' + [...preamble, headers.join(','), ...rows].join('\r\n')
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
   const url = URL.createObjectURL(blob)
 

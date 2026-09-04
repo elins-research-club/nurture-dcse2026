@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import ExportTelemetryModal from '@/components/dashboard/ExportTelemetryModal.vue'
 import ReportPreviewModal from '@/components/dashboard/ReportPreviewModal.vue'
+import { getSensorCategory, filterSensorsByCategory } from '@/lib/sensorTaxonomy'
 import ExcelIcon from '@/components/icons/ExcelIcon.vue'
 import PdfIcon from '@/components/icons/PdfIcon.vue'
 import { 
@@ -144,62 +145,11 @@ watch(() => props.nodeId, () => {
 })
 
 // Categorize sensors for chart tabs
-const getSensorCategory = (sensor: any): 'npk' | 'soil' | 'environment' | 'other' => {
-  const name = (sensor.name || '').toLowerCase()
-  const type = (sensor.type || '').toLowerCase()
-  
-  if (name.includes('nitrogen') || name.includes('phosphorus') || name.includes('potassium') || 
-      name.includes('kalium') || name.includes('fosfor') || type.includes('npk')) {
-    return 'npk'
-  }
-  if (name.includes('soil') || name.includes('tanah') || name.includes('ph') || 
-      name.includes('ec') || name.includes('analog') || name.includes('probe') || type.includes('soil')) {
-    return 'soil'
-  }
-  if (name.includes('suhu') || name.includes('temp') || name.includes('kelembaban') || 
-      name.includes('humidity') || name.includes('enclosure') || name.includes('udara') || 
-      name.includes('cahaya') || name.includes('light') || type.includes('env') || type.includes('temp')) {
-    return 'environment'
-  }
-  return 'other'
-}
+// Categorisation lives in @/lib/sensorTaxonomy so every view agrees.
 
-const activeCategorySensors = computed(() => {
-  const nonActuators = (sensors.value || []).filter(s => s.name !== 'Status aktuator')
-  let list = selectedCategory.value === 'all' 
-    ? nonActuators 
-    : nonActuators.filter(s => getSensorCategory(s) === selectedCategory.value)
-  
-  if (list.length === 0) list = nonActuators
-
-  // Deterministic canonical sorting (Nitrogen -> Phosphorus -> Potassium, Probe 1 -> Probe 2 -> Probe 3)
-  return [...list].sort((a, b) => {
-    const nameA = (a.name || '').toLowerCase()
-    const nameB = (b.name || '').toLowerCase()
-
-    const getNpkOrder = (n: string) => {
-      if (n.includes('nitrogen') || n === 'n') return 1
-      if (n.includes('phosphor') || n.includes('fosfor') || n === 'p') return 2
-      if (n.includes('potassium') || n.includes('kalium') || n === 'k') return 3
-      return 99
-    }
-    const npkA = getNpkOrder(nameA)
-    const npkB = getNpkOrder(nameB)
-    if (npkA !== 99 || npkB !== 99) return npkA - npkB
-
-    const getProbeOrder = (n: string) => {
-      if (n.includes('probe 1')) return 1
-      if (n.includes('probe 2')) return 2
-      if (n.includes('probe 3')) return 3
-      return 99
-    }
-    const probeA = getProbeOrder(nameA)
-    const probeB = getProbeOrder(nameB)
-    if (probeA !== 99 || probeB !== 99) return probeA - probeB
-
-    return nameA.localeCompare(nameB)
-  })
-})
+const activeCategorySensors = computed(() =>
+  filterSensorsByCategory(sensors.value || [], selectedCategory.value)
+)
 
 const changeRange = async (range: '1d' | '1w' | '1M' | 'custom') => {
   selectedRange.value = range
@@ -2108,6 +2058,7 @@ onUnmounted(() => {
     :current-feeds="chartData"
     :initial-range="selectedRange"
     :initial-category="selectedCategory"
+    :summary-metrics="(analyticsData?.metrics || []).slice(0, 3).map(mm => mm.name)"
     :range-label="rangeLabel"
     :npk-ratio="analyticsData?.distributionWidget?.subtitle"
     :soil-avg-moisture="getLiveVal(avgMoistureMetric)"
