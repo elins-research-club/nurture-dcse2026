@@ -15,31 +15,26 @@ const props = withDefaults(defineProps<{
   accentGradient?: string
   minThreshold?: number | null
   maxThreshold?: number | null
+  isStale?: boolean
+  readingAt?: string | null
 }>(), {
   size: 'default',
+  isStale: false,
 })
 
-// Determine threshold status (Rendah / Ideal / Tinggi) for the capsule badge
+// Status kapsul (Rendah / Ideal / Tinggi) SEMATA dari ambang operator di
+// database. Kalau operator belum mengisinya, kartu tidak menampilkan status.
+//
+// Dulu di sini ada angka cadangan NPK (N 20-60, P 20-40, K 20-40) yang tidak
+// punya sumber dan bahkan BERBEDA dari angka cadangan di NodeDashboard.vue
+// (N 20-80, P 15-60, K 20-60), jadi satu pembacaan bisa disebut "Ideal" di satu
+// kartu dan "Tinggi" di kartu lain. Klasifikasi terhadap standar terbit datang
+// dari backend (soil_health).
 const thresholdStatus = computed(() => {
   if (props.value === null || props.value === undefined) return null
 
-  let min = props.minThreshold
-  let max = props.maxThreshold
-
-  // Default agronomic thresholds for NPK if not configured in DB
-  if (min == null && max == null && props.type === 'npk') {
-    const t = props.title.toLowerCase()
-    if (t.includes('nitrogen') || t.includes('nitrat')) {
-      min = 20
-      max = 60
-    } else if (t.includes('phosphorus') || t.includes('fosfor')) {
-      min = 20
-      max = 40
-    } else if (t.includes('potassium') || t.includes('kalium')) {
-      min = 20
-      max = 40
-    }
-  }
+  const min = props.minThreshold
+  const max = props.maxThreshold
 
   if (min == null && max == null) return null
 
@@ -205,6 +200,16 @@ const semanticTheme = computed(() => {
           </h3>
           <span class="text-white/95 font-bold text-sm drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]">{{ unit }}</span>
         </div>
+        <!-- Angka hasil forward-fill: pembacaan lama yang disalin karena paket
+             terbaru tidak membawa field ini. -->
+        <p
+          v-if="isStale"
+          class="mt-1 text-[11px] font-semibold text-white/80 flex items-center gap-1"
+          :title="readingAt ? 'Pembacaan terakhir: ' + readingAt : 'Tidak ada pembacaan baru'"
+        >
+          <span class="inline-block w-1.5 h-1.5 rounded-full bg-white/70"></span>
+          Data terakhir, bukan pembacaan baru
+        </p>
       </div>
 
       <!-- Structured Stacked Status & Threshold Container (Option B - Apple Health Style) -->

@@ -269,28 +269,28 @@ const wrapSensorAsMetric = (s: any) => {
   }
 }
 
-// field8 kanal pendukung: bitmask 3 bit (Kipas, Lampu, Valve)
-const aktuator = computed(() => {
-  const s = sensors.value.find(x => x.name === 'Status aktuator')
-  if (!s || !latestTelemetry.value) return null
+// Status aktuator diambil apa adanya dari backend (services/aktuator.py).
+//
+// Dulu di sini bitmask didekode ulang dan gagal karena tiga hal sekaligus:
+// sensornya dicari lewat nama persis 'Status aktuator', batasnya 0-7 sehingga
+// bit3 (valve_timeout) membuang seluruh pembacaan, dan Node 2 tetap ditampilkan
+// punya valve padahal tidak. Backend sudah menangani ketiganya.
+const aktuator = computed(() =>
+  // WebSocket lebih baru, tapi saat halaman baru dibuka belum ada pesan masuk;
+  // ringkasan dashboard membawa hasil decode yang sama supaya kartu tidak
+  // kosong sampai node mengirim paket berikutnya.
+  telemetryStore.aktuatorByNode[props.nodeId] ?? dashboardSummary.value?.aktuator ?? null
+)
 
-  const mentah = latestTelemetry.value[`${s.channel_id}_${s.thingspeak_field}`]
-  if (mentah == null) return null
-
-  const v = Number(mentah)
-  if (!Number.isFinite(v) || v < 0 || v > 7) return null
-
-  return {
-    kipas: !!(v & 0b0001),
-    lampu: !!(v & 0b0010),
-    valve: !!(v & 0b0100),
-  }
-})
+// bit3: firmware menutup valve paksa karena kelamaan terbuka. Nilai ini dulu
+// mustahil sampai ke sini.
+const valveTimeout = computed(() => aktuator.value?.valve_timeout === true)
 
 // Dynamic Animated Actuator List for Actuator Status Card
 const actuatorList = computed(() => {
-  if (!aktuator.value) return []
-  return [
+  const a = aktuator.value
+  if (!a) return []
+  const daftar: any[] = [
     {
       id: 'kipas',
       nama: 'Kipas',
@@ -311,17 +311,23 @@ const actuatorList = computed(() => {
       activeBg: 'bg-amber-500/10 dark:bg-amber-950/30 border-amber-500/30 text-amber-600 dark:text-amber-400 shadow-xs',
       badgeActiveClass: 'bg-amber-500/20 text-amber-700 dark:text-amber-300 font-black',
     },
-    {
+  ]
+
+  // Valve cuma ada di Node 1. Kalau backend tidak mengirim kuncinya, node ini
+  // memang tidak punya valve -- itu beda dari valve yang sedang mati.
+  if ('valve' in a) {
+    daftar.push({
       id: 'valve',
-      nama: 'Valve',
-      aktif: aktuator.value.valve,
+      nama: valveTimeout.value ? 'Valve (timeout)' : 'Valve',
+      aktif: a.valve,
       icon: Droplets,
       iconActiveClass: 'text-sky-500 drop-shadow-[0_0_6px_rgba(14,165,233,0.6)] animate-bounce [animation-duration:1.2s]',
       iconInactiveClass: 'text-slate-400 dark:text-slate-500',
       activeBg: 'bg-sky-500/10 dark:bg-sky-950/30 border-sky-500/30 text-sky-600 dark:text-sky-400 shadow-xs',
       badgeActiveClass: 'bg-sky-500/20 text-sky-700 dark:text-sky-300 font-black',
-    },
-  ]
+    })
+  }
+  return daftar
 })
 
 const isArchive = computed(() => selectedRange.value !== '1d')
@@ -395,9 +401,10 @@ const soilTempMetric = computed(() => {
 const ecMetric = computed(() => {
   return dashboardSummary.value?.soil_metrics?.ec || wrapSensorAsMetric(findSensorByKeywords(['ec', 'conductivity']))
 })
-const avgMoistureMetric = computed(() => {
-  return dashboardSummary.value?.soil_metrics?.avg_moisture || wrapSensorAsMetric(findSensorByKeywords(['rata-rata kelembapan', 'kelembapan tanah']))
-})
+// Tidak ada field rata-rata kelembapan di ThingSpeak -- CLAUDE.md menghapusnya
+// supaya frontend bisa menampilkan tiap probe terpisah atau membuang yang rusak.
+// Jadi jangan dicari lewat nama sensor; dihitung di realTimeAvgMoisture.
+const avgMoistureMetric = computed<any>(() => null)
 
 // Real-time Average Moisture: calculated dynamically from live soil probes to eliminate channel polling lag
 const realTimeAvgMoisture = computed(() => {
@@ -424,8 +431,49 @@ const airTempMetric = computed(() => {
 const humidityMetric = computed(() => {
   return dashboardSummary.value?.iot_metrics?.humidity || wrapSensorAsMetric(findSensorByKeywords(['lembab luar', 'kelembaban udara', 'humidity']))
 })
-const modbusMetric = computed(() => {
-  return dashboardSummary.value?.iot_metrics?.modbus || wrapSensorAsMetric(findSensorByKeywords(['modbus', 'error']))
+// Tegangan/arus dari INA226 + daya turunan (V x A) dari backend.
+// Dihitung ulang dari stream WebSocket, bukan cuma dibaca dari ringkasan REST.
+//
+// dashboardSummary hanya diambil sekali saat loadNodeData() (mount / ganti node),
+// jadi kalau portlet ini bersandar padanya, angkanya beku sementara kartu lain
+// yang memakai getLiveVal() terus bergerak. Ringkasan tetap dipakai sebagai
+// cadangan untuk render pertama sebelum pesan WS pertama datang.
+const sensorPeran = (tipe: string, field: string[]) =>
+  wrapSensorAsMetric(
+    sensors.value.find(
+      (s: any) => (s.type || '').toLowerCase() === tipe && field.includes(s.thingspeak_field)
+    )
+  )
+
+const power = computed<any>(() => {
+  const ringkasan = dashboardSummary.value?.power_metrics ?? null
+
+  const ambil = (tipe: string, field: string[], cadangan: any) => {
+    const v = getLiveVal(sensorPeran(tipe, field))
+    if (v == null) return cadangan ?? null
+    const n = Number(v)
+    return Number.isFinite(n) ? n : (cadangan ?? null)
+  }
+
+  // Node 1 memakai field5_in/field5_out hasil bongkaran; Node 2 field5/field6.
+  const teganganIn = ambil('batt_volt', ['field3'], ringkasan?.tegangan_in)
+  const teganganOut = ambil('batt_volt', ['field4'], ringkasan?.tegangan_out)
+  const arusIn = ambil('current', ['field5_in', 'field5'], ringkasan?.arus_in)
+  const arusOut = ambil('current', ['field5_out', 'field6'], ringkasan?.arus_out)
+
+  // Daya = V x A. Tidak ada field ThingSpeak untuknya (CLAUDE.md).
+  const daya = (v: number | null, a: number | null) =>
+    v == null || a == null ? null : Number((v * a).toFixed(2))
+
+  return {
+    tegangan_in: teganganIn,
+    tegangan_out: teganganOut,
+    arus_in: arusIn,
+    arus_out: arusOut,
+    daya_in: daya(teganganIn, arusIn),
+    daya_out: daya(teganganOut, arusOut),
+    catatan: ringkasan?.catatan,
+  }
 })
 
 const enclosureMinVal = computed(() => {
@@ -440,126 +488,130 @@ const enclosureMaxVal = computed(() => {
   return curr != null ? curr : null
 })
 
-// Dynamic 3-State Semantic Card States (Rendah / Optimal / Tinggi) based on DB Thresholds
-const phCardState = computed(() => {
-  const min = phMetric.value?.min_threshold ?? 5.8
-  const max = phMetric.value?.max_threshold ?? 7.2
-  const v = getLiveVal(phMetric.value)
-  if (v == null) {
-    return { text: 'Netral', gradient: 'bg-gradient-to-br from-[#00b200] via-[#008a00] to-[#006400]', shadow: 'shadow-[#00b200]/20', isAlert: false, min, max }
-  }
-  const num = Number(v)
-  if (num < min) {
-    return { text: 'Asam', gradient: 'bg-gradient-to-br from-orange-500 via-amber-600 to-rose-600', shadow: 'shadow-orange-500/25', isAlert: true, min, max }
-  }
-  if (num <= max) {
-    return { text: 'Optimal', gradient: 'bg-gradient-to-br from-[#00b200] via-[#008a00] to-[#006400]', shadow: 'shadow-[#00b200]/20', isAlert: false, min, max }
-  }
-  return { text: 'Basa', gradient: 'bg-gradient-to-br from-indigo-500 via-purple-500 to-violet-600', shadow: 'shadow-purple-500/25', isAlert: true, min, max }
-})
-const phStatus = computed(() => phCardState.value)
+// --- Kartu ambang operator --------------------------------------------------
+// Ambang di sini berasal dari konfigurasi sensor di database -- keputusan
+// operator lahan, bukan kelas dari pustaka. Kalau operator belum mengisinya,
+// kartu TIDAK mengarang batas sendiri.
+//
+// Sebelumnya tiap kartu punya angka cadangan (pH 5.8/7.2, EC 600/1800, suhu
+// tanah 18/32, suhu udara 18/34, lembap 45/88, probe 35/75, lengas 40/70) yang
+// tidak punya sumber, lalu ikut terbawa ke laporan PDF seolah kriteria agronomi.
+// Klasifikasi terhadap standar terbit datang dari backend (soil_health).
+// Lihat CLAUDE.md, bagian "Soil health interpretation".
 
-// Dynamic Soil Temperature 3-State Card (Dingin: Biru Ice | Optimal: Hijau Emerald | Panas: Merah Rose Alert)
-const soilTempCardState = computed(() => {
-  const min = soilTempMetric.value?.min_threshold ?? 18.0
-  const max = soilTempMetric.value?.max_threshold ?? 32.0
-  const v = getLiveVal(soilTempMetric.value)
-  if (v == null) {
-    return { text: 'Optimal', gradient: 'bg-gradient-to-br from-[#00b200] via-[#008a00] to-[#006400]', shadow: 'shadow-[#00b200]/20', isAlert: false, min, max }
-  }
-  const num = Number(v)
-  if (num < min) {
-    return { text: 'Dingin', gradient: 'bg-gradient-to-br from-cyan-500 via-sky-500 to-blue-600', shadow: 'shadow-sky-500/25', isAlert: true, min, max }
-  }
-  if (num <= max) {
-    return { text: 'Optimal', gradient: 'bg-gradient-to-br from-[#00b200] via-[#008a00] to-[#006400]', shadow: 'shadow-[#00b200]/20', isAlert: false, min, max }
-  }
-  return { text: 'Panas', gradient: 'bg-gradient-to-br from-rose-500 via-red-600 to-rose-700 animate-pulse', shadow: 'shadow-rose-500/30', isAlert: true, min, max }
-})
-const soilTempStatus = computed(() => soilTempCardState.value)
+const GRADIEN_NETRAL = 'bg-gradient-to-br from-slate-400 via-slate-500 to-slate-600'
+const GRADIEN_OPTIMAL = 'bg-gradient-to-br from-[#00b200] via-[#008a00] to-[#006400]'
 
-// Dynamic Soil EC 3-State Card (Rendah: Amber | Optimal: Lime/Emerald | Pekat: Merah Salin)
-const ecCardState = computed(() => {
-  const min = ecMetric.value?.min_threshold ?? 600.0
-  const max = ecMetric.value?.max_threshold ?? 1800.0
-  const v = getLiveVal(ecMetric.value)
-  if (v == null) {
-    return { text: 'Optimal', gradient: 'bg-gradient-to-br from-lime-500 via-emerald-500 to-teal-600', shadow: 'shadow-lime-500/20', isAlert: false, min, max }
-  }
-  const num = Number(v)
-  if (num < min) {
-    return { text: 'Rendah', gradient: 'bg-gradient-to-br from-amber-400 via-amber-500 to-orange-500', shadow: 'shadow-amber-500/25', isAlert: true, min, max }
-  }
-  if (num <= max) {
-    return { text: 'Optimal', gradient: 'bg-gradient-to-br from-lime-500 via-emerald-500 to-teal-600', shadow: 'shadow-lime-500/20', isAlert: false, min, max }
-  }
-  return { text: 'Pekat', gradient: 'bg-gradient-to-br from-rose-500 via-red-600 to-rose-700 animate-pulse', shadow: 'shadow-rose-500/30', isAlert: true, min, max }
-})
-const ecStatus = computed(() => ecCardState.value)
+type WarnaKartu = { gradient: string; shadow: string }
 
-// Dynamic Ambient Temperature 3-State Card (Sejuk: Biru Ice | Optimal: Hijau Emerald | Panas: Merah Rose Alert)
-const airTempCardState = computed(() => {
-  const min = airTempMetric.value?.min_threshold ?? 18.0
-  const max = airTempMetric.value?.max_threshold ?? 34.0
-  const v = getLiveVal(airTempMetric.value)
-  if (v == null) {
-    return { text: 'Optimal', gradient: 'bg-gradient-to-br from-[#00b200] via-[#008a00] to-[#006400]', shadow: 'shadow-[#00b200]/20', isAlert: false, min, max }
-  }
-  const num = Number(v)
-  if (num < min) {
-    return { text: 'Sejuk', gradient: 'bg-gradient-to-br from-cyan-500 via-sky-500 to-blue-600', shadow: 'shadow-sky-500/25', isAlert: true, min, max }
-  }
-  if (num <= max) {
-    return { text: 'Optimal', gradient: 'bg-gradient-to-br from-[#00b200] via-[#008a00] to-[#006400]', shadow: 'shadow-[#00b200]/20', isAlert: false, min, max }
-  }
-  return { text: 'Panas', gradient: 'bg-gradient-to-br from-rose-500 via-red-600 to-rose-700 animate-pulse', shadow: 'shadow-rose-500/30', isAlert: true, min, max }
-})
-const airTempStatus = computed(() => airTempCardState.value)
+const kartuAmbang = (
+  metric: any,
+  label: { rendah: string; optimal: string; tinggi: string },
+  warna: { rendah: WarnaKartu; optimal: WarnaKartu; tinggi: WarnaKartu }
+) => {
+  const min = metric?.min_threshold ?? null
+  const max = metric?.max_threshold ?? null
+  const v = getLiveVal(metric)
+  const netral = { gradient: GRADIEN_NETRAL, shadow: 'shadow-slate-500/20' }
 
-// Dynamic Air Humidity 3-State Card (Kering: Amber | Optimal: Sky Blue | Tinggi: Deep Ocean)
-const humidityCardState = computed(() => {
-  const min = humidityMetric.value?.min_threshold ?? 45.0
-  const max = humidityMetric.value?.max_threshold ?? 88.0
-  const v = getLiveVal(humidityMetric.value)
+  if (min == null && max == null) {
+    return { text: 'Ambang belum diatur', ...netral, isAlert: false, min, max, unset: true }
+  }
   if (v == null) {
-    return { text: 'Optimal', gradient: 'bg-gradient-to-br from-sky-400 via-cyan-500 to-blue-600', shadow: 'shadow-sky-500/20', isAlert: false, min, max }
+    // Dulu kasus ini mengembalikan 'Optimal' berwarna hijau -- tidak ada
+    // pembacaan ditampilkan sebagai kondisi baik.
+    return { text: 'Tidak ada pembacaan', ...netral, isAlert: false, min, max, unset: false }
   }
-  const num = Number(v)
-  if (num < min) {
-    return { text: 'Kering', gradient: 'bg-gradient-to-br from-amber-400 via-orange-500 to-amber-600', shadow: 'shadow-amber-500/25', isAlert: true, min, max }
-  }
-  if (num <= max) {
-    return { text: 'Optimal', gradient: 'bg-gradient-to-br from-sky-400 via-cyan-500 to-blue-600', shadow: 'shadow-sky-500/20', isAlert: false, min, max }
-  }
-  return { text: 'Tinggi', gradient: 'bg-gradient-to-br from-blue-600 via-indigo-600 to-slate-800', shadow: 'shadow-indigo-500/25', isAlert: true, min, max }
-})
-const humidityStatus = computed(() => humidityCardState.value)
 
-// Dynamic Moisture Probe Bar Gradient (Kering: Amber | Optimal: Cyan-Blue | Sangat Basah: Deep Blue)
-const getProbeBarGradient = (probe: any) => {
-  const v = getLiveVal(probe)
-  if (v == null) return 'from-sky-400 via-cyan-400 to-blue-600'
   const num = Number(v)
-  const min = probe?.min_threshold ?? 35.0
-  const max = probe?.max_threshold ?? 75.0
-  if (num < min) return 'from-amber-400 via-orange-400 to-amber-500'
-  if (num <= max) return 'from-sky-400 via-cyan-400 to-blue-600'
-  return 'from-blue-600 via-indigo-500 to-indigo-700'
+  if (min != null && num < min) {
+    return { text: label.rendah, ...warna.rendah, isAlert: true, min, max, unset: false }
+  }
+  if (max != null && num > max) {
+    return { text: label.tinggi, ...warna.tinggi, isAlert: true, min, max, unset: false }
+  }
+  return { text: label.optimal, ...warna.optimal, isAlert: false, min, max, unset: false }
 }
 
-// Dynamic Soil Moisture Status badge
-const soilMoistureStatus = computed(() => {
-  const v = getLiveVal(avgMoistureMetric.value)
-  if (v == null) return { text: 'Optimal', bg: 'bg-emerald-500/15', border: 'border-emerald-500/30', textClass: 'text-emerald-700 dark:text-emerald-400' }
+const W_OPTIMAL: WarnaKartu = { gradient: GRADIEN_OPTIMAL, shadow: 'shadow-[#00b200]/20' }
+const W_DINGIN: WarnaKartu = { gradient: 'bg-gradient-to-br from-cyan-500 via-sky-500 to-blue-600', shadow: 'shadow-sky-500/25' }
+const W_PANAS: WarnaKartu = { gradient: 'bg-gradient-to-br from-rose-500 via-red-600 to-rose-700 animate-pulse', shadow: 'shadow-rose-500/30' }
+const W_KERING: WarnaKartu = { gradient: 'bg-gradient-to-br from-amber-400 via-amber-500 to-orange-500', shadow: 'shadow-amber-500/25' }
+
+const phCardState = computed(() => kartuAmbang(
+  phMetric.value,
+  { rendah: 'Asam', optimal: 'Dalam ambang', tinggi: 'Basa' },
+  {
+    rendah: { gradient: 'bg-gradient-to-br from-orange-500 via-amber-600 to-rose-600', shadow: 'shadow-orange-500/25' },
+    optimal: W_OPTIMAL,
+    tinggi: { gradient: 'bg-gradient-to-br from-indigo-500 via-purple-500 to-violet-600', shadow: 'shadow-purple-500/25' },
+  }
+))
+const phStatus = computed(() => phCardState.value)
+
+const soilTempCardState = computed(() => kartuAmbang(
+  soilTempMetric.value,
+  { rendah: 'Dingin', optimal: 'Dalam ambang', tinggi: 'Panas' },
+  { rendah: W_DINGIN, optimal: W_OPTIMAL, tinggi: W_PANAS }
+))
+const soilTempStatus = computed(() => soilTempCardState.value)
+
+const ecCardState = computed(() => kartuAmbang(
+  ecMetric.value,
+  { rendah: 'Rendah', optimal: 'Dalam ambang', tinggi: 'Pekat' },
+  {
+    rendah: W_KERING,
+    optimal: { gradient: 'bg-gradient-to-br from-lime-500 via-emerald-500 to-teal-600', shadow: 'shadow-lime-500/20' },
+    tinggi: W_PANAS,
+  }
+))
+const ecStatus = computed(() => ecCardState.value)
+
+const airTempCardState = computed(() => kartuAmbang(
+  airTempMetric.value,
+  { rendah: 'Sejuk', optimal: 'Dalam ambang', tinggi: 'Panas' },
+  { rendah: W_DINGIN, optimal: W_OPTIMAL, tinggi: W_PANAS }
+))
+const airTempStatus = computed(() => airTempCardState.value)
+
+const humidityCardState = computed(() => kartuAmbang(
+  humidityMetric.value,
+  { rendah: 'Kering', optimal: 'Dalam ambang', tinggi: 'Tinggi' },
+  {
+    rendah: W_KERING,
+    optimal: { gradient: 'bg-gradient-to-br from-sky-400 via-cyan-500 to-blue-600', shadow: 'shadow-sky-500/20' },
+    tinggi: { gradient: 'bg-gradient-to-br from-blue-600 via-indigo-600 to-slate-800', shadow: 'shadow-indigo-500/25' },
+  }
+))
+const humidityStatus = computed(() => humidityCardState.value)
+
+// Bar probe ikut ambang probe itu sendiri; tanpa ambang, warnanya netral.
+const getProbeBarGradient = (probe: any) => {
+  const min = probe?.min_threshold ?? null
+  const max = probe?.max_threshold ?? null
+  const v = getLiveVal(probe)
+  if (v == null || (min == null && max == null)) return 'from-slate-400 via-slate-500 to-slate-600'
   const num = Number(v)
-  if (num < 40) return { text: 'Kering', bg: 'bg-amber-500/15', border: 'border-amber-500/30', textClass: 'text-amber-700 dark:text-amber-400' }
-  if (num > 70) return { text: 'Sangat Basah', bg: 'bg-blue-500/15', border: 'border-blue-500/30', textClass: 'text-blue-700 dark:text-blue-400' }
-  return { text: 'Lembap Optimal', bg: 'bg-emerald-500/15', border: 'border-emerald-500/30', textClass: 'text-emerald-700 dark:text-emerald-400' }
+  if (min != null && num < min) return 'from-amber-400 via-orange-400 to-amber-500'
+  if (max != null && num > max) return 'from-blue-600 via-indigo-500 to-indigo-700'
+  return 'from-sky-400 via-cyan-400 to-blue-600'
+}
+
+const soilMoistureStatus = computed(() => {
+  const nilai = realTimeAvgMoisture.value
+  if (nilai == null) {
+    return { text: 'Tidak ada pembacaan', bg: 'bg-slate-500/15', border: 'border-slate-500/30', textClass: 'text-slate-700 dark:text-slate-300' }
+  }
+  // Vonis kelembapan yang bersandar pustaka ada di backend (soil_health), dan
+  // butuh kerapatan isi untuk jadi WFPS. Di sini cuma label netral.
+  return { text: nilai + '%', bg: 'bg-emerald-500/15', border: 'border-emerald-500/30', textClass: 'text-emerald-700 dark:text-emerald-400' }
 })
 
-// Dynamic Safe Threshold from database sensor config or default hardware standard (45°C)
-const enclosureSafeThreshold = computed(() => {
-  return enclosureTempMetric.value?.max_threshold ?? 45
+// Batas aman box panel diambil dari konfigurasi sensor. Tidak ada angka
+// cadangan: 45 C yang dulu di sini tidak punya sumber tapi ikut memicu
+// peringatan "kritis" dan masuk laporan PDF.
+const enclosureSafeThreshold = computed<number | null>(() => {
+  return enclosureTempMetric.value?.max_threshold ?? null
 })
 
 // Dynamic IoT Thermal Status & Saturated NPK-style Gradient Styling
@@ -568,9 +620,11 @@ const thermalStatus = computed(() => {
   const num = v != null ? Number(v) : null
   const currentNum = num ?? 0
   const safeLimit = enclosureSafeThreshold.value
-  const percentage = safeLimit > 0 ? Math.min(Math.max((currentNum / safeLimit) * 100, 0), 100) : 0
+  const percentage = (safeLimit != null && safeLimit > 0)
+    ? Math.min(Math.max((currentNum / safeLimit) * 100, 0), 100)
+    : 0
   
-  if (num == null) {
+  if (num == null || safeLimit == null) {
     return {
       gradient: 'linear-gradient(135deg, #94A3B8 0%, #64748B 100%)',
       shadowClass: 'shadow-md shadow-slate-500/20',
@@ -738,7 +792,8 @@ const reportSensorStats = computed(() => {
     }
   })
 })
-// Dynamic Reactive Analytics Data based on selectedCategory & selectedRange
+
+// Dynamic Reactive Analytics Data based on selectedCategory & selectedRange
 const analyticsData = computed(() => {
   // Explicitly reference latestTelemetry and telemetryHistory to guarantee real-time reactivity on WS messages
   const liveFeed = latestTelemetry.value
@@ -961,18 +1016,41 @@ const analyticsData = computed(() => {
 
   // 1. Kategori NPK
   if (selectedCategory.value === 'npk') {
-    const nStat = sensorStats.find((s: any) => s.name.toLowerCase().includes('nitrogen') || s.name.toLowerCase().includes('n'))
-    const pStat = sensorStats.find((s: any) => s.name.toLowerCase().includes('phosphor') || s.name.toLowerCase().includes('p'))
-    const kStat = sensorStats.find((s: any) => s.name.toLowerCase().includes('potassium') || s.name.toLowerCase().includes('kalium') || s.name.toLowerCase() === 'k')
+    // Dicocokkan lewat kata utuh, bukan huruf tunggal.
+    //
+    // Sebelumnya P dicari dengan includes('phosphor') || includes('p'). Sensornya
+    // bernama "Fosfor" -- tidak mengandung 'p' MAUPUN 'phosphor' -- jadi pStat
+    // selalu undefined dan rasio NPK selamanya menampilkan "P: 0%" walau kartu
+    // Fosfor di atasnya menunjukkan angka yang benar. Pencocokan huruf tunggal
+    // ('n', 'p') juga rapuh: ia bisa menyambar sensor lain yang kebetulan
+    // mengandung huruf itu.
+    const cocok = (s: any, kata: string[]) => {
+      const n = (s?.name || '').toLowerCase()
+      return kata.some(k => n.includes(k))
+    }
+    const nStat = sensorStats.find((s: any) => cocok(s, ['nitrogen', 'nitrat']))
+    const pStat = sensorStats.find((s: any) => cocok(s, ['fosfor', 'phosphor', 'fosfat', 'phosphat']))
+    const kStat = sensorStats.find((s: any) => cocok(s, ['kalium', 'potassium']))
     
-    const nVal = Number((nStat?.current ?? nStat?.avg ?? 0).toFixed(1))
-    const pVal = Number((pStat?.current ?? pStat?.avg ?? 0).toFixed(1))
-    const kVal = Number((kStat?.current ?? kStat?.avg ?? 0).toFixed(1))
+    // null berarti sensornya gagal dibaca, bukan kadar hara nol -- tapi rasio
+    // butuh angka, jadi 0 dipakai HANYA sebagai lebar bar, dan teks rasio di
+    // bawah menampilkan '--' supaya bedanya tetap kelihatan.
+    const angka = (st: any) => {
+      const v = st?.current ?? st?.avg
+      return v == null ? null : Number(Number(v).toFixed(1))
+    }
+    const nRaw = angka(nStat)
+    const pRaw = angka(pStat)
+    const kRaw = angka(kStat)
+    const nVal = nRaw ?? 0
+    const pVal = pRaw ?? 0
+    const kVal = kRaw ?? 0
+    const teks = (v: number | null) => (v == null ? '--' : String(v))
     const total = (nVal + pVal + kVal) || 1
 
     const distributionWidget = {
       title: 'Rasio Keseimbangan NPK',
-      subtitle: `${nVal} : ${pVal} : ${kVal}`,
+      subtitle: `${teks(nRaw)} : ${teks(pRaw)} : ${teks(kRaw)}`,
       segments: [
         { label: `N: ${Math.round((nVal / total) * 100)}%`, percent: Math.round((nVal / total) * 100), color: 'bg-emerald-500', textClass: 'text-emerald-600 dark:text-emerald-400' },
         { label: `P: ${Math.round((pVal / total) * 100)}%`, percent: Math.round((pVal / total) * 100), color: 'bg-blue-500', textClass: 'text-blue-600 dark:text-blue-400' },
@@ -981,7 +1059,7 @@ const analyticsData = computed(() => {
     }
 
     defaultBadgeText = recentHistoricalNote ? 'Stabil Normal' : 'Nutrisi Seimbang'
-    defaultInsightText = recentHistoricalNote?.message || `Keseimbangan NPK dalam rentang ${rangeLabel.value} terpantau stabil. Rasio N:P:K (${nVal} : ${pVal} : ${kVal}) mendukung fase vegetatif tanaman.`
+    defaultInsightText = recentHistoricalNote?.message || `Keseimbangan NPK dalam rentang ${rangeLabel.value} terpantau stabil. Rasio N:P:K (${teks(nRaw)} : ${teks(pRaw)} : ${teks(kRaw)}).`
 
     return {
       hasData: true,
@@ -1634,7 +1712,7 @@ onUnmounted(() => {
                       <Droplets class="w-5 h-5 stroke-[2.5]" />
                     </div>
                     <p class="text-sm sm:text-base font-semibold text-slate-800 dark:text-slate-100 tracking-wide leading-tight">
-                      {{ avgMoistureMetric?.name || 'Rata-rata Kelembapan Tanah' }}
+                      Rata-rata Kelembapan Tanah
                     </p>
                   </div>
 
@@ -1642,7 +1720,7 @@ onUnmounted(() => {
                   <div class="flex items-baseline gap-1.5 bg-blue-500/10 dark:bg-blue-950/40 border border-blue-500/25 px-3 py-1.5 rounded-xl shadow-2xs shrink-0">
                     <span class="text-xs font-bold text-blue-600 dark:text-blue-400">Avg:</span>
                     <span class="text-base sm:text-lg font-black text-blue-600 dark:text-blue-400 font-mono">
-                      {{ realTimeAvgMoisture != null ? `${realTimeAvgMoisture}%` : (getLiveVal(avgMoistureMetric) != null ? `${getLiveVal(avgMoistureMetric)}%` : '--') }}
+                      {{ realTimeAvgMoisture != null ? `${realTimeAvgMoisture}%` : '--' }}
                     </span>
                   </div>
                 </div>
@@ -1650,11 +1728,7 @@ onUnmounted(() => {
                 <!-- 3 Baris Probe Horizontal dengan Bar Tebal Bergradien Air (Cyan → Biru) -->
                 <div class="space-y-2.5">
                   <div 
-                    v-for="(probe, idx) in (soilProbes.length ? soilProbes : [
-                      { id: 'p1', name: 'Soil probe 1', unit: '%' },
-                      { id: 'p2', name: 'Soil probe 2', unit: '%' },
-                      { id: 'p3', name: 'Soil probe 3', unit: '%' }
-                    ])" 
+                    v-for="(probe, idx) in soilProbes" 
                     :key="probe.id || idx" 
                     class="space-y-1"
                   >
@@ -1675,6 +1749,11 @@ onUnmounted(() => {
                       />
                     </div>
                   </div>
+                  <!-- Node 2 tidak punya probe analog sama sekali (field6 kanal
+                       utama kosong), jadi daftar ini memang bisa kosong. -->
+                  <p v-if="!soilProbes.length" class="text-xs text-slate-500 dark:text-slate-400 italic">
+                    Node ini tidak punya probe analog — lengas diambil dari probe NPK.
+                  </p>
                 </div>
               </div>
 
@@ -1872,7 +1951,8 @@ onUnmounted(() => {
                 <!-- Bottom: Thermal Safety Threshold Bar (Current / Max Threshold) -->
                 <div class="space-y-1.5 relative z-10 pt-1 mt-auto">
                   <div class="flex items-center justify-between text-xs text-white/90 font-medium">
-                    <span>Batas Aman Panel: <strong class="text-white font-bold">{{ thermalStatus.safeLimit }}°C</strong></span>
+                    <span v-if="thermalStatus.safeLimit != null">Batas Aman Panel: <strong class="text-white font-bold">{{ thermalStatus.safeLimit }}°C</strong></span>
+                    <span v-else>Batas aman panel belum diatur</span>
                     <span class="font-bold text-white">{{ getLiveVal(enclosureTempMetric) ?? '--' }} / {{ thermalStatus.safeLimit }}°C</span>
                   </div>
                   <!-- Progress bar -->
@@ -1963,28 +2043,35 @@ onUnmounted(() => {
                   </div>
                 </div>
 
-                <!-- Modbus Status (Dynamic Diagnostic Emerald/Rose Gradient) -->
-                <div 
-                  :class="[
-                    'relative overflow-hidden p-2.5 sm:p-3 rounded-2xl text-white shadow-xs border border-white/20 flex flex-col justify-between min-h-[92px] sm:min-h-[96px] group hover:scale-[1.01] transition-transform',
-                    (getLiveVal(modbusMetric) == null || getLiveVal(modbusMetric) == 0 || getLiveVal(modbusMetric) === '0')
-                      ? 'bg-gradient-to-br from-[#00b200] via-[#008a00] to-[#006400]'
-                      : 'bg-gradient-to-br from-rose-500 via-red-600 to-rose-700 animate-pulse'
-                  ]"
-                >
-                  <DotPattern :width="12" :height="12" :cx="6" :cy="6" :cr="1" class="text-white/20" />
-                  <div class="flex items-start justify-between gap-1.5 relative z-10">
-                    <span class="text-[11px] sm:text-xs font-semibold text-white/95 line-clamp-2 leading-tight flex-1 drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)]">
-                      {{ modbusMetric?.name || 'Kode Error Modbus' }}
-                    </span>
-                    <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-white/25 backdrop-blur-md text-white border border-white/40 shadow-2xs whitespace-nowrap shrink-0 drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)]">
-                      {{ (getLiveVal(modbusMetric) == null || getLiveVal(modbusMetric) == 0 || getLiveVal(modbusMetric) === '0') ? 'Normal' : 'Error' }}
-                    </span>
+                <!-- Daya & Baterai (INA226 0x40 masuk / 0x41 keluar).
+                     Menggantikan kartu "Kode Error Modbus": npk_error tidak
+                     pernah ada di ThingSpeak (CLAUDE.md, "Read but not stored"),
+                     jadi kartu itu selama ini menampilkan tegangan baterai.
+                     Daya diturunkan backend (V x A) -- tidak ada field untuknya. -->
+                <div class="col-span-2 relative overflow-hidden p-3 rounded-2xl border border-slate-200/70 dark:border-slate-700/60 bg-white/60 dark:bg-slate-900/40 space-y-2">
+                  <div class="flex items-center justify-between">
+                    <p class="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-100">Daya &amp; Baterai</p>
+                    <span class="text-[10px] text-slate-500 dark:text-slate-400 font-semibold">INA226</span>
                   </div>
-                  <div class="flex items-center gap-1.5 mt-1 relative z-10">
-                    <span class="text-xs sm:text-sm font-extrabold font-mono bg-white/30 backdrop-blur-md px-2 py-0.5 rounded-lg border border-white/40 text-white shadow-2xs drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)]">
-                      {{ getLiveVal(modbusMetric) != null ? `Code ${getLiveVal(modbusMetric)}` : 'Code 0' }}
-                    </span>
+                  <div class="grid grid-cols-2 gap-2">
+                    <div class="rounded-xl bg-slate-100/80 dark:bg-slate-800/60 px-2.5 py-2">
+                      <p class="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wide">Masuk</p>
+                      <p class="text-xs font-mono font-extrabold text-slate-800 dark:text-slate-100">
+                        {{ power?.tegangan_in ?? '--' }} V · {{ power?.arus_in ?? '--' }} A
+                      </p>
+                      <p class="text-sm font-mono font-black text-emerald-600 dark:text-emerald-400">
+                        {{ power?.daya_in != null ? `${power.daya_in} W` : '--' }}
+                      </p>
+                    </div>
+                    <div class="rounded-xl bg-slate-100/80 dark:bg-slate-800/60 px-2.5 py-2">
+                      <p class="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wide">Keluar</p>
+                      <p class="text-xs font-mono font-extrabold text-slate-800 dark:text-slate-100">
+                        {{ power?.tegangan_out ?? '--' }} V · {{ power?.arus_out ?? '--' }} A
+                      </p>
+                      <p class="text-sm font-mono font-black text-amber-600 dark:text-amber-400">
+                        {{ power?.daya_out != null ? `${power.daya_out} W` : '--' }}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
