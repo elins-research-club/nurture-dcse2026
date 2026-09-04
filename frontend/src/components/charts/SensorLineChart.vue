@@ -132,7 +132,7 @@ const hexToRgba = (hex: string, alpha: number): string => {
 const getSensorDeterministicColor = (sensorName: string, index: number): string => {
   const name = (sensorName || '').toLowerCase()
   if (name.includes('nitrogen') || name === 'n') return '#10b981' // Green
-  if (name.includes('phosphor') || name.includes('fosfor') || name === 'p') return '#3b82f6' // Blue
+  if (name.includes('phosphor') || name.includes('phospor') || name.includes('fosfor') || name === 'p') return '#3b82f6' // Blue
   if (name.includes('potassium') || name.includes('kalium') || name === 'k') return '#8b5cf6' // Purple
   if (name.includes('ph')) return '#f59e0b' // Amber
   if (name.includes('ec') || name.includes('daya hantar')) return '#84cc16' // Lime

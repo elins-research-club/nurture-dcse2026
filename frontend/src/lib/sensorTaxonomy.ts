@@ -16,7 +16,7 @@ export function getSensorCategory(sensor: any): SensorCategory {
   const name = (sensor?.name || '').toLowerCase()
   const type = (sensor?.type || '').toLowerCase()
 
-  if (name.includes('nitrogen') || name.includes('phosphorus') || name.includes('potassium') ||
+  if (name.includes('nitrogen') || name.includes('phosphorus') || name.includes('phosphor') || name.includes('phospor') || name.includes('potassium') ||
       name.includes('kalium') || name.includes('fosfor') || type.includes('npk')) {
     return 'npk'
   }
@@ -40,7 +40,7 @@ export function getSensorCategory(sensor: any): SensorCategory {
 export function sortSensorsCanonically<T extends { name?: string }>(list: T[]): T[] {
   const npkOrder = (n: string) => {
     if (n.includes('nitrogen') || n === 'n') return 1
-    if (n.includes('phosphor') || n.includes('fosfor') || n === 'p') return 2
+    if (n.includes('phosphor') || n.includes('phospor') || n.includes('fosfor') || n === 'p') return 2
     if (n.includes('potassium') || n.includes('kalium') || n === 'k') return 3
     return 99
   }

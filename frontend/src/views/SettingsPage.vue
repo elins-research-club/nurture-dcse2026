@@ -10,7 +10,8 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
-import { Sun, Moon, CheckCircle, XCircle, Loader2, ChevronDown, ChevronRight, Sprout } from 'lucide-vue-next'
+import { Badge } from '@/components/ui/badge'
+import { Sun, Moon, CheckCircle, XCircle, Loader2, ChevronDown, ChevronRight, Sprout, Bot, ExternalLink, Send, AlertCircle } from 'lucide-vue-next'
 
 const tabList = [
   { value: 'appearance', label: 'Tampilan' },
@@ -147,6 +148,9 @@ const loadSystemConfig = async () => {
         telegram_bot_token: data.telegram_bot_token ?? '',
         telegram_chat_id: data.telegram_chat_id ?? ''
       }
+      if (systemConfig.value.telegram_bot_token) {
+        fetchTelegramBotInfo(systemConfig.value.telegram_bot_token)
+      }
     }
   } catch (error) {
     console.error('Failed to load system config:', error)
@@ -196,6 +200,48 @@ const saveSystemConfig = async () => {
   }
 }
 
+interface TelegramBotInfo {
+  is_valid: boolean
+  id?: number
+  first_name?: string
+  username?: string
+  can_join_groups?: boolean
+  link?: string | null
+  detail?: string
+}
+
+const telegramBotInfo = ref<TelegramBotInfo | null>(null)
+const isCheckingBot = ref(false)
+
+const fetchTelegramBotInfo = async (customToken?: string) => {
+  const tokenToTest = customToken ?? systemConfig.value.telegram_bot_token
+  if (!tokenToTest || !tokenToTest.trim()) {
+    telegramBotInfo.value = null
+    return
+  }
+  
+  isCheckingBot.value = true
+  try {
+    const res = await fetch(`${API_BASE_URL}/system/telegram-bot-info`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authStore.token}`
+      },
+      body: JSON.stringify({ token: tokenToTest.trim() })
+    })
+    if (res.ok) {
+      telegramBotInfo.value = await res.json()
+    } else {
+      telegramBotInfo.value = { is_valid: false, detail: 'Gagal mengambil identitas bot.' }
+    }
+  } catch (e) {
+    telegramBotInfo.value = { is_valid: false, detail: 'Koneksi ke backend gagal.' }
+  } finally {
+    isCheckingBot.value = false
+  }
+}
+
 const testTelegramConnection = async () => {
   try {
     isTestingTelegram.value = true
@@ -208,6 +254,7 @@ const testTelegramConnection = async () => {
       modalType.value = 'success'
       modalMessage.value = 'Pesan uji coba berhasil dikirim ke Telegram!'
       showModal.value = true
+      fetchTelegramBotInfo()
       setTimeout(() => {
         showModal.value = false
       }, 2000)
@@ -216,6 +263,7 @@ const testTelegramConnection = async () => {
       modalType.value = 'error'
       modalMessage.value = `Gagal mengirim ke Telegram:\n${err.detail || res.statusText}`
       showModal.value = true
+      fetchTelegramBotInfo()
     }
   } catch (error) {
     alert('Gagal menguji koneksi. Pastikan pengaturan sudah disimpan terlebih dahulu.')
@@ -611,26 +659,135 @@ const updatePassword = async () => {
                 </div>
 
                 <!-- Telegram Bot Integration -->
-                <div class="p-4">
-                  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
+                <div class="p-4 space-y-4">
+                  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                     <div>
-                      <h4 class="text-base font-medium">Integrasi Bot Telegram</h4>
+                      <h4 class="text-base font-medium flex items-center gap-2">
+                        <svg class="w-5 h-5 text-[#2AABEE]" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.75-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/>
+                        </svg>
+                        Integrasi Bot Telegram
+                      </h4>
+                      <p class="text-xs text-muted-foreground mt-0.5">
+                        Notifikasi anomali lahan akan dikirim otomatis ke grup atau akun Telegram via bot ini.
+                      </p>
+                    </div>
+
+                    <!-- Direct Telegram Link in Header if Bot is Verified -->
+                    <a 
+                      v-if="telegramBotInfo?.is_valid && telegramBotInfo?.link" 
+                      :href="telegramBotInfo.link" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      class="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full bg-[#2AABEE]/10 text-[#2AABEE] hover:bg-[#2AABEE]/20 transition-colors border border-[#2AABEE]/30 shrink-0"
+                    >
+                      <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.75-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/>
+                      </svg>
+                      <span>Buka @{{ telegramBotInfo.username }}</span>
+                      <ExternalLink class="w-3 h-3" />
+                    </a>
+                  </div>
+
+                  <!-- Bot Identity Card (Displayed when verified) -->
+                  <div 
+                    v-if="telegramBotInfo?.is_valid" 
+                    class="p-4 rounded-xl border border-[#2AABEE]/30 bg-gradient-to-r from-[#2AABEE]/5 via-sky-500/5 to-transparent dark:from-[#2AABEE]/15 dark:via-sky-950/20 dark:to-transparent flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm"
+                  >
+                    <div class="flex items-center gap-3">
+                      <div class="w-11 h-11 rounded-full bg-[#2AABEE]/15 flex items-center justify-center text-[#2AABEE] shrink-0 border border-[#2AABEE]/30 shadow-sm">
+                        <Bot class="w-6 h-6" />
+                      </div>
+                      <div>
+                        <div class="flex items-center gap-2 flex-wrap">
+                          <h5 class="text-sm font-bold text-foreground">{{ telegramBotInfo.first_name }}</h5>
+                          <Badge variant="outline" class="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 text-[10px] py-0.5 px-2 font-bold flex items-center gap-1">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                            Terverifikasi Aktif
+                          </Badge>
+                        </div>
+                        <p class="text-xs text-muted-foreground flex items-center gap-2 mt-0.5 flex-wrap">
+                          <span class="font-mono text-[#2AABEE] font-semibold">@{{ telegramBotInfo.username }}</span>
+                          <span class="text-slate-400">&bull;</span>
+                          <span class="text-[11px] font-mono text-muted-foreground">ID Bot: {{ telegramBotInfo.id }}</span>
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div class="flex items-center gap-2 self-end sm:self-center shrink-0">
+                      <a 
+                        v-if="telegramBotInfo.link" 
+                        :href="telegramBotInfo.link" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                      >
+                        <Button size="sm" class="h-8 gap-1.5 bg-[#2AABEE] hover:bg-[#2297d4] text-white font-semibold text-xs shadow-sm transition-all hover:scale-[1.02]">
+                          <span>Buka Bot di Telegram</span>
+                          <ExternalLink class="w-3.5 h-3.5" />
+                        </Button>
+                      </a>
                     </div>
                   </div>
+
+                  <!-- Bot Error / Invalid State -->
+                  <div 
+                    v-else-if="telegramBotInfo && !telegramBotInfo.is_valid && systemConfig.telegram_bot_token" 
+                    class="p-3.5 rounded-lg border border-amber-500/30 bg-amber-500/5 dark:bg-amber-950/20 flex items-start gap-2.5 text-xs text-amber-700 dark:text-amber-400"
+                  >
+                    <AlertCircle class="w-4 h-4 shrink-0 mt-0.5" />
+                    <div class="space-y-0.5">
+                      <span class="font-semibold block">Identitas Bot Belum Terverifikasi:</span>
+                      <span class="text-muted-foreground">{{ telegramBotInfo.detail || 'Token bot tidak valid atau tidak dikenali Telegram.' }}</span>
+                    </div>
+                  </div>
+
                   <div class="grid gap-4 sm:grid-cols-2">
                     <div class="space-y-2">
-                      <Label>Token Bot</Label>
-                      <Input v-model="systemConfig.telegram_bot_token" placeholder="Contoh: 7123456789:AAFlmQ9xW8ZkL0vYq..." />
+                      <div class="flex items-center justify-between">
+                        <Label>Token Bot</Label>
+                        <button 
+                          type="button"
+                          @click="fetchTelegramBotInfo(systemConfig.telegram_bot_token)" 
+                          class="text-[11px] text-[#2AABEE] hover:underline font-medium flex items-center gap-1 transition-opacity"
+                          :class="isCheckingBot ? 'opacity-50' : ''"
+                          :disabled="isCheckingBot || !systemConfig.telegram_bot_token"
+                        >
+                          <Loader2 v-if="isCheckingBot" class="w-3 h-3 animate-spin" />
+                          <span>{{ isCheckingBot ? 'Memeriksa...' : 'Cek Info Bot' }}</span>
+                        </button>
+                      </div>
+                      <Input 
+                        v-model="systemConfig.telegram_bot_token" 
+                        placeholder="Contoh: 7123456789:AAFlmQ9xW8ZkL0vYq..." 
+                        @blur="fetchTelegramBotInfo(systemConfig.telegram_bot_token)"
+                      />
                     </div>
                     <div class="space-y-2">
-                      <Label>ID Obrolan (Chat ID)</Label>
+                      <div class="flex items-center justify-between">
+                        <Label>ID Obrolan (Chat ID)</Label>
+                        <span class="text-[11px] text-muted-foreground">ID Akun atau Grup</span>
+                      </div>
                       <Input v-model="systemConfig.telegram_chat_id" placeholder="Contoh: -1001234567890 atau 1234567890" />
                     </div>
                   </div>
-                  <div class="mt-4 flex justify-end">
-                    <Button variant="outline" size="sm" @click="testTelegramConnection" :disabled="isTestingTelegram || !systemConfig.telegram_bot_token || !systemConfig.telegram_chat_id">
-                      {{ isTestingTelegram ? 'Menguji...' : 'Uji Koneksi' }}
-                    </Button>
+
+                  <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-1 border-t border-border/50">
+                    <p class="text-[11px] text-muted-foreground">
+                      <span class="font-semibold text-foreground">Panduan:</span> Untuk notifikasi ke grup, masukkan bot ke grup tersebut lalu salin Chat ID grup (biasanya berawalan <code class="font-mono bg-muted px-1 rounded">-100</code>).
+                    </p>
+                    <div class="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        @click="testTelegramConnection" 
+                        :disabled="isTestingTelegram || !systemConfig.telegram_bot_token || !systemConfig.telegram_chat_id"
+                        class="gap-1.5 font-semibold text-xs h-8"
+                      >
+                        <Loader2 v-if="isTestingTelegram" class="w-3.5 h-3.5 animate-spin" />
+                        <Send v-else class="w-3.5 h-3.5 text-primary" />
+                        {{ isTestingTelegram ? 'Menguji...' : 'Uji Koneksi' }}
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </div>

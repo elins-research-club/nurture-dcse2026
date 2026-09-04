@@ -110,7 +110,7 @@ const semanticTheme = computed(() => {
   }
 
   // 2. Phosphorus (P) -> Ocean Blue
-  if (t.includes('phosphorus') || t.includes('fosfor') || t === 'p') {
+  if (t.includes('phosphorus') || t.includes('phosphor') || t.includes('phospor') || t.includes('fosfor') || t === 'p') {
     return {
       gradient: 'linear-gradient(135deg, #60A5FA 0%, #3B82F6 45%, #1D4ED8 100%)',
       shadowClass: 'shadow-md shadow-blue-400/20 hover:shadow-lg hover:shadow-blue-400/30'

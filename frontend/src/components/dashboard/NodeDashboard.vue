@@ -313,7 +313,7 @@ const npkSensors = computed(() => {
     const nameB = (b.name || '').toLowerCase()
     const getOrder = (n: string) => {
       if (n.includes('nitrogen') || n === 'n') return 1
-      if (n.includes('phosphor') || n.includes('fosfor') || n === 'p') return 2
+      if (n.includes('phosphor') || n.includes('phospor') || n.includes('fosfor') || n === 'p') return 2
       if (n.includes('potassium') || n.includes('kalium') || n === 'k') return 3
       return 99
     }
@@ -755,11 +755,11 @@ const analyticsData = computed(() => {
 
   // Helper for precise sensor type recognition without false substring matches
   const checkPH = (n: string) => {
-    if (n.includes('phosphor') || n.includes('fosfor') || n.includes('photo')) return false
+    if (n.includes('phosphor') || n.includes('phospor') || n.includes('fosfor') || n.includes('photo')) return false
     return n === 'ph' || n.startsWith('ph ') || n.endsWith(' ph') || n.includes(' ph ') || n.includes('(ph)') || n.includes('keasaman')
   }
   const checkNitrogen = (n: string) => n.includes('nitrogen') || n.includes('nitrat') || n === 'n'
-  const checkPhosphorus = (n: string) => n.includes('phosphor') || n.includes('fosfor') || n.includes('phosphat') || n === 'p'
+  const checkPhosphorus = (n: string) => n.includes('phosphor') || n.includes('phospor') || n.includes('fosfor') || n.includes('phosphat') || n === 'p'
   const checkPotassium = (n: string) => n.includes('potassium') || n.includes('kalium') || n === 'k'
   const checkEnclosureTemp = (n: string) => n.includes('dalam') || n.includes('enclosure') || n.includes('box') || n.includes('casing')
   const checkAirTemp = (n: string) => (n.includes('suhu') || n.includes('temp')) && (n.includes('luar') || n.includes('udara') || n.includes('ambient'))

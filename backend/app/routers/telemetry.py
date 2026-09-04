@@ -407,7 +407,7 @@ async def get_dashboard_summary(
         type_lower = m.type.lower()
         
         # NPK
-        if any(k in name_lower or k in type_lower for k in ("nitrogen", "phosphorus", "fosfor", "potassium", "kalium")):
+        if any(k in name_lower or k in type_lower for k in ("nitrogen", "phosphorus", "phosphor", "phospor", "fosfor", "potassium", "kalium")):
             npk_sensors.append(m)
         # Soil Probes
         elif "probe" in name_lower and ("soil" in name_lower or "titik" in name_lower or "1" in name_lower or "2" in name_lower or "3" in name_lower):
