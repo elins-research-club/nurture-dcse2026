@@ -564,18 +564,21 @@ const exportToPDF = async () => {
           </div>
 
           <!-- ═══════════════ MICRO-ANIMATION 6: SPRING PAGINATION CONTROLS ═══════════════ -->
-          <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-border/60 text-xs sm:text-sm text-muted-foreground font-medium">
+          <div class="flex flex-col lg:flex-row items-center justify-between gap-4 pt-4 border-t border-border/60 text-xs sm:text-sm text-muted-foreground font-medium">
             
             <!-- Left: Items Info & Page Size Options -->
-            <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
-              <span>
+            <div class="flex flex-wrap items-center gap-y-2 gap-x-4 sm:gap-x-6 w-full lg:w-auto justify-between sm:justify-start">
+              <span class="text-muted-foreground whitespace-nowrap">
                 Menampilkan <strong class="text-foreground font-bold">{{ startItem }} - {{ endItem }}</strong> dari <strong class="text-foreground font-bold">{{ totalCount }}</strong> log
               </span>
 
+              <!-- Subtle Divider to prevent cramped layout -->
+              <span class="hidden md:inline-block h-3.5 w-px bg-border/80"></span>
+
               <!-- Page Size Selection (25, 50, 100) -->
-              <div class="flex items-center gap-1.5">
-                <span class="text-muted-foreground">Tampilkan:</span>
-                <div class="flex items-center bg-slate-100 dark:bg-slate-800 rounded-xl p-1 border border-border/80">
+              <div class="flex items-center gap-2">
+                <span class="text-muted-foreground whitespace-nowrap">Tampilkan:</span>
+                <div class="flex items-center bg-slate-100 dark:bg-slate-800 rounded-xl p-1 border border-border/80 gap-1 shadow-2xs">
                   <button
                     v-for="size in pageSizeOptions"
                     :key="size"
@@ -590,7 +593,7 @@ const exportToPDF = async () => {
                     {{ size }}
                   </button>
                 </div>
-                <span>/ hal</span>
+                <span class="text-muted-foreground whitespace-nowrap">/ hal</span>
               </div>
             </div>
 
