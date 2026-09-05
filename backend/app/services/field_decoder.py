@@ -25,8 +25,26 @@ _MAX_OUT_MILLI = 99000
 
 
 def is_support_channel(label: Optional[str]) -> bool:
-    """Kanal pendukung dikenali dari labelnya, sama seperti sebelumnya."""
-    return (label or "").strip().lower() == "pendukung"
+    """Kanal pendukung dikenali dari labelnya ('pendukung', 'support', 'channel 2', 'kanal 2', dsb)."""
+    if not label:
+        return False
+    l = label.strip().lower()
+    return (
+        l in ("pendukung", "support", "2")
+        or "pendukung" in l
+        or "support" in l
+        or "channel 2" in l
+        or "channel2" in l
+        or "channel_2" in l
+        or "kanal 2" in l
+        or "kanal2" in l
+        or "kanal_2" in l
+        or "ch 2" in l
+        or "ch2" in l
+        or l.endswith(" 2")
+        or l.endswith("_2")
+        or l.endswith("-2")
+    )
 
 
 def has_valve(layout: str) -> bool:

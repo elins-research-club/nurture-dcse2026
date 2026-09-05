@@ -70,18 +70,30 @@ async def daftar_langganan(
     return {"status": "terdaftar"}
 
 
-@router.delete("/subscribe", status_code=status.HTTP_204_NO_CONTENT)
+@router.post("/unsubscribe", status_code=status.HTTP_200_OK)
+@router.delete("/subscribe", status_code=status.HTTP_200_OK)
 async def batalkan_langganan(
-    data: LanggananMasuk,
+    request: Request,
+    endpoint: str | None = None,
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    await db.execute(
-        delete(PushSubscription)
-        .where(PushSubscription.endpoint == data.endpoint)
-        .execution_options(synchronize_session=False)
-    )
-    await db.commit()
+    target_endpoint = endpoint
+    if not target_endpoint:
+        try:
+            body = await request.json()
+            target_endpoint = body.get("endpoint") if isinstance(body, dict) else None
+        except Exception:
+            pass
+
+    if target_endpoint:
+        await db.execute(
+            delete(PushSubscription)
+            .where(PushSubscription.endpoint == target_endpoint)
+            .execution_options(synchronize_session=False)
+        )
+        await db.commit()
+    return {"status": "dibatalkan"}
 
 
 @router.post("/test")
