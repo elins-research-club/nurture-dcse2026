@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
-import { Sun, Moon, CheckCircle, XCircle, Loader2, ChevronDown, ChevronRight, Sprout, Bot, ExternalLink, Send, AlertCircle, HelpCircle, User, Users } from 'lucide-vue-next'
+import { Sun, Moon, CheckCircle, XCircle, Loader2, ChevronDown, ChevronRight, Sprout, Bot, ExternalLink, Send, AlertCircle, HelpCircle, User, Users, Bell, BellOff, Check, RotateCcw, Save } from 'lucide-vue-next'
 
 const tabList = [
   { value: 'appearance', label: 'Tampilan' },
@@ -80,8 +80,11 @@ const updateSlider = () => {
   })
 }
 
-watch(activeTab, () => {
+watch(activeTab, (val) => {
   updateSlider()
+  if (val === 'appearance') {
+    updateThemeSlider(false)
+  }
 })
 
 const isDarkMode = useDark({
@@ -94,8 +97,65 @@ const showModal = ref(false)
 const modalType = ref<'success' | 'error'>('success')
 const modalMessage = ref('')
 
+const themeOptionRefs = ref<Record<string, HTMLElement>>({})
+const setThemeOptionRef = (key: string, el: any) => {
+  if (el) {
+    themeOptionRefs.value[key] = el.$el || el
+  }
+}
+
+const themeSliderStyle = ref({
+  left: isDarkMode.value ? '104px' : '4px',
+  top: '4px',
+  width: '96px',
+  height: '32px'
+})
+
+const themeBounceClass = ref('')
+const isThemeAnimating = ref(false)
+
+const updateThemeSlider = (animateSquish = true) => {
+  nextTick(() => {
+    const key = isDarkMode.value ? 'dark' : 'light'
+    const el = themeOptionRefs.value[key]
+    if (el && el.offsetWidth > 0) {
+      themeSliderStyle.value = {
+        left: `${el.offsetLeft}px`,
+        top: `${el.offsetTop}px`,
+        width: `${el.offsetWidth}px`,
+        height: `${el.offsetHeight}px`
+      }
+    } else {
+      themeSliderStyle.value = {
+        left: isDarkMode.value ? '104px' : '4px',
+        top: '4px',
+        width: '96px',
+        height: '32px'
+      }
+    }
+    
+    if (animateSquish) {
+      themeBounceClass.value = isDarkMode.value ? 'tab-squish-right' : 'tab-squish-left'
+      setTimeout(() => {
+        themeBounceClass.value = ''
+      }, 400)
+    }
+  })
+}
+
+watch(isDarkMode, (newVal) => {
+  themeSliderStyle.value.left = newVal ? '104px' : '4px'
+  updateThemeSlider(true)
+})
+
 const toggleTheme = (dark: boolean) => {
+  if (isDarkMode.value === dark) return
   isDarkMode.value = dark
+  isThemeAnimating.value = true
+  updateThemeSlider(true)
+  setTimeout(() => {
+    isThemeAnimating.value = false
+  }, 420)
 }
 
 const API_BASE_URL = '/api/v1'
@@ -115,8 +175,56 @@ const isTestingTelegram = ref(false)
 const authStore = useAuthStore()
 const telemetryStore = useTelemetryStore()
 
-const ujiWebpush = async () => {
+const isTestingWebpush = ref(false)
+const isRegisteringWebpush = ref(false)
+const isUnregisteringWebpush = ref(false)
+
+const handleDaftarWebpush = async () => {
+  isRegisteringWebpush.value = true
   try {
+    const ok = await telemetryStore.daftarWebpush()
+    if (!ok) {
+      modalType.value = 'error'
+      modalMessage.value = 'Gagal mengaktifkan notifikasi web. Pastikan izin notifikasi diizinkan di browser Anda.'
+      showModal.value = true
+    } else {
+      modalType.value = 'success'
+      modalMessage.value = 'Notifikasi web berhasil diaktifkan untuk perangkat ini.'
+      showModal.value = true
+    }
+  } catch {
+    modalType.value = 'error'
+    modalMessage.value = 'Terjadi kesalahan saat mengaktifkan notifikasi.'
+    showModal.value = true
+  } finally {
+    isRegisteringWebpush.value = false
+  }
+}
+
+const handleBatalWebpush = async () => {
+  isUnregisteringWebpush.value = true
+  try {
+    const ok = await telemetryStore.batalWebpush()
+    if (ok) {
+      modalType.value = 'success'
+      modalMessage.value = 'Notifikasi web berhasil dinonaktifkan pada perangkat ini.'
+      showModal.value = true
+    }
+  } catch {
+    modalType.value = 'error'
+    modalMessage.value = 'Gagal mematikan notifikasi web.'
+    showModal.value = true
+  } finally {
+    isUnregisteringWebpush.value = false
+  }
+}
+
+const ujiWebpush = async () => {
+  isTestingWebpush.value = true
+  try {
+    // Pastikan pendaftaran browser tersinkronisasi ke server sebelum uji kirim
+    await telemetryStore.daftarWebpush()
+
     const res = await fetch(`${API_BASE_URL}/push/test`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${authStore.token}` }
@@ -129,6 +237,8 @@ const ujiWebpush = async () => {
   } catch (e) {
     modalType.value = 'error'
     modalMessage.value = 'Gagal menghubungi server.'
+  } finally {
+    isTestingWebpush.value = false
   }
   showModal.value = true
 }
@@ -187,7 +297,14 @@ const saveSystemConfig = async () => {
         showModal.value = false
       }, 2000)
     } else {
-      const err = await res.json()
+      if (res.status === 401) {
+        modalType.value = 'error'
+        modalMessage.value = 'Sesi login Anda telah berakhir. Silakan login kembali.'
+        showModal.value = true
+        authStore.logout()
+        return
+      }
+      const err = await res.json().catch(() => ({}))
       modalType.value = 'error'
       modalMessage.value = `Gagal menyimpan pengaturan:\n${err.detail || res.statusText}`
       showModal.value = true
@@ -306,6 +423,49 @@ const isSavingThresholds = ref(false)
 const isLoadingSensors = ref(true)
 const selectedNodeId = ref('')
 
+const recordSensorSnapshot = (sensor: any) => {
+  if (!sensor) return
+  sensor._orig = {
+    name: sensor.name ?? '',
+    unit: sensor.unit ?? '',
+    min_threshold: sensor.min_threshold === null || sensor.min_threshold === undefined ? '' : sensor.min_threshold,
+    max_threshold: sensor.max_threshold === null || sensor.max_threshold === undefined ? '' : sensor.max_threshold
+  }
+}
+
+const normalizeVal = (val: any) => {
+  if (val === null || val === undefined || val === '') return ''
+  const str = String(val).trim()
+  const num = Number(str)
+  if (!isNaN(num) && str !== '') {
+    return num
+  }
+  return str
+}
+
+const isFieldDirty = (sensor: any, field: string) => {
+  if (!sensor || !sensor._orig) return false
+  const current = normalizeVal(sensor[field])
+  const orig = normalizeVal(sensor._orig[field])
+  return current !== orig
+}
+
+const isSensorDirty = (sensor: any) => {
+  if (!sensor || !sensor._orig) return false
+  return isFieldDirty(sensor, 'name') ||
+         isFieldDirty(sensor, 'unit') ||
+         isFieldDirty(sensor, 'min_threshold') ||
+         isFieldDirty(sensor, 'max_threshold')
+}
+
+const revertSensor = (sensor: any) => {
+  if (!sensor || !sensor._orig) return
+  sensor.name = sensor._orig.name
+  sensor.unit = sensor._orig.unit
+  sensor.min_threshold = sensor._orig.min_threshold
+  sensor.max_threshold = sensor._orig.max_threshold
+}
+
 const fetchSensors = async () => {
   isLoadingSensors.value = true
   try {
@@ -358,6 +518,7 @@ const fetchSensors = async () => {
         // Put sensors into corresponding channel groups
         const unassignedSensors: any[] = []
         sensors.forEach((s: any) => {
+          recordSensorSnapshot(s)
           const sChanKey = s.channel_id ? String(s.channel_id).toLowerCase() : ''
           if (sChanKey && channelMap.has(sChanKey)) {
             channelMap.get(sChanKey).sensors.push(s)
@@ -438,10 +599,25 @@ const saveThresholds = async (node: any, sensor: any) => {
       body: JSON.stringify(payload)
     })
     if (res.ok) {
+      const updated = await res.json().catch(() => null)
+      if (updated) {
+        sensor.name = updated.name
+        sensor.unit = updated.unit
+        sensor.min_threshold = updated.min_threshold
+        sensor.max_threshold = updated.max_threshold
+      }
+      recordSensorSnapshot(sensor)
       sensor.saved = true
       telemetryStore.fetchSensors(node.node_id)
       setTimeout(() => { sensor.saved = false }, 2000)
     } else {
+      if (res.status === 401) {
+        modalType.value = 'error'
+        modalMessage.value = 'Sesi login Anda telah berakhir. Silakan login kembali.'
+        showModal.value = true
+        authStore.logout()
+        return
+      }
       const err = await res.json().catch(() => ({}))
       modalType.value = 'error'
       modalMessage.value = `Gagal menyimpan: ${err.detail || 'Terjadi kesalahan'}`
@@ -457,16 +633,22 @@ const saveThresholds = async (node: any, sensor: any) => {
   }
 }
 
+const handleWindowResize = () => {
+  updateSlider()
+  updateThemeSlider(false)
+}
+
 onMounted(() => {
   fetchSensors()
   loadSystemConfig()
   telemetryStore.cekWebpush()
   updateSlider()
-  window.addEventListener('resize', updateSlider)
+  updateThemeSlider(false)
+  window.addEventListener('resize', handleWindowResize)
 })
 
 onUnmounted(() => {
-  window.removeEventListener('resize', updateSlider)
+  window.removeEventListener('resize', handleWindowResize)
 })
 
 const currentPassword = ref('')
@@ -804,30 +986,69 @@ const updatePassword = async () => {
                   <div class="space-y-0.5">
                     <Label class="text-base font-medium">Preferensi Tema</Label>
                   </div>
-                    <div class="relative flex items-center gap-1 p-1 bg-muted/50 rounded-lg border w-fit">
+                    <div class="relative flex items-center gap-1 p-1 bg-muted/60 dark:bg-muted/40 rounded-xl border border-border/80 w-fit select-none shadow-sm overflow-hidden">
+                      <!-- Animated Sliding Background Pill Indicator with Wall Collision Physics (exact same as menu tab) -->
                       <div 
-                        class="absolute top-1 bottom-1 w-24 rounded-md bg-primary transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] shadow-sm"
-                        :class="isDarkMode ? 'translate-x-[calc(100%+0.25rem)]' : 'translate-x-0'"
-                      ></div>
+                        class="absolute bg-primary rounded-lg shadow-md pointer-events-none z-0"
+                        :class="themeBounceClass"
+                        :style="{
+                          left: themeSliderStyle.left,
+                          top: themeSliderStyle.top,
+                          width: themeSliderStyle.width,
+                          height: themeSliderStyle.height,
+                          transition: 'left 0.28s cubic-bezier(0.22, 1, 0.36, 1), top 0.28s ease, width 0.28s ease, height 0.28s ease'
+                        }"
+                      />
                       
-                      <Button 
+                      <!-- Terang Button -->
+                      <button 
+                        type="button"
+                        :ref="(el) => setThemeOptionRef('light', el)"
                         @click="toggleTheme(false)" 
-                        variant="ghost" 
-                        size="sm" 
-                        class="relative z-10 w-24 shadow-none transition-colors duration-300 hover:bg-transparent"
-                        :class="!isDarkMode ? 'text-primary-foreground hover:text-primary-foreground' : 'text-muted-foreground hover:text-foreground'"
+                        class="relative z-10 w-24 h-8 rounded-lg flex items-center justify-center text-xs sm:text-sm transition-colors duration-200 cursor-pointer active:scale-95 group focus-visible:outline-none"
+                        :class="!isDarkMode ? 'text-primary-foreground font-semibold' : 'text-muted-foreground hover:text-foreground font-medium'"
+                        aria-label="Tema Terang"
                       >
-                        <Sun class="w-4 h-4 mr-2" /> Terang
-                      </Button>
-                      <Button 
+                        <Sun 
+                          class="w-4 h-4 mr-1.5 transition-all duration-350 ease-out" 
+                          :class="[
+                            !isDarkMode 
+                              ? (isThemeAnimating ? 'animate-sun-pop' : 'rotate-0 scale-100 opacity-100') 
+                              : '-rotate-90 scale-75 opacity-60 group-hover:scale-90 group-hover:opacity-80 group-hover:-rotate-45'
+                          ]" 
+                        />
+                        <span 
+                          class="transition-all duration-200 inline-block"
+                          :class="!isDarkMode && isThemeAnimating ? 'animate-text-pop' : ''"
+                        >
+                          Terang
+                        </span>
+                      </button>
+
+                      <!-- Gelap Button -->
+                      <button 
+                        type="button"
+                        :ref="(el) => setThemeOptionRef('dark', el)"
                         @click="toggleTheme(true)" 
-                        variant="ghost" 
-                        size="sm" 
-                        class="relative z-10 w-24 shadow-none transition-colors duration-300 hover:bg-transparent"
-                        :class="isDarkMode ? 'text-primary-foreground hover:text-primary-foreground' : 'text-muted-foreground hover:text-foreground'"
+                        class="relative z-10 w-24 h-8 rounded-lg flex items-center justify-center text-xs sm:text-sm transition-colors duration-200 cursor-pointer active:scale-95 group focus-visible:outline-none"
+                        :class="isDarkMode ? 'text-primary-foreground font-semibold' : 'text-muted-foreground hover:text-foreground font-medium'"
+                        aria-label="Tema Gelap"
                       >
-                        <Moon class="w-4 h-4 mr-2" /> Gelap
-                      </Button>
+                        <Moon 
+                          class="w-4 h-4 mr-1.5 transition-all duration-350 ease-out" 
+                          :class="[
+                            isDarkMode 
+                              ? (isThemeAnimating ? 'animate-moon-rock' : 'rotate-0 scale-100 opacity-100') 
+                              : 'rotate-45 scale-75 opacity-60 group-hover:scale-90 group-hover:opacity-80 group-hover:rotate-12'
+                          ]" 
+                        />
+                        <span 
+                          class="transition-all duration-200 inline-block"
+                          :class="isDarkMode && isThemeAnimating ? 'animate-text-pop' : ''"
+                        >
+                          Gelap
+                        </span>
+                      </button>
                     </div>
                 </div>
               </div>
@@ -1003,28 +1224,62 @@ const updatePassword = async () => {
             <CardContent>
               <div class="border border-muted-foreground/30 rounded-lg bg-card">
                 <div class="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div class="space-y-0.5">
-                    <h4 class="text-base font-medium">Notifikasi HP & PC</h4>
+                  <div class="space-y-1">
+                    <div class="flex items-center gap-2.5">
+                      <h4 class="text-base font-medium">Notifikasi Web</h4>
+                      <Badge 
+                        v-if="telemetryStore.webpushAktif"
+                        variant="outline"
+                        class="gap-1.5 px-2.5 py-0.5 text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 shadow-none"
+                      >
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                        Aktif
+                      </Badge>
+                      <Badge 
+                        v-else
+                        variant="outline"
+                        class="gap-1.5 px-2.5 py-0.5 text-xs font-medium text-muted-foreground border-border shadow-none"
+                      >
+                        <span class="w-1.5 h-1.5 rounded-full bg-muted-foreground/40"></span>
+                        Tidak Aktif
+                      </Badge>
+                    </div>
                     <p class="text-sm text-muted-foreground">
-                      Peringatan langsung saat terdeteksi anomali sensor pada lahan.
+                      Notifikasi melalui browser saat terdeteksi anomali sensor pada lahan.
                     </p>
                   </div>
                   <div class="flex items-center gap-2 shrink-0">
                     <Button
-                      variant="outline"
+                      v-if="!telemetryStore.webpushAktif"
+                      variant="default"
                       size="sm"
-                      :disabled="telemetryStore.webpushAktif"
-                      @click="telemetryStore.daftarWebpush"
+                      :disabled="isRegisteringWebpush"
+                      @click="handleDaftarWebpush"
+                      class="cursor-pointer font-medium"
                     >
-                      {{ telemetryStore.webpushAktif ? 'Perangkat Terdaftar' : 'Daftarkan Perangkat' }}
+                      <Bell class="w-3.5 h-3.5 mr-1.5" />
+                      {{ isRegisteringWebpush ? 'Mengaktifkan...' : 'Aktifkan' }}
+                    </Button>
+                    <Button
+                      v-else
+                      variant="destructive"
+                      size="sm"
+                      :disabled="isUnregisteringWebpush"
+                      @click="handleBatalWebpush"
+                      class="cursor-pointer font-medium bg-rose-600 hover:bg-rose-700 text-white shadow-sm"
+                    >
+                      <BellOff class="w-3.5 h-3.5 mr-1.5" />
+                      {{ isUnregisteringWebpush ? 'Mematikan...' : 'Nonaktifkan' }}
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
-                      :disabled="!telemetryStore.webpushAktif"
+                      :disabled="!telemetryStore.webpushAktif || isTestingWebpush"
                       @click="ujiWebpush"
+                      class="cursor-pointer font-medium"
                     >
-                      Uji Kirim
+                      <Send class="w-3.5 h-3.5 mr-1.5" />
+                      {{ isTestingWebpush ? 'Mengirim...' : 'Uji Kirim' }}
                     </Button>
                   </div>
                 </div>
@@ -1054,7 +1309,13 @@ const updatePassword = async () => {
                       <ChevronRight class="w-4 h-4 text-muted-foreground transition-transform duration-200" :class="{'rotate-90': expandedNodes[node.id]}" />
                       <h5 class="font-bold flex items-center gap-2 text-sm text-foreground">
                         <div class="w-2.5 h-2.5 rounded-full bg-primary"></div>
-                        {{ node.name }}
+                        <span>{{ node.name }}</span>
+                        <span 
+                          v-if="node.node_id" 
+                          class="text-[11px] font-mono font-semibold text-muted-foreground bg-white dark:bg-slate-800 px-2 py-0.5 rounded border border-border/70 shadow-2xs"
+                        >
+                          {{ node.node_id }}
+                        </span>
                       </h5>
                       <span class="ml-auto text-xs font-semibold text-muted-foreground">{{ node.sensors?.length || 0 }} total sensor</span>
                     </div>
@@ -1094,6 +1355,12 @@ const updatePassword = async () => {
                                 <span class="text-[11px] font-mono text-muted-foreground bg-white dark:bg-slate-800 px-2 py-0.5 rounded border border-border/70">
                                   ID Kanal: {{ channelGroup.channel_id }}
                                 </span>
+                                <span 
+                                  v-if="channelGroup.sensors.some(s => isSensorDirty(s))" 
+                                  class="text-[10px] font-semibold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/40 px-2 py-0.5 rounded-full border border-amber-300 dark:border-amber-700 animate-pulse"
+                                >
+                                  Ada Perubahan
+                                </span>
                               </div>
                             </div>
                             <span class="text-xs font-semibold text-muted-foreground bg-white dark:bg-slate-800 px-2.5 py-0.5 rounded-full border border-border/70">
@@ -1112,76 +1379,158 @@ const updatePassword = async () => {
                           >
                             <div 
                               v-show="expandedChannels[`${node.id}_${channelGroup.id || idx}`]" 
-                              class="p-3.5 divide-y divide-border/40 space-y-3 bg-white dark:bg-card"
+                              class="p-4 space-y-3 bg-white dark:bg-card"
                             >
                               <div 
                                 v-for="sensor in channelGroup.sensors" 
                                 :key="sensor.id" 
-                                class="pt-3 first:pt-0 grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-end"
+                                class="p-3 rounded-xl transition-all duration-200 grid grid-cols-1 sm:grid-cols-12 gap-3 sm:gap-3.5 items-end"
+                                :class="isSensorDirty(sensor) 
+                                  ? 'bg-amber-500/[0.07] dark:bg-amber-400/[0.06] ring-1 ring-amber-500/35 dark:ring-amber-400/30 shadow-xs' 
+                                  : 'border border-border/30 hover:border-border/70 hover:bg-slate-50/40 dark:hover:bg-slate-900/20'"
                               >
-                                <!-- Field Badge & Sensor Name (col-span-4) -->
-                                <div class="sm:col-span-4 space-y-1">
-                                  <div class="flex items-center gap-1.5">
-                                    <span class="text-[10px] font-mono font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700 shrink-0">
+                                <!-- Field Badge & Sensor Name (col-span-3) -->
+                                <div class="sm:col-span-3 space-y-1.5">
+                                  <div class="flex items-center gap-1.5 min-w-0">
+                                    <span class="text-[10px] font-mono font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700 shrink-0">
                                       {{ sensor.thingspeak_field }}
                                     </span>
-                                    <Label class="text-[10px] text-muted-foreground uppercase font-bold tracking-wider truncate">Nama Sensor / Parameter</Label>
+                                    <Label class="text-[10px] text-muted-foreground uppercase font-bold tracking-wider truncate">Nama Parameter</Label>
+                                    <span v-if="isFieldDirty(sensor, 'name')" class="text-[9px] font-semibold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/50 px-1.5 py-0.2 rounded border border-amber-300/80 dark:border-amber-700/60 shrink-0">Diedit</span>
                                   </div>
                                   <Input 
                                     type="text" 
                                     v-model="sensor.name" 
                                     placeholder="Nama Sensor" 
-                                    class="h-8 text-xs font-semibold bg-slate-50/50 dark:bg-slate-900/50" 
+                                    class="h-8.5 text-xs font-semibold transition-colors duration-150" 
+                                    :class="isFieldDirty(sensor, 'name') 
+                                      ? 'border-amber-500 bg-amber-50/60 dark:bg-amber-950/30 text-amber-950 dark:text-amber-100 ring-1 ring-amber-500/30' 
+                                      : 'bg-slate-50/50 dark:bg-slate-900/50'"
                                   />
                                 </div>
 
                                 <!-- Satuan (col-span-2) -->
-                                <div class="sm:col-span-2 space-y-1">
-                                  <Label class="text-[10px] text-muted-foreground uppercase font-bold tracking-wider block">Satuan</Label>
+                                <div class="sm:col-span-2 space-y-1.5">
+                                  <div class="flex items-center gap-1.5">
+                                    <Label class="text-[10px] text-muted-foreground uppercase font-bold tracking-wider block">Satuan</Label>
+                                    <span v-if="isFieldDirty(sensor, 'unit')" class="text-[9px] font-semibold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/50 px-1 py-0.2 rounded border border-amber-300/80 dark:border-amber-700/60">Diedit</span>
+                                  </div>
                                   <Input 
                                     type="text" 
                                     v-model="sensor.unit" 
                                     placeholder="cth: mg/kg, %" 
-                                    class="h-8 text-xs font-mono bg-slate-50/50 dark:bg-slate-900/50" 
+                                    class="h-8.5 text-xs font-mono transition-colors duration-150" 
+                                    :class="isFieldDirty(sensor, 'unit') 
+                                      ? 'border-amber-500 bg-amber-50/60 dark:bg-amber-950/30 text-amber-950 dark:text-amber-100 ring-1 ring-amber-500/30' 
+                                      : 'bg-slate-50/50 dark:bg-slate-900/50'"
                                   />
                                 </div>
 
                                 <!-- Min Threshold (col-span-2) -->
-                                <div class="sm:col-span-2 space-y-1">
-                                  <Label class="text-[10px] text-muted-foreground uppercase font-bold tracking-wider block">Batas Min</Label>
+                                <div class="sm:col-span-2 space-y-1.5">
+                                  <div class="flex items-center gap-1.5">
+                                    <Label class="text-[10px] text-muted-foreground uppercase font-bold tracking-wider block">Batas Min</Label>
+                                    <span v-if="isFieldDirty(sensor, 'min_threshold')" class="text-[9px] font-semibold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/50 px-1 py-0.2 rounded border border-amber-300/80 dark:border-amber-700/60">Diedit</span>
+                                  </div>
                                   <Input 
                                     type="number" 
                                     step="any" 
                                     v-model="sensor.min_threshold" 
                                     placeholder="Tanpa Batas" 
-                                    class="h-8 text-xs bg-slate-50/50 dark:bg-slate-900/50" 
+                                    class="h-8.5 text-xs transition-colors duration-150" 
+                                    :class="isFieldDirty(sensor, 'min_threshold') 
+                                      ? 'border-amber-500 bg-amber-50/60 dark:bg-amber-950/30 text-amber-950 dark:text-amber-100 ring-1 ring-amber-500/30' 
+                                      : 'bg-slate-50/50 dark:bg-slate-900/50'"
                                   />
                                 </div>
 
                                 <!-- Max Threshold (col-span-2) -->
-                                <div class="sm:col-span-2 space-y-1">
-                                  <Label class="text-[10px] text-muted-foreground uppercase font-bold tracking-wider block">Batas Max</Label>
+                                <div class="sm:col-span-2 space-y-1.5">
+                                  <div class="flex items-center gap-1.5">
+                                    <Label class="text-[10px] text-muted-foreground uppercase font-bold tracking-wider block">Batas Max</Label>
+                                    <span v-if="isFieldDirty(sensor, 'max_threshold')" class="text-[9px] font-semibold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/50 px-1 py-0.2 rounded border border-amber-300/80 dark:border-amber-700/60">Diedit</span>
+                                  </div>
                                   <Input 
                                     type="number" 
                                     step="any" 
                                     v-model="sensor.max_threshold" 
                                     placeholder="Tanpa Batas" 
-                                    class="h-8 text-xs bg-slate-50/50 dark:bg-slate-900/50" 
+                                    class="h-8.5 text-xs transition-colors duration-150" 
+                                    :class="isFieldDirty(sensor, 'max_threshold') 
+                                      ? 'border-amber-500 bg-amber-50/60 dark:bg-amber-950/30 text-amber-950 dark:text-amber-100 ring-1 ring-amber-500/30' 
+                                      : 'bg-slate-50/50 dark:bg-slate-900/50'"
                                   />
                                 </div>
 
-                                <!-- Save Button (col-span-2) -->
-                                <div class="sm:col-span-2 flex justify-end">
-                                  <Button 
-                                    variant="outline" 
-                                    size="sm" 
-                                    class="h-8 w-full font-semibold transition-all" 
-                                    :class="sensor.saved ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 font-bold' : ''"
-                                    :disabled="sensor.isSaving" 
-                                    @click="saveThresholds(node, sensor)"
-                                  >
-                                    {{ sensor.saved ? 'Tersimpan!' : (sensor.isSaving ? '...' : 'Simpan') }}
-                                  </Button>
+                                <!-- Action Buttons (col-span-3) -->
+                                <div class="sm:col-span-3 space-y-1.5">
+                                  <div class="flex items-center justify-between">
+                                    <Label class="text-[10px] text-muted-foreground uppercase font-bold tracking-wider block">Status / Aksi</Label>
+                                    <span v-if="isSensorDirty(sensor)" class="text-[9px] font-semibold text-amber-600 dark:text-amber-400">Belum Disimpan</span>
+                                  </div>
+                                  <div class="flex items-center gap-2">
+                                    <!-- Undo / Revert button -->
+                                    <Button 
+                                      v-if="isSensorDirty(sensor) && !sensor.isSaving && !sensor.saved"
+                                      variant="outline" 
+                                      size="sm" 
+                                      class="h-8.5 px-2.5 text-muted-foreground hover:text-amber-700 dark:hover:text-amber-300 border-amber-300/80 dark:border-amber-700/60 hover:bg-amber-100/70 dark:hover:bg-amber-950/40 shrink-0 transition-colors shadow-xs" 
+                                      title="Batalkan perubahan pada baris ini"
+                                      @click="revertSensor(sensor)"
+                                    >
+                                      <RotateCcw class="w-3.5 h-3.5 mr-1 text-amber-600 dark:text-amber-400" />
+                                      <span class="text-xs font-medium">Batal</span>
+                                    </Button>
+
+                                    <!-- Saved state -->
+                                    <Button 
+                                      v-if="sensor.saved"
+                                      variant="outline" 
+                                      size="sm" 
+                                      disabled
+                                      class="h-8.5 w-full font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 flex items-center justify-center gap-1.5 transition-all" 
+                                    >
+                                      <Check class="w-3.5 h-3.5" />
+                                      Tersimpan!
+                                    </Button>
+
+                                    <!-- Saving state -->
+                                    <Button 
+                                      v-else-if="sensor.isSaving"
+                                      variant="outline" 
+                                      size="sm" 
+                                      disabled
+                                      class="h-8.5 w-full font-semibold opacity-70 flex items-center justify-center gap-1.5" 
+                                    >
+                                      <Loader2 class="w-3.5 h-3.5 animate-spin" />
+                                      Menyimpan...
+                                    </Button>
+
+                                    <!-- Dirty state: Simpan button -->
+                                    <Button 
+                                      v-else-if="isSensorDirty(sensor)"
+                                      variant="default" 
+                                      size="sm" 
+                                      class="h-8.5 flex-1 font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs flex items-center justify-center gap-1.5 transition-all" 
+                                      @click="saveThresholds(node, sensor)"
+                                    >
+                                      <Save class="w-3.5 h-3.5" />
+                                      Simpan
+                                    </Button>
+
+                                    <!-- Synced with DB state: Tersinkron placeholder -->
+                                    <Button 
+                                      v-else
+                                      variant="outline" 
+                                      size="sm" 
+                                      disabled
+                                      class="h-8.5 w-full font-medium text-xs text-muted-foreground/80 bg-slate-100/70 dark:bg-slate-800/50 border-slate-200/80 dark:border-slate-800/80 cursor-default opacity-85 select-none flex items-center justify-center gap-1.5 transition-all shadow-none" 
+                                      title="Data sinkron dengan database"
+                                    >
+                                      <Check class="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                                      Tersinkron
+                                    </Button>
+                                  </div>
                                 </div>
                               </div>
                             </div>
@@ -1468,5 +1817,64 @@ const updatePassword = async () => {
   100% {
     transform: scaleX(1) scaleY(1);
   }
+}
+
+/* Theme Toggle Micro-Animations */
+.theme-squish-right {
+  animation: themeSquishRightAnim 0.38s cubic-bezier(0.2, 0.9, 0.3, 1) forwards;
+  transform-origin: right center;
+}
+
+.theme-squish-left {
+  animation: themeSquishLeftAnim 0.38s cubic-bezier(0.2, 0.9, 0.3, 1) forwards;
+  transform-origin: left center;
+}
+
+@keyframes themeSquishRightAnim {
+  0% { transform: scaleX(1) scaleY(1); }
+  35% { transform: scaleX(1.18) scaleY(0.88); }
+  65% { transform: scaleX(0.94) scaleY(1.05); }
+  85% { transform: scaleX(1.02) scaleY(0.99); }
+  100% { transform: scaleX(1) scaleY(1); }
+}
+
+@keyframes themeSquishLeftAnim {
+  0% { transform: scaleX(1) scaleY(1); }
+  35% { transform: scaleX(1.18) scaleY(0.88); }
+  65% { transform: scaleX(0.94) scaleY(1.05); }
+  85% { transform: scaleX(1.02) scaleY(0.99); }
+  100% { transform: scaleX(1) scaleY(1); }
+}
+
+.animate-sun-pop {
+  animation: sunPopAnim 0.42s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes sunPopAnim {
+  0% { transform: rotate(-90deg) scale(0.6); opacity: 0.5; }
+  50% { transform: rotate(25deg) scale(1.25); opacity: 1; }
+  75% { transform: rotate(-8deg) scale(0.95); }
+  100% { transform: rotate(0deg) scale(1); }
+}
+
+.animate-moon-rock {
+  animation: moonRockAnim 0.42s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes moonRockAnim {
+  0% { transform: rotate(60deg) scale(0.6); opacity: 0.5; }
+  50% { transform: rotate(-25deg) scale(1.25); opacity: 1; }
+  75% { transform: rotate(8deg) scale(0.95); }
+  100% { transform: rotate(0deg) scale(1); }
+}
+
+.animate-text-pop {
+  animation: textPopAnim 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes textPopAnim {
+  0% { transform: scale(0.92); }
+  60% { transform: scale(1.06); }
+  100% { transform: scale(1); }
 }
 </style>
