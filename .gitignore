@@ -39,6 +39,8 @@ pnpm-debug.log*
 *.sqlite
 *.sqlite3
 postgres_data/
+.n8n/
+
 
 # IDE & OS
 .vscode/
