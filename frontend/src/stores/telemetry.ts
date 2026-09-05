@@ -140,10 +140,32 @@ export const useTelemetryStore = defineStore("telemetry", () => {
 
   const cekWebpush = async () => {
     if (!("serviceWorker" in navigator) || !("PushManager" in window)) return false;
-    const reg = await navigator.serviceWorker.getRegistration("/sw.js");
-    const sub = reg ? await reg.pushManager.getSubscription() : null;
-    webpushAktif.value = !!sub;
-    return webpushAktif.value;
+    try {
+      const reg = await navigator.serviceWorker.getRegistration("/sw.js");
+      const sub = reg ? await reg.pushManager.getSubscription() : null;
+      if (!sub) {
+        webpushAktif.value = false;
+        return false;
+      }
+      // Jika browser memiliki subscription, sinkronkan ke backend agar tidak out-of-sync
+      if (authStore.token) {
+        const simpan = await fetch(`${API_BASE_URL}/push/subscribe`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${authStore.token}`,
+          },
+          body: JSON.stringify(sub.toJSON()),
+        });
+        webpushAktif.value = simpan.ok;
+        return simpan.ok;
+      }
+      webpushAktif.value = true;
+      return true;
+    } catch {
+      webpushAktif.value = false;
+      return false;
+    }
   };
 
   const daftarWebpush = async () => {
@@ -185,6 +207,51 @@ export const useTelemetryStore = defineStore("telemetry", () => {
     } catch (e) {
       console.error("[TelemetryStore] Gagal mendaftar Web Push", e);
       return false;
+    }
+  };
+
+  const batalWebpush = async () => {
+    try {
+      if (!("serviceWorker" in navigator)) {
+        webpushAktif.value = false;
+        return true;
+      }
+
+      let endpoint = "";
+      try {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        for (const reg of regs) {
+          const sub = await reg.pushManager.getSubscription();
+          if (sub) {
+            endpoint = sub.endpoint;
+            await sub.unsubscribe().catch(() => {});
+          }
+        }
+      } catch (e) {
+        console.warn("[TelemetryStore] Warning saat membaca push subscription:", e);
+      }
+
+      if (authStore.token && endpoint) {
+        try {
+          await fetch(`${API_BASE_URL}/push/unsubscribe`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${authStore.token}`,
+            },
+            body: JSON.stringify({ endpoint }),
+          });
+        } catch (e) {
+          console.warn("[TelemetryStore] Gagal request hapus ke backend:", e);
+        }
+      }
+
+      webpushAktif.value = false;
+      return true;
+    } catch (e) {
+      console.error("[TelemetryStore] Gagal membatalkan Web Push", e);
+      webpushAktif.value = false;
+      return true;
     }
   };
 
@@ -520,5 +587,6 @@ export const useTelemetryStore = defineStore("telemetry", () => {
     webpushAktif,
     cekWebpush,
     daftarWebpush,
+    batalWebpush,
   };
 });
