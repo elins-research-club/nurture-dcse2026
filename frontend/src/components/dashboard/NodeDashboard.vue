@@ -1843,10 +1843,10 @@ onUnmounted(() => {
                     </p>
                   </div>
 
-                  <!-- Average Value Pill -->
-                  <div class="flex items-baseline gap-1.5 bg-blue-500/10 dark:bg-blue-950/40 border border-blue-500/25 px-3 py-1.5 rounded-xl shadow-2xs shrink-0">
-                    <span class="text-xs font-bold text-blue-600 dark:text-blue-400">Avg:</span>
-                    <span class="text-base sm:text-lg font-black text-blue-600 dark:text-blue-400 font-mono">
+                  <!-- Moisture Value Display (Teks Besar) -->
+                  <div class="flex items-baseline gap-1 shrink-0">
+                    <span v-if="soilProbes.length > 1" class="text-xs sm:text-sm font-bold text-blue-600 dark:text-blue-400 mr-0.5">Avg:</span>
+                    <span class="text-2xl sm:text-3xl font-black text-blue-600 dark:text-blue-400 font-mono tracking-tight">
                       {{ realTimeAvgMoisture != null ? `${realTimeAvgMoisture}%` : '--' }}
                     </span>
                   </div>
@@ -1876,14 +1876,8 @@ onUnmounted(() => {
                       />
                     </div>
                   </div>
-                  <!-- Tampilan bar utama ketika data dikirim sebagai nilai gabungan / probe NPK -->
-                  <div v-if="!soilProbes.length" class="space-y-1.5 pt-0.5">
-                    <div class="flex justify-between items-center text-xs text-slate-600 dark:text-slate-400 font-medium">
-                      <span>Kadar Air Tanah</span>
-                      <span class="font-bold text-slate-800 dark:text-slate-200 font-mono">
-                        {{ realTimeAvgMoisture != null ? `${realTimeAvgMoisture}%` : '--' }}
-                      </span>
-                    </div>
+                  <!-- Tampilan bar utama ketika data dikirim sebagai nilai tunggal / probe NPK -->
+                  <div v-if="!soilProbes.length" class="pt-1">
                     <div class="h-3 w-full bg-slate-200/80 dark:bg-slate-800/90 rounded-full overflow-hidden p-0.5 flex items-center">
                       <div 
                         class="h-full bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full transition-all duration-500 shadow-xs" 
