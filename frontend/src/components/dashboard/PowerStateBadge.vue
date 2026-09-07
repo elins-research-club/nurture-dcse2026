@@ -66,7 +66,7 @@ const parsedLabel = computed(() => {
 <template>
   <!-- KOTAK STATUS JUMBO TRANSPARAN TANPA BG -->
   <div 
-    class="flex flex-col items-center justify-center text-center gap-1.5 select-none relative p-2 min-h-[140px]"
+    class="flex flex-col items-center justify-center text-center gap-1.5 select-none relative py-2 px-0.5 min-h-[140px]"
   >
     <!-- STATE 1: SURPLUS (3D Sun - Jumbo Floating Levitation) -->
     <div v-if="normalizedStatus === 'surplus'" class="relative flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 shrink-0 z-10">

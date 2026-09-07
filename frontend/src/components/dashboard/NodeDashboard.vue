@@ -2055,8 +2055,8 @@ onUnmounted(() => {
                 </div>
               </div>
 
-              <!-- Top Section: Status Sistem 3D, Baterai 12V & Beban Sistem (3 Kolom) -->
-              <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 flex-1">
+              <!-- Top Section: Status Sistem 3D, Baterai 12V & Beban Sistem (Kolom 1 compact, Kolom 2 & 3 ekspansif) -->
+              <div class="grid grid-cols-1 sm:grid-cols-[100px_1fr_1fr] gap-2.5 flex-1">
                 
                 <!-- KOTAK 1: STATUS SISTEM (3D Jumbo Micro-Animation) -->
                 <PowerStateBadge 
@@ -2157,41 +2157,37 @@ onUnmounted(() => {
 
               </div>
 
-              <!-- Bottom Section: Neraca Daya & Modul I2C Hardware -->
-              <div class="bg-slate-50/80 dark:bg-slate-900/50 rounded-2xl p-3 border border-slate-200/80 dark:border-slate-800 flex flex-col gap-2">
-                <!-- Banner Net Power Flow (Disintesis dari Backend FastAPI) -->
-                <div 
-                  :class="[
-                    'p-2 rounded-xl border flex items-center justify-between transition-colors',
-                    power?.status_aliran === 'surplus'
-                      ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-800 dark:text-emerald-300'
-                      : power?.status_aliran === 'standby'
-                        ? 'bg-slate-500/10 border-slate-500/25 text-slate-700 dark:text-slate-300'
-                        : power?.status_aliran === 'defisit'
-                          ? 'bg-amber-500/10 border-amber-500/25 text-amber-800 dark:text-amber-300'
-                          : 'bg-slate-500/10 border-slate-500/25 text-slate-600 dark:text-slate-400'
-                  ]"
-                >
-                  <div class="flex items-center gap-2">
-                    <component :is="power?.status_aliran === 'surplus' ? Sun : power?.status_aliran === 'standby' ? Minus : ArrowDownRight" class="w-4 h-4 shrink-0" />
-                    <span class="text-xs font-bold">
-                      {{ power?.status_label || 'Status Daya' }}
-                    </span>
-                  </div>
-                  <span class="text-sm font-mono font-black">
+              <!-- Bottom Section: Neraca Daya & Modul I2C Hardware (1 Baris Bersih & Netral) -->
+              <div class="bg-slate-50/80 dark:bg-slate-900/50 rounded-2xl px-3.5 py-2.5 border border-slate-200/80 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2.5">
+                <!-- Neraca Daya Bersih Tanpa Background Warna -->
+                <div class="flex items-center gap-2">
+                  <span class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Neraca Daya:</span>
+                  <span 
+                    class="text-sm font-mono font-black tracking-tight"
+                    :class="[
+                      power?.net_power > 0 
+                        ? 'text-emerald-600 dark:text-emerald-400' 
+                        : power?.net_power < 0 
+                          ? 'text-amber-600 dark:text-amber-400' 
+                          : 'text-slate-600 dark:text-slate-400'
+                    ]"
+                  >
                     {{ power?.net_power != null ? `${power.net_power > 0 ? '+' : ''}${Number(power.net_power).toFixed(2)} W` : '--' }}
+                  </span>
+                  <span class="text-xs font-semibold text-muted-foreground">
+                    ({{ power?.status_label || 'Status Daya' }})
                   </span>
                 </div>
 
                 <!-- Hardware I2C Status (Validasi Hardware dari Backend) -->
-                <div class="flex items-center justify-between text-[11px] pt-0.5 px-1">
-                  <span class="text-muted-foreground flex items-center gap-1">
+                <div class="flex items-center gap-3 text-[11px] text-muted-foreground">
+                  <span class="flex items-center gap-1.5">
                     <span class="w-1.5 h-1.5 rounded-full" :class="power?.i2c_0x40_active ? 'bg-emerald-500' : 'bg-slate-400'"></span>
-                    I2C 0x40 (Baterai): <strong class="text-foreground">{{ power?.i2c_0x40_active ? 'Aktif' : 'Standby' }}</strong>
+                    I2C 0x40 (Baterai): <strong class="text-foreground font-medium">{{ power?.i2c_0x40_active ? 'Aktif' : 'Standby' }}</strong>
                   </span>
-                  <span class="text-muted-foreground flex items-center gap-1">
+                  <span class="flex items-center gap-1.5">
                     <span class="w-1.5 h-1.5 rounded-full" :class="power?.i2c_0x41_active ? 'bg-amber-500' : 'bg-slate-400'"></span>
-                    I2C 0x41 (Beban): <strong class="text-foreground">{{ power?.i2c_0x41_active ? 'Aktif' : 'Standby' }}</strong>
+                    I2C 0x41 (Beban): <strong class="text-foreground font-medium">{{ power?.i2c_0x41_active ? 'Aktif' : 'Standby' }}</strong>
                   </span>
                 </div>
               </div>
