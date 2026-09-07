@@ -61,29 +61,13 @@ const parsedLabel = computed(() => {
     colorClass: defaults.colorClass
   }
 })
-
-const ambientGlowClass = computed(() => {
-  switch (normalizedStatus.value) {
-    case 'surplus':
-      return 'from-amber-500/10 via-emerald-500/5 to-transparent'
-    case 'defisit':
-      return 'from-amber-500/10 via-orange-500/5 to-transparent'
-    case 'standby':
-      return 'from-sky-500/10 via-blue-500/5 to-transparent'
-    default:
-      return 'from-slate-500/5 to-transparent'
-  }
-})
 </script>
 
 <template>
-  <!-- KOTAK STATUS JUMBO TANPA WRAPPER PILL HIJAU -->
+  <!-- KOTAK STATUS JUMBO TRANSPARAN TANPA BG -->
   <div 
-    class="bg-slate-50/80 dark:bg-slate-900/50 rounded-2xl p-3 border border-slate-200/80 dark:border-slate-800 flex flex-col items-center justify-center text-center gap-1.5 select-none relative overflow-hidden group min-h-[140px]"
+    class="flex flex-col items-center justify-center text-center gap-1.5 select-none relative p-2 min-h-[140px]"
   >
-    <!-- Ambient Glow Background -->
-    <div :class="['absolute inset-0 bg-radial pointer-events-none opacity-80', ambientGlowClass]"></div>
-
     <!-- STATE 1: SURPLUS (3D Sun - Jumbo Floating Levitation) -->
     <div v-if="normalizedStatus === 'surplus'" class="relative flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 shrink-0 z-10">
       <img 
