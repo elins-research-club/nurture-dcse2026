@@ -414,40 +414,80 @@ const batteryLevelPercent = computed<number | null>(() => {
 })
 
 const batteryStatusInfo = computed(() => {
-  const statusAliran = power.value?.status_aliran
-  if (statusAliran === 'surplus') {
+  const percent = batteryLevelPercent.value
+  const volt = power.value?.tegangan_in != null ? Number(power.value.tegangan_in) : null
+
+  // Evaluasi semantik kapasitas baterai (State of Charge):
+  // > 60% (>12.5V): Sehat & Penuh (Hijau)
+  // 25% - 60% (11.8V - 12.5V): Sedang (Kuning/Amber)
+  // < 25% (<11.8V): Kritis / Perlu Pengisian (Merah/Rose)
+  if (percent != null ? percent > 60 : (volt != null && volt >= 12.5)) {
     return {
-      text: power.value?.battery_status_text || 'Solar Aktif (Mengisi Aki)',
-      badgeClass: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30',
-      dotClass: 'bg-emerald-500',
-      barColor: 'from-emerald-400 via-teal-400 to-emerald-500',
+      status: 'good',
+      label: 'Optimal',
+      barColor: 'from-emerald-400 to-emerald-500',
       textColor: 'text-emerald-600 dark:text-emerald-400'
     }
   }
-  if (statusAliran === 'standby') {
+  if (percent != null ? percent >= 25 : (volt != null && volt >= 11.8)) {
     return {
-      text: power.value?.battery_status_text || 'Daya Seimbang (Siaga)',
-      badgeClass: 'bg-sky-500/15 text-sky-700 dark:text-sky-400 border-sky-500/30',
-      dotClass: 'bg-sky-500',
-      barColor: 'from-sky-400 to-blue-500',
-      textColor: 'text-sky-600 dark:text-sky-400'
-    }
-  }
-  if (statusAliran === 'defisit') {
-    return {
-      text: power.value?.battery_status_text || 'Tenaga Baterai (Solar Mati)',
-      badgeClass: 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30',
-      dotClass: 'bg-amber-500',
-      barColor: 'from-amber-400 via-orange-400 to-amber-500',
+      status: 'warning',
+      label: 'Sedang',
+      barColor: 'from-amber-400 to-amber-500',
       textColor: 'text-amber-600 dark:text-amber-400'
     }
   }
+  if (percent != null || volt != null) {
+    return {
+      status: 'critical',
+      label: 'Kritis',
+      barColor: 'from-rose-500 to-red-600',
+      textColor: 'text-rose-600 dark:text-rose-400'
+    }
+  }
   return {
-    text: power.value?.battery_status_text || 'Sensor Offline',
-    badgeClass: 'bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/30',
-    dotClass: 'bg-slate-400',
+    status: 'unknown',
+    label: 'Offline',
     barColor: 'from-slate-400 to-slate-500',
-    textColor: 'text-slate-600 dark:text-slate-400'
+    textColor: 'text-slate-500 dark:text-slate-400'
+  }
+})
+
+const loadStatusInfo = computed(() => {
+  const daya = power.value?.daya_out != null ? Number(power.value.daya_out) : null
+  if (daya == null) {
+    return {
+      barColor: 'from-slate-400 to-slate-500',
+      textColor: 'text-slate-500 dark:text-slate-400',
+      dotColor: 'bg-slate-400',
+      statusText: 'Standby'
+    }
+  }
+  // Semantik Konsumsi Beban IoT:
+  // <= 2.5W: Ringan / Normal Standby (Hijau/Teal)
+  // 2.5W - 6.0W: Sedang / Aktuator Aktif (Amber/Kuning)
+  // > 6.0W: Tinggi / Mendekati Kapasitas (Merah/Rose)
+  if (daya <= 2.5) {
+    return {
+      barColor: 'from-emerald-400 to-teal-500',
+      textColor: 'text-emerald-600 dark:text-emerald-400',
+      dotColor: 'bg-emerald-500',
+      statusText: '12V Output'
+    }
+  }
+  if (daya <= 6.0) {
+    return {
+      barColor: 'from-amber-400 to-amber-500',
+      textColor: 'text-amber-600 dark:text-amber-400',
+      dotColor: 'bg-amber-500',
+      statusText: '12V Output'
+    }
+  }
+  return {
+    barColor: 'from-rose-500 to-red-600',
+    textColor: 'text-rose-600 dark:text-rose-400',
+    dotColor: 'bg-rose-500',
+    statusText: 'Beban Tinggi'
   }
 })
 
@@ -2058,7 +2098,7 @@ onUnmounted(() => {
                         </span>
                         <span class="text-xs font-extrabold text-slate-500 dark:text-slate-400">V</span>
                       </div>
-                      <span v-if="batteryLevelPercent != null" class="text-base sm:text-lg font-mono font-black text-emerald-600 dark:text-emerald-400">
+                      <span v-if="batteryLevelPercent != null" class="text-base sm:text-lg font-mono font-black transition-colors duration-300" :class="batteryStatusInfo.textColor">
                         {{ batteryLevelPercent }}%
                       </span>
                     </div>
@@ -2121,16 +2161,16 @@ onUnmounted(() => {
                         </span>
                         <span class="text-xs font-extrabold text-slate-500 dark:text-slate-400">V</span>
                       </div>
-                      <span class="text-xs font-mono font-extrabold text-amber-600 dark:text-amber-400 uppercase tracking-wide flex items-center gap-1">
-                        <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
-                        12V Output
+                      <span class="text-xs font-mono font-extrabold uppercase tracking-wide flex items-center gap-1 transition-colors duration-300" :class="loadStatusInfo.textColor">
+                        <span class="w-1.5 h-1.5 rounded-full animate-pulse" :class="loadStatusInfo.dotColor"></span>
+                        {{ loadStatusInfo.statusText }}
                       </span>
                     </div>
                     <!-- Visual Jalur Beban (Simetris dengan Bar Baterai) -->
                     <div class="space-y-0.5">
                       <div class="h-1.5 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
                         <div 
-                          class="h-full bg-gradient-to-r from-amber-400 to-amber-500 rounded-full transition-all duration-500"
+                          :class="['h-full bg-gradient-to-r rounded-full transition-all duration-500', loadStatusInfo.barColor]"
                           :style="{ width: `${Math.min(Math.max((Number(power?.daya_out || 0) / 10) * 100, 8), 100)}%` }"
                         />
                       </div>
