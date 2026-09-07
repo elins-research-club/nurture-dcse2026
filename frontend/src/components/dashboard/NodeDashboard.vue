@@ -451,18 +451,6 @@ const batteryStatusInfo = computed(() => {
   }
 })
 
-const enclosureMinVal = computed(() => {
-  if (enclosureTempMetric.value?.min_recorded != null) return enclosureTempMetric.value.min_recorded
-  const curr = getLiveVal(enclosureTempMetric.value)
-  return curr != null ? curr : null
-})
-
-const enclosureMaxVal = computed(() => {
-  if (enclosureTempMetric.value?.max_recorded != null) return enclosureTempMetric.value.max_recorded
-  const curr = getLiveVal(enclosureTempMetric.value)
-  return curr != null ? curr : null
-})
-
 // Sensor tambahan yang belum terangkum di dalam widget Bento Grid utama (fallback otomatis)
 const additionalSensors = computed(() => {
   const capturedFields = new Set<string>()
@@ -571,6 +559,13 @@ const ecCardState = computed(() => kartuAmbang(
 ))
 const ecStatus = computed(() => ecCardState.value)
 
+const enclosureTempCardState = computed(() => kartuAmbang(
+  enclosureTempMetric.value,
+  { rendah: 'Sejuk', optimal: 'Dalam ambang', tinggi: 'Panas' },
+  { rendah: W_DINGIN, optimal: W_OPTIMAL, tinggi: W_PANAS }
+))
+const enclosureTempStatus = computed(() => enclosureTempCardState.value)
+
 const airTempCardState = computed(() => kartuAmbang(
   airTempMetric.value,
   { rendah: 'Sejuk', optimal: 'Dalam ambang', tinggi: 'Panas' },
@@ -609,65 +604,6 @@ const soilMoistureStatus = computed(() => {
   // Vonis kelembapan yang bersandar pustaka ada di backend (soil_health), dan
   // butuh kerapatan isi untuk jadi WFPS. Di sini cuma label netral.
   return { text: nilai + '%', bg: 'bg-emerald-500/15', border: 'border-emerald-500/30', textClass: 'text-emerald-700 dark:text-emerald-400' }
-})
-
-// Batas aman box panel diambil dari konfigurasi sensor. Tidak ada angka
-// cadangan: 45 C yang dulu di sini tidak punya sumber tapi ikut memicu
-// peringatan "kritis" dan masuk laporan PDF.
-const enclosureSafeThreshold = computed<number | null>(() => {
-  return enclosureTempMetric.value?.max_threshold ?? null
-})
-
-// Dynamic IoT Thermal Status & Saturated NPK-style Gradient Styling
-const thermalStatus = computed(() => {
-  const v = getLiveVal(enclosureTempMetric.value)
-  const num = v != null ? Number(v) : null
-  const currentNum = num ?? 0
-  const safeLimit = enclosureSafeThreshold.value
-  const percentage = (safeLimit != null && safeLimit > 0)
-    ? Math.min(Math.max((currentNum / safeLimit) * 100, 0), 100)
-    : 0
-  
-  if (num == null || safeLimit == null) {
-    return {
-      gradient: 'linear-gradient(135deg, #94A3B8 0%, #64748B 100%)',
-      shadowClass: 'shadow-md shadow-slate-500/20',
-      barGradient: 'from-white/70 to-white',
-      percentage: 0,
-      safeLimit
-    }
-  }
-  
-  if (num < safeLimit - 5) {
-    return {
-      // Lighter DarkGreen base
-      gradient: 'linear-gradient(135deg, #00B200 0%, #008A00 45%, #006400 100%)',
-      shadowClass: 'shadow-md shadow-[#00b200]/20 hover:shadow-lg hover:shadow-[#00b200]/30',
-      barGradient: 'from-white/70 to-white',
-      percentage,
-      safeLimit
-    }
-  }
-  
-  if (num <= safeLimit + 5) {
-    return {
-      // Bright Warm Amber gradient
-      gradient: 'linear-gradient(135deg, #FBBF24 0%, #F59E0B 45%, #D97706 100%)',
-      shadowClass: 'shadow-md shadow-amber-400/20 hover:shadow-lg hover:shadow-amber-400/30',
-      barGradient: 'from-white/70 to-white',
-      percentage,
-      safeLimit
-    }
-  }
-  
-  return {
-    // Bright Coral Rose gradient (Same as NPK High)
-    gradient: 'linear-gradient(135deg, #FB7185 0%, #F43F5E 45%, #E11D48 100%)',
-    shadowClass: 'shadow-md shadow-rose-400/20 hover:shadow-lg hover:shadow-rose-400/30',
-    barGradient: 'from-white/70 to-white',
-    percentage,
-    safeLimit
-  }
 })
 
 // Mini-map logic with reactive watch & 1:1 square ratio
@@ -1429,143 +1365,116 @@ onUnmounted(() => {
               </div>
             </div>
 
-            <!-- Highlight Suhu Dalam Panel (Enclosure) & Dynamic Thermal Safety Card -->
-            <div 
-              class="relative overflow-hidden p-3.5 sm:p-4 rounded-2xl transition-all duration-300 flex-1 flex flex-col justify-between gap-2.5 text-white border-0 min-h-[125px]"
-              :class="thermalStatus.shadowClass"
-              :style="{ background: thermalStatus.gradient }"
-            >
+            <!-- 1 Baris: 3 Kartu Kondisi IoT (Suhu Dalam Panel, Suhu Luar, Kelembaban Udara) -->
+            <div class="grid grid-cols-3 gap-2">
+              <!-- 1. Suhu Dalam Panel (Enclosure) -->
               <div 
-                class="absolute inset-0 pointer-events-none opacity-20"
-                style="background: radial-gradient(circle at 85% 15%, rgba(255, 255, 255, 0.4) 0%, transparent 60%);"
-              ></div>
-
-              <DotPattern 
-                :width="12" 
-                :height="12" 
-                :cx="1" 
-                :cy="1" 
-                :cr="1" 
-                class="text-white/20" 
-              />
-
-              <!-- Top: Thermometer Icon, Label, Main Value, and Min/Max Stats -->
-              <div class="flex items-center justify-between gap-2 relative z-10 my-auto">
-                <div class="flex items-center gap-2.5">
-                  <div class="w-8 h-8 rounded-xl bg-white/25 backdrop-blur-md flex items-center justify-center text-white shrink-0 border-0">
-                    <Thermometer class="w-4 h-4 stroke-[2.5]" />
-                  </div>
+                :class="[
+                  'relative overflow-hidden p-2.5 rounded-2xl text-white shadow-xs border border-white/20 flex flex-col justify-between min-h-[96px] sm:min-h-[105px] group hover:scale-[1.01] transition-transform',
+                  enclosureTempCardState.gradient,
+                  enclosureTempCardState.shadow
+                ]"
+              >
+                <DotPattern :width="12" :height="12" :cx="6" :cy="6" :cr="1" class="text-white/20" />
+                <div class="relative z-10 flex flex-col justify-between h-full">
                   <div>
-                    <p class="text-xs font-semibold text-white/95 tracking-wide drop-shadow-[0_1px_1px_rgba(0,0,0,0.1)]">
-                      {{ enclosureTempMetric?.name || 'Suhu Box Panel' }}
-                    </p>
-                    <div class="flex items-baseline gap-1 mt-0.5">
-                      <span class="text-2xl font-extrabold tracking-tight text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.15)]">
+                    <span class="text-[10px] sm:text-[11px] font-semibold text-white/95 line-clamp-2 leading-tight block" :title="enclosureTempMetric?.name || 'Suhu Dalam Panel'">
+                      {{ enclosureTempMetric?.name || 'Suhu Dalam Panel' }}
+                    </span>
+                    <div class="flex items-baseline gap-1 mt-1.5">
+                      <span class="text-xl sm:text-2xl font-black tracking-tight text-white font-mono">
                         {{ getLiveVal(enclosureTempMetric) ?? '--' }}
                       </span>
-                      <span class="text-xs font-semibold text-white/90 drop-shadow-[0_1px_1px_rgba(0,0,0,0.1)]">
+                      <span class="text-xs font-bold text-white/90">
                         {{ enclosureTempMetric?.unit || '°C' }}
                       </span>
                     </div>
                   </div>
-                </div>
-
-                <!-- Min & Max Stats Capsule -->
-                <div class="grid grid-cols-2 divide-x divide-white/35 items-center bg-white/30 hover:bg-white/35 backdrop-blur-md px-1.5 py-1 rounded-xl shrink-0 border border-white/50 shadow-sm w-24 sm:w-26">
-                  <div class="px-1 flex flex-col items-center justify-center text-center">
-                    <span class="text-[9px] font-bold text-white/90 block leading-none tracking-wider">MIN</span>
-                    <span class="text-xs font-extrabold text-white font-mono leading-tight mt-0.5">
-                      {{ enclosureMinVal != null ? `${enclosureMinVal}°` : '--' }}
-                    </span>
-                  </div>
-                  <div class="px-1 flex flex-col items-center justify-center text-center">
-                    <span class="text-[9px] font-bold text-white/90 block leading-none tracking-wider">MAX</span>
-                    <span class="text-xs font-extrabold text-white font-mono leading-tight mt-0.5">
-                      {{ enclosureMaxVal != null ? `${enclosureMaxVal}°` : '--' }}
-                    </span>
+                  <div class="pt-1.5">
+                    <div 
+                      :class="[
+                        'bg-white/25 text-white border border-white/40 shadow-2xs select-none px-1.5 py-0.5 rounded-full flex items-center justify-center text-center',
+                        enclosureTempCardState.isAlert && 'rounded-xl'
+                      ]"
+                      :title="enclosureTempStatus.text"
+                    >
+                      <span class="text-[9px] sm:text-[10px] font-extrabold leading-tight truncate">{{ enclosureTempStatus.text }}</span>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <!-- Bottom: Thermal Safety Threshold Bar -->
-              <div class="space-y-1 relative z-10 pt-1 mt-auto">
-                <div class="flex items-center justify-between text-[11px] text-white/90 font-medium">
-                  <span v-if="thermalStatus.safeLimit != null">Batas: <strong class="text-white font-bold">{{ thermalStatus.safeLimit }}°C</strong></span>
-                  <span v-else>Batas belum diatur</span>
-                  <span class="font-bold text-white">{{ getLiveVal(enclosureTempMetric) ?? '--' }}°C</span>
-                </div>
-                <div class="relative h-1.5 w-full bg-black/25 rounded-full overflow-hidden backdrop-blur-xs">
-                  <div 
-                    :class="['h-full bg-gradient-to-r rounded-full transition-all duration-500', thermalStatus.barGradient]" 
-                    :style="{ width: `${thermalStatus.percentage}%` }"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <!-- Mini Grid: Suhu Luar (Ambient) & Kelembaban Udara -->
-            <div class="grid grid-cols-2 gap-2">
-              <!-- Suhu Luar / Ambient -->
+              <!-- 2. Suhu Luar / Ambient -->
               <div 
                 :class="[
-                  'relative overflow-hidden p-2.5 rounded-2xl text-white shadow-xs border border-white/20 flex flex-col justify-between min-h-[88px] group hover:scale-[1.01] transition-transform',
+                  'relative overflow-hidden p-2.5 rounded-2xl text-white shadow-xs border border-white/20 flex flex-col justify-between min-h-[96px] sm:min-h-[105px] group hover:scale-[1.01] transition-transform',
                   airTempCardState.gradient,
                   airTempCardState.shadow
                 ]"
               >
                 <DotPattern :width="12" :height="12" :cx="6" :cy="6" :cr="1" class="text-white/20" />
-                <div class="flex items-start justify-between gap-1 relative z-10">
-                  <span class="text-[11px] font-semibold text-white/95 line-clamp-2 leading-tight flex-1">
-                    {{ airTempMetric?.name || 'Suhu Luar' }}
-                  </span>
-                  <div 
-                    :class="[
-                      'bg-white/25 text-white border border-white/40 shadow-2xs shrink-0 select-none px-1.5 py-0.5 rounded-full flex items-center',
-                      airTempCardState.isAlert && 'rounded-xl flex-col'
-                    ]"
-                  >
-                    <span class="text-[10px] font-extrabold leading-tight">{{ airTempStatus.text }}</span>
+                <div class="relative z-10 flex flex-col justify-between h-full">
+                  <div>
+                    <span class="text-[10px] sm:text-[11px] font-semibold text-white/95 line-clamp-2 leading-tight block" :title="airTempMetric?.name || 'Suhu Luar'">
+                      {{ airTempMetric?.name || 'Suhu Luar' }}
+                    </span>
+                    <div class="flex items-baseline gap-1 mt-1.5">
+                      <span class="text-xl sm:text-2xl font-black tracking-tight text-white font-mono">
+                        {{ getLiveVal(airTempMetric) ?? '--' }}
+                      </span>
+                      <span class="text-xs font-bold text-white/90">
+                        {{ airTempMetric?.unit || '°C' }}
+                      </span>
+                    </div>
                   </div>
-                </div>
-                <div class="flex items-baseline gap-1 mt-1 relative z-10">
-                  <span class="text-xl font-extrabold tracking-tight text-white">
-                    {{ getLiveVal(airTempMetric) ?? '--' }}
-                  </span>
-                  <span class="text-xs font-bold text-white/90">
-                    {{ airTempMetric?.unit || '°C' }}
-                  </span>
+                  <div class="pt-1.5">
+                    <div 
+                      :class="[
+                        'bg-white/25 text-white border border-white/40 shadow-2xs select-none px-1.5 py-0.5 rounded-full flex items-center justify-center text-center',
+                        airTempCardState.isAlert && 'rounded-xl'
+                      ]"
+                      :title="airTempStatus.text"
+                    >
+                      <span class="text-[9px] sm:text-[10px] font-extrabold leading-tight truncate">{{ airTempStatus.text }}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <!-- Kelembaban Udara -->
+              <!-- 3. Kelembaban Udara -->
               <div 
                 :class="[
-                  'relative overflow-hidden p-2.5 rounded-2xl text-white shadow-xs border border-white/20 flex flex-col justify-between min-h-[88px] group hover:scale-[1.01] transition-transform',
+                  'relative overflow-hidden p-2.5 rounded-2xl text-white shadow-xs border border-white/20 flex flex-col justify-between min-h-[96px] sm:min-h-[105px] group hover:scale-[1.01] transition-transform',
                   humidityCardState.gradient,
                   humidityCardState.shadow
                 ]"
               >
                 <DotPattern :width="12" :height="12" :cx="6" :cy="6" :cr="1" class="text-white/20" />
-                <div class="flex items-start justify-between gap-1 relative z-10">
-                  <span class="text-[11px] font-semibold text-white/95 line-clamp-2 leading-tight flex-1">
-                    {{ humidityMetric?.name || 'Kelembaban' }}
-                  </span>
-                  <div 
-                    :class="[
-                      'bg-white/25 text-white border border-white/40 shadow-2xs shrink-0 select-none px-1.5 py-0.5 rounded-full flex items-center',
-                      humidityCardState.isAlert && 'rounded-xl flex-col'
-                    ]"
-                  >
-                    <span class="text-[10px] font-extrabold leading-tight">{{ humidityStatus.text }}</span>
+                <div class="relative z-10 flex flex-col justify-between h-full">
+                  <div>
+                    <span class="text-[10px] sm:text-[11px] font-semibold text-white/95 line-clamp-2 leading-tight block" :title="humidityMetric?.name || 'Kelembaban'">
+                      {{ humidityMetric?.name || 'Kelembaban' }}
+                    </span>
+                    <div class="flex items-baseline gap-1 mt-1.5">
+                      <span class="text-xl sm:text-2xl font-black tracking-tight text-white font-mono">
+                        {{ getLiveVal(humidityMetric) ?? '--' }}
+                      </span>
+                      <span class="text-xs font-bold text-white/90">
+                        {{ humidityMetric?.unit || '%' }}
+                      </span>
+                    </div>
                   </div>
-                </div>
-                <div class="flex items-baseline gap-1 mt-1 relative z-10">
-                  <span class="text-xl font-extrabold tracking-tight text-white">
-                    {{ getLiveVal(humidityMetric) ?? '--' }}
-                  </span>
-                  <span class="text-xs font-bold text-white/90">
-                    {{ humidityMetric?.unit || '%' }}
-                  </span>
+                  <div class="pt-1.5">
+                    <div 
+                      :class="[
+                        'bg-white/25 text-white border border-white/40 shadow-2xs select-none px-1.5 py-0.5 rounded-full flex items-center justify-center text-center',
+                        humidityCardState.isAlert && 'rounded-xl'
+                      ]"
+                      :title="humidityStatus.text"
+                    >
+                      <span class="text-[9px] sm:text-[10px] font-extrabold leading-tight truncate">{{ humidityStatus.text }}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
