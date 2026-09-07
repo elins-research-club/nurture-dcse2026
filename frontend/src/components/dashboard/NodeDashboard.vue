@@ -2132,9 +2132,20 @@ onUnmounted(() => {
                       <component :is="power?.is_charging ? BatteryCharging : Battery" class="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                       <span class="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">Baterai 12V</span>
                     </div>
-                    <span v-if="batteryLevelPercent != null" class="text-xs font-mono font-black text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-lg border border-emerald-500/20">
-                      {{ batteryLevelPercent }}%
-                    </span>
+                    <div class="flex items-center gap-1.5">
+                      <span 
+                        class="text-[10px] font-bold px-1.5 py-0.5 rounded-md border tracking-tight"
+                        :class="power?.i2c_0x40_active 
+                          ? 'text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 border-emerald-500/20' 
+                          : 'text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700'"
+                        title="Status Sensor Baterai (I2C 0x40)"
+                      >
+                        {{ power?.i2c_0x40_active ? 'Aktif' : 'Standby' }}
+                      </span>
+                      <span v-if="batteryLevelPercent != null" class="text-xs font-mono font-black text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-lg border border-emerald-500/20">
+                        {{ batteryLevelPercent }}%
+                      </span>
+                    </div>
                   </div>
 
                   <!-- Tegangan Utama Baterai -->
@@ -2184,9 +2195,20 @@ onUnmounted(() => {
                       <Zap class="w-4 h-4 text-amber-600 dark:text-amber-400" />
                       <span class="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">Load Sistem</span>
                     </div>
-                    <span class="text-[10px] font-mono font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-lg border border-amber-500/20">
-                      Output
-                    </span>
+                    <div class="flex items-center gap-1.5">
+                      <span 
+                        class="text-[10px] font-bold px-1.5 py-0.5 rounded-md border tracking-tight"
+                        :class="power?.i2c_0x41_active 
+                          ? 'text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 border-emerald-500/20' 
+                          : 'text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700'"
+                        title="Status Sensor Beban (I2C 0x41)"
+                      >
+                        {{ power?.i2c_0x41_active ? 'Aktif' : 'Standby' }}
+                      </span>
+                      <span class="text-[10px] font-mono font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-lg border border-amber-500/20">
+                        Output
+                      </span>
+                    </div>
                   </div>
 
                   <!-- Tegangan Load Utama -->
@@ -2218,8 +2240,8 @@ onUnmounted(() => {
 
               </div>
 
-              <!-- Bottom Section: Neraca Daya & Modul I2C Hardware (1 Baris Bersih & Netral) -->
-              <div class="bg-slate-50/80 dark:bg-slate-900/50 rounded-2xl px-3.5 py-2.5 border border-slate-200/80 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2.5">
+              <!-- Bottom Section: Neraca Daya (1 Baris Bersih & Netral) -->
+              <div class="bg-slate-50/80 dark:bg-slate-900/50 rounded-2xl px-3.5 py-2.5 border border-slate-200/80 dark:border-slate-800 flex items-center justify-between gap-2.5">
                 <!-- Neraca Daya Bersih Tanpa Background Warna -->
                 <div class="flex items-center gap-2">
                   <span class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Neraca Daya:</span>
@@ -2240,18 +2262,6 @@ onUnmounted(() => {
                       {{ power?.status_label || 'Status Daya' }}
                     </span>
                   </div>
-                </div>
-
-                <!-- Hardware I2C Status (Validasi Hardware dari Backend) -->
-                <div class="flex items-center gap-3 text-[11px] text-muted-foreground">
-                  <span class="flex items-center gap-1.5">
-                    <span class="w-1.5 h-1.5 rounded-full" :class="power?.i2c_0x40_active ? 'bg-emerald-500' : 'bg-slate-400'"></span>
-                    I2C 0x40 (Baterai): <strong class="text-foreground font-medium">{{ power?.i2c_0x40_active ? 'Aktif' : 'Standby' }}</strong>
-                  </span>
-                  <span class="flex items-center gap-1.5">
-                    <span class="w-1.5 h-1.5 rounded-full" :class="power?.i2c_0x41_active ? 'bg-amber-500' : 'bg-slate-400'"></span>
-                    I2C 0x41 (Beban): <strong class="text-foreground font-medium">{{ power?.i2c_0x41_active ? 'Aktif' : 'Standby' }}</strong>
-                  </span>
                 </div>
               </div>
 
