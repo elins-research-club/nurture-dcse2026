@@ -2144,10 +2144,6 @@ onUnmounted(() => {
                         </span>
                         <span class="text-xs font-extrabold text-slate-500 dark:text-slate-400">A</span>
                       </div>
-                      <span class="text-xs font-mono font-extrabold uppercase tracking-wide flex items-center gap-1 transition-colors duration-300" :class="loadStatusInfo.textColor">
-                        <span class="w-1.5 h-1.5 rounded-full animate-pulse" :class="loadStatusInfo.dotColor"></span>
-                        {{ loadStatusInfo.statusText }}
-                      </span>
                     </div>
                     <!-- Visual Range Threshold Arus Beban (Simetris dengan Bar Baterai) -->
                     <div class="space-y-0.5">
