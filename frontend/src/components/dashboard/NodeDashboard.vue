@@ -52,9 +52,9 @@ const categoryOptions = [
     icon: '/npk-icon.svg',
     isLucide: false,
     lucideIcon: null,
-    iconColorClass: 'bg-emerald-600 dark:bg-emerald-400',
-    iconTextColorClass: 'text-emerald-600 dark:text-emerald-400',
-    wrapperClass: 'bg-emerald-500/10 dark:bg-emerald-500/15 border-emerald-500/20 dark:border-emerald-500/30'
+    iconColorClass: 'bg-foreground',
+    iconTextColorClass: 'text-foreground',
+    wrapperClass: 'bg-transparent border-transparent shadow-none'
   },
   {
     id: 'soil' as const,
@@ -64,9 +64,9 @@ const categoryOptions = [
     icon: '/soil-icon.svg',
     isLucide: false,
     lucideIcon: null,
-    iconColorClass: 'bg-amber-600 dark:bg-amber-400',
-    iconTextColorClass: 'text-amber-600 dark:text-amber-400',
-    wrapperClass: 'bg-amber-500/10 dark:bg-amber-500/15 border-amber-500/20 dark:border-amber-500/30'
+    iconColorClass: 'bg-foreground',
+    iconTextColorClass: 'text-foreground',
+    wrapperClass: 'bg-transparent border-transparent shadow-none'
   },
   {
     id: 'environment' as const,
@@ -76,9 +76,9 @@ const categoryOptions = [
     icon: '/iot-icon.svg',
     isLucide: false,
     lucideIcon: null,
-    iconColorClass: 'bg-sky-600 dark:bg-sky-400',
-    iconTextColorClass: 'text-sky-600 dark:text-sky-400',
-    wrapperClass: 'bg-sky-500/10 dark:bg-sky-500/15 border-sky-500/20 dark:border-sky-500/30'
+    iconColorClass: 'bg-foreground',
+    iconTextColorClass: 'text-foreground',
+    wrapperClass: 'bg-transparent border-transparent shadow-none'
   },
   {
     id: 'power' as const,
