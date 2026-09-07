@@ -3,13 +3,17 @@ import { ref, computed, watch } from 'vue'
 import DashboardLayout from '@/components/layout/DashboardLayout.vue'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import ExportTelemetryModal from '@/components/dashboard/ExportTelemetryModal.vue'
+import ReportPreviewModal from '@/components/dashboard/ReportPreviewModal.vue'
 import { useEventLogs, type EventLog } from '@/composables/useEventLogs'
+import { useNodes } from '@/composables/useNodes'
+import { useTelemetryStore } from '@/stores/telemetry'
 import { useAuthStore } from '@/stores/auth'
 import ExcelIcon from '@/components/icons/ExcelIcon.vue'
 import PdfIcon from '@/components/icons/PdfIcon.vue'
 import { 
   Info, AlertTriangle, XCircle, Clock, ChevronLeft, ChevronRight, 
-  ChevronsLeft, ChevronsRight, RefreshCw, Loader2, ScrollText
+  ChevronsLeft, ChevronsRight, RefreshCw, Loader2, ScrollText, Download
 } from 'lucide-vue-next'
 
 const currentPage = ref(1)
@@ -19,6 +23,34 @@ const isExportingCSV = ref(false)
 const isExportingPDF = ref(false)
 
 const authStore = useAuthStore()
+const telemetryStore = useTelemetryStore()
+const { nodesQuery } = useNodes()
+const nodes = computed(() => nodesQuery.data?.value || [])
+
+const selectedNodeId = ref<string>('')
+const selectedSensors = ref<any[]>([])
+const isTelemetryExportOpen = ref(false)
+const isAgronomyReportOpen = ref(false)
+
+// Auto-select first node
+watch(nodes, (nodeList) => {
+  if (nodeList && nodeList.length > 0 && !selectedNodeId.value) {
+    selectedNodeId.value = nodeList[0].node_id
+  }
+}, { immediate: true })
+
+const selectedNode = computed(() => {
+  if (!nodes.value || !nodes.value.length) return null
+  return nodes.value.find((n: any) => n.node_id === selectedNodeId.value) || nodes.value[0] || null
+})
+
+watch(selectedNodeId, async (id) => {
+  if (id) {
+    selectedSensors.value = await telemetryStore.fetchSensors(id)
+  } else {
+    selectedSensors.value = []
+  }
+}, { immediate: true })
 
 const pageSizeOptions = [25, 50, 100]
 
@@ -358,119 +390,201 @@ const exportToPDF = async () => {
   <DashboardLayout>
     <div class="flex flex-col space-y-5">
       
-      <!-- Page Header with Clean Title and Action Buttons -->
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">Logs & Ekspor Data</h2>
-        </div>
+      <!-- Page Header -->
+      <div class="flex flex-col gap-1">
+        <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">Logs & Ekspor Data</h2>
+        <p class="text-xs sm:text-sm text-muted-foreground">
+          Pusat unduh data telemetri pertanian, cetak laporan agronomi resmi, dan riwayat log aktivitas sistem.
+        </p>
+      </div>
 
-        <div class="flex items-center gap-2.5 flex-wrap">
-          <!-- Filter Pills -->
-          <div class="flex items-center bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl border border-border/80 text-sm gap-1 shadow-2xs">
-            <button
-              @click="selectedLevel = undefined"
-              :class="[
-                'px-3.5 py-1.5 rounded-xl font-bold transition-all duration-200 cursor-pointer flex items-center gap-1.5 text-xs sm:text-sm hover:-translate-y-0.5 active:scale-95 group',
-                selectedLevel === undefined 
-                  ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border border-slate-300/90 dark:border-slate-700 shadow-xs' 
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
-              ]"
-            >
-              <span class="group-hover:scale-105 transition-transform duration-200">Semua</span>
-            </button>
+      <!-- SECTION 1: PUSAT EKSPOR DATA TELEMETRI & LAPORAN AGRONOMI -->
+      <Card class="border border-border/80 bg-white dark:bg-card shadow-xs rounded-2xl overflow-hidden">
+        <div class="p-5 sm:p-6 flex flex-col lg:flex-row lg:items-center justify-between gap-5 bg-gradient-to-r from-emerald-500/5 via-teal-500/5 to-transparent">
+          <div class="space-y-2 max-w-xl">
+            <div class="flex items-center gap-2.5">
+              <div class="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0 shadow-2xs">
+                <Download class="w-5 h-5 stroke-[2.2]" />
+              </div>
+              <div>
+                <h3 class="text-lg sm:text-xl font-black tracking-tight text-foreground">
+                  Ekspor Telemetri & Laporan Agronomi
+                </h3>
+                <p class="text-xs sm:text-sm text-muted-foreground leading-tight">
+                  Unduh time-series sensor ke format CSV atau cetak Laporan Eksekutif Agronomi (PDF)
+                </p>
+              </div>
+            </div>
 
-            <button
-              @click="selectedLevel = 'INFO'"
-              :class="[
-                'px-3.5 py-1.5 rounded-xl font-bold transition-all duration-200 cursor-pointer flex items-center gap-1.5 text-xs sm:text-sm hover:-translate-y-0.5 active:scale-95 group',
-                selectedLevel === 'INFO' 
-                  ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 border border-slate-300/90 dark:border-slate-700 shadow-xs' 
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
-              ]"
-            >
-              <Info class="w-4 h-4 text-blue-500 transition-transform duration-200 group-hover:rotate-12 group-hover:scale-110" />
-              <span>Info</span>
-            </button>
-
-            <button
-              @click="selectedLevel = 'WARNING'"
-              :class="[
-                'px-3.5 py-1.5 rounded-xl font-bold transition-all duration-200 cursor-pointer flex items-center gap-1.5 text-xs sm:text-sm hover:-translate-y-0.5 active:scale-95 group',
-                selectedLevel === 'WARNING' 
-                  ? 'bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 border border-slate-300/90 dark:border-slate-700 shadow-xs' 
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
-              ]"
-            >
-              <AlertTriangle class="w-4 h-4 text-amber-500 transition-transform duration-200 group-hover:-rotate-12 group-hover:scale-110" />
-              <span>Warning</span>
-            </button>
-
-            <button
-              @click="selectedLevel = 'ERROR'"
-              :class="[
-                'px-3.5 py-1.5 rounded-xl font-bold transition-all duration-200 cursor-pointer flex items-center gap-1.5 text-xs sm:text-sm hover:-translate-y-0.5 active:scale-95 group',
-                selectedLevel === 'ERROR' 
-                  ? 'bg-white dark:bg-slate-900 text-rose-600 dark:text-rose-400 border border-slate-300/90 dark:border-slate-700 shadow-xs' 
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
-              ]"
-            >
-              <XCircle class="w-4 h-4 text-rose-500 transition-transform duration-200 group-hover:rotate-90 group-hover:scale-110" />
-              <span>Error</span>
-            </button>
+            <!-- Selected Node Info Chip -->
+            <div v-if="selectedNode" class="flex flex-wrap items-center gap-2 pt-1 text-xs">
+              <span class="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-mono font-bold border border-slate-200 dark:border-slate-700">
+                ID: {{ selectedNode.node_id }}
+              </span>
+              <span v-if="selectedNode.location" class="text-muted-foreground flex items-center gap-1">
+                <span>📍 {{ selectedNode.location }}</span>
+              </span>
+              <span class="text-muted-foreground">
+                • {{ selectedSensors.length }} sensor terkonfigurasi
+              </span>
+            </div>
           </div>
 
-          <!-- Download CSV Button (Soft Tinted Green) -->
-          <Button
-            @click="exportToCSV"
-            :disabled="isExportingCSV || isExportingPDF || totalCount === 0"
-            variant="outline"
-            class="h-10 px-4 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 font-bold text-xs sm:text-sm flex items-center gap-2 shadow-2xs border border-emerald-500/30 cursor-pointer hover:scale-[1.02] active:scale-95 transition-all"
-            title="Download log aktivitas dalam format CSV (Excel)"
-          >
-            <Loader2 v-if="isExportingCSV" class="w-4 h-4 animate-spin text-emerald-600 dark:text-emerald-400" />
-            <ExcelIcon v-else />
-            <span>{{ isExportingCSV ? 'Mengekspor...' : 'Export CSV' }}</span>
-          </Button>
+          <!-- Stasiun Selector & Action Buttons Container -->
+          <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <!-- Stasiun Dropdown Selector -->
+            <div class="flex items-center gap-2 bg-slate-100 dark:bg-slate-800/90 border border-slate-200/90 dark:border-slate-700 px-3 py-1.5 rounded-xl shadow-2xs">
+              <span class="text-xs font-bold text-muted-foreground whitespace-nowrap">Stasiun:</span>
+              <select 
+                v-model="selectedNodeId" 
+                class="bg-transparent text-xs sm:text-sm font-extrabold text-foreground focus:outline-none cursor-pointer py-1 max-w-[200px] truncate"
+                :disabled="!nodes.length"
+              >
+                <option v-if="!nodes.length" value="">Memuat stasiun...</option>
+                <option 
+                  v-for="node in nodes" 
+                  :key="node.node_id" 
+                  :value="node.node_id"
+                  class="bg-white dark:bg-slate-900 text-foreground"
+                >
+                  {{ node.name || node.node_id }} ({{ node.node_id }})
+                </option>
+              </select>
+            </div>
 
-          <!-- Download PDF Button (Soft Tinted Rose) -->
-          <Button
-            @click="exportToPDF"
-            :disabled="isExportingCSV || isExportingPDF || totalCount === 0"
-            variant="outline"
-            class="h-10 px-4 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-700 dark:text-rose-300 font-bold text-xs sm:text-sm flex items-center gap-2 shadow-2xs border border-rose-500/30 cursor-pointer hover:scale-[1.02] active:scale-95 transition-all"
-            title="Download log aktivitas dalam format PDF resmi"
-          >
-            <Loader2 v-if="isExportingPDF" class="w-4 h-4 animate-spin text-rose-600 dark:text-rose-400" />
-            <PdfIcon v-else />
-            <span>{{ isExportingPDF ? 'Membuat PDF...' : 'Laporan PDF' }}</span>
-          </Button>
+            <!-- Export Telemetri CSV Button (Green) -->
+            <Button
+              @click="isTelemetryExportOpen = true"
+              :disabled="!selectedNode"
+              variant="outline"
+              class="h-10 px-4 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-2xs border border-emerald-500/30 cursor-pointer hover:scale-[1.02] active:scale-95 transition-all"
+              title="Buka Wizard Ekspor Telemetri (CSV)"
+            >
+              <ExcelIcon />
+              <span>Export Telemetri (CSV)</span>
+            </Button>
+
+            <!-- Laporan Agronomi PDF Button (Rose) -->
+            <Button
+              @click="isAgronomyReportOpen = true"
+              :disabled="!selectedNode"
+              variant="outline"
+              class="h-10 px-4 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-700 dark:text-rose-300 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-2xs border border-rose-500/30 cursor-pointer hover:scale-[1.02] active:scale-95 transition-all"
+              title="Pratinjau & Cetak Laporan Resmi PDF"
+            >
+              <PdfIcon />
+              <span>Laporan Agronomi (PDF)</span>
+            </Button>
+          </div>
         </div>
-      </div>
+      </Card>
       
-      <!-- Main Content Card -->
+      <!-- SECTION 2: RIWAYAT LOG AKTIVITAS & PERINGATAN SISTEM -->
       <Card class="border border-border/80 bg-white dark:bg-card shadow-xs rounded-2xl">
-        <!-- Card Header with Count & Refresh -->
-        <CardHeader class="p-5 border-b border-border/60 flex flex-row items-center justify-between space-y-0">
+        <!-- Card Header with Filter Pills, Actions & Count -->
+        <CardHeader class="p-5 border-b border-border/60 flex flex-col lg:flex-row lg:items-center justify-between gap-4 space-y-0">
           <div class="flex items-center gap-2.5">
             <ScrollText class="w-5 h-5 text-primary" />
-            <CardTitle class="text-base sm:text-lg font-bold text-foreground">Daftar Log Aktivitas</CardTitle>
+            <CardTitle class="text-base sm:text-lg font-bold text-foreground">Riwayat Log Aktivitas Sistem</CardTitle>
             
             <span class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
               {{ totalCount }} Total
             </span>
           </div>
 
-          <!-- KINETIC REFRESH BUTTON -->
-          <Button 
-            variant="outline" 
-            size="sm" 
-            class="h-9 px-3.5 rounded-xl text-xs sm:text-sm font-semibold gap-2 shadow-none border-border/80 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer hover:scale-105 active:scale-95 transition-all duration-200 group"
-            @click="logsQuery.refetch()"
-            :disabled="logsQuery.isFetching.value"
-          >
-            <RefreshCw :class="['w-3.5 h-3.5 transition-transform duration-300 group-hover:rotate-90', logsQuery.isFetching.value ? 'animate-spin' : '']" />
-            <span>Refresh</span>
-          </Button>
+          <div class="flex items-center gap-2.5 flex-wrap">
+            <!-- Filter Pills -->
+            <div class="flex items-center bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl border border-border/80 text-sm gap-1 shadow-2xs">
+              <button
+                @click="selectedLevel = undefined"
+                :class="[
+                  'px-3 py-1 rounded-xl font-bold transition-all duration-200 cursor-pointer flex items-center gap-1.5 text-xs hover:-translate-y-0.5 active:scale-95 group',
+                  selectedLevel === undefined 
+                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border border-slate-300/90 dark:border-slate-700 shadow-xs' 
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
+                ]"
+              >
+                <span class="group-hover:scale-105 transition-transform duration-200">Semua</span>
+              </button>
+
+              <button
+                @click="selectedLevel = 'INFO'"
+                :class="[
+                  'px-3 py-1 rounded-xl font-bold transition-all duration-200 cursor-pointer flex items-center gap-1.5 text-xs hover:-translate-y-0.5 active:scale-95 group',
+                  selectedLevel === 'INFO' 
+                    ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 border border-slate-300/90 dark:border-slate-700 shadow-xs' 
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
+                ]"
+              >
+                <Info class="w-3.5 h-3.5 text-blue-500 transition-transform duration-200 group-hover:rotate-12 group-hover:scale-110" />
+                <span>Info</span>
+              </button>
+
+              <button
+                @click="selectedLevel = 'WARNING'"
+                :class="[
+                  'px-3 py-1 rounded-xl font-bold transition-all duration-200 cursor-pointer flex items-center gap-1.5 text-xs hover:-translate-y-0.5 active:scale-95 group',
+                  selectedLevel === 'WARNING' 
+                    ? 'bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 border border-slate-300/90 dark:border-slate-700 shadow-xs' 
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
+                ]"
+              >
+                <AlertTriangle class="w-3.5 h-3.5 text-amber-500 transition-transform duration-200 group-hover:-rotate-12 group-hover:scale-110" />
+                <span>Warning</span>
+              </button>
+
+              <button
+                @click="selectedLevel = 'ERROR'"
+                :class="[
+                  'px-3 py-1 rounded-xl font-bold transition-all duration-200 cursor-pointer flex items-center gap-1.5 text-xs hover:-translate-y-0.5 active:scale-95 group',
+                  selectedLevel === 'ERROR' 
+                    ? 'bg-white dark:bg-slate-900 text-rose-600 dark:text-rose-400 border border-slate-300/90 dark:border-slate-700 shadow-xs' 
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
+                ]"
+              >
+                <XCircle class="w-3.5 h-3.5 text-rose-500 transition-transform duration-200 group-hover:rotate-90 group-hover:scale-110" />
+                <span>Error</span>
+              </button>
+            </div>
+
+            <!-- Refresh Button -->
+            <Button 
+              variant="outline" 
+              size="sm" 
+              class="h-9 px-3 rounded-xl text-xs font-semibold gap-1.5 shadow-none border-border/80 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer hover:scale-105 active:scale-95 transition-all duration-200 group"
+              @click="logsQuery.refetch()"
+              :disabled="logsQuery.isFetching.value"
+            >
+              <RefreshCw :class="['w-3.5 h-3.5 transition-transform duration-300 group-hover:rotate-90', logsQuery.isFetching.value ? 'animate-spin' : '']" />
+              <span>Refresh</span>
+            </Button>
+
+            <!-- Export Log CSV Button -->
+            <Button
+              @click="exportToCSV"
+              :disabled="isExportingCSV || isExportingPDF || totalCount === 0"
+              variant="outline"
+              class="h-9 px-3 rounded-xl bg-slate-100 hover:bg-slate-200/80 dark:bg-slate-800 dark:hover:bg-slate-700 text-foreground font-bold text-xs flex items-center gap-1.5 shadow-2xs border border-border cursor-pointer active:scale-95 transition-all"
+              title="Download rekaman log aktivitas dalam format CSV"
+            >
+              <Loader2 v-if="isExportingCSV" class="w-3.5 h-3.5 animate-spin text-muted-foreground" />
+              <Download v-else class="w-3.5 h-3.5 text-muted-foreground" />
+              <span>{{ isExportingCSV ? 'Mengekspor...' : 'Export Log CSV' }}</span>
+            </Button>
+
+            <!-- Cetak Log PDF Button -->
+            <Button
+              @click="exportToPDF"
+              :disabled="isExportingCSV || isExportingPDF || totalCount === 0"
+              variant="outline"
+              class="h-9 px-3 rounded-xl bg-slate-100 hover:bg-slate-200/80 dark:bg-slate-800 dark:hover:bg-slate-700 text-foreground font-bold text-xs flex items-center gap-1.5 shadow-2xs border border-border cursor-pointer active:scale-95 transition-all"
+              title="Cetak rekaman log aktivitas dalam format PDF"
+            >
+              <Loader2 v-if="isExportingPDF" class="w-3.5 h-3.5 animate-spin text-muted-foreground" />
+              <Download v-else class="w-3.5 h-3.5 text-muted-foreground" />
+              <span>{{ isExportingPDF ? 'Membuat PDF...' : 'Cetak Log PDF' }}</span>
+            </Button>
+          </div>
         </CardHeader>
 
         <CardContent class="p-5 flex flex-col gap-4">
@@ -672,6 +786,30 @@ const exportToPDF = async () => {
         </CardContent>
       </Card>
     </div>
+
+    <!-- Export Telemetry Modal (CSV) -->
+    <ExportTelemetryModal
+      v-if="selectedNode"
+      :open="isTelemetryExportOpen"
+      @update:open="isTelemetryExportOpen = $event"
+      :node-id="selectedNode.node_id"
+      :node-name="selectedNode.name || 'Stasiun Agro'"
+      :sensors="selectedSensors"
+    />
+
+    <!-- Executive PDF Report Preview & Generator Modal -->
+    <ReportPreviewModal
+      v-if="selectedNode"
+      :open="isAgronomyReportOpen"
+      @update:open="isAgronomyReportOpen = $event"
+      :node-id="selectedNode.node_id"
+      :node-name="selectedNode.name || 'Stasiun Agro'"
+      :location="selectedNode.location || 'Kebun Pertanian / Greenhouse'"
+      :coordinates="selectedNode.latitude && selectedNode.longitude ? `${selectedNode.latitude}, ${selectedNode.longitude}` : undefined"
+      :sensors="selectedSensors"
+      initial-range="1d"
+      initial-category="all"
+    />
   </DashboardLayout>
 </template>
 

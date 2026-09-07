@@ -12,11 +12,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import ExportTelemetryModal from '@/components/dashboard/ExportTelemetryModal.vue'
-import ReportPreviewModal from '@/components/dashboard/ReportPreviewModal.vue'
 import { getSensorCategory, filterSensorsByCategory } from '@/lib/sensorTaxonomy'
-import ExcelIcon from '@/components/icons/ExcelIcon.vue'
-import PdfIcon from '@/components/icons/PdfIcon.vue'
 import { 
   Calendar, Clock, Check, Layers, MapPin, 
   Thermometer, Droplet, Sparkles, TrendingUp, 
@@ -37,8 +33,6 @@ const telemetryStore = useTelemetryStore()
 
 const isLoading = ref(true)
 const isInitialLoaded = ref(false)
-const isExportModalOpen = ref(false)
-const isReportModalOpen = ref(false)
 const selectedCategory = ref<'all' | 'npk' | 'soil' | 'environment' | 'power'>('npk')
 const isCategoryDropdownOpen = ref(false)
 const categoryDropdownRef = ref<HTMLElement | null>(null)
@@ -1669,29 +1663,6 @@ onUnmounted(() => {
                     <Calendar class="w-4.5 h-4.5" />
                   </button>
                 </div>
-
-                <!-- Export & PDF Report Action Buttons (Only Visible When Logged In) -->
-                <div v-if="authStore.isAuthenticated()" class="flex items-center gap-2 ml-auto sm:ml-0">
-                  <button
-                    @click="isExportModalOpen = true"
-                    type="button"
-                    class="h-9.5 sm:h-10 px-3.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-xs sm:text-sm font-bold flex items-center gap-2 shadow-2xs transition-all cursor-pointer hover:scale-[1.02] active:scale-95"
-                    title="Export data telemetri ke format CSV (Excel)"
-                  >
-                    <ExcelIcon />
-                    <span class="hidden md:inline">Export CSV</span>
-                  </button>
-
-                  <button
-                    @click="isReportModalOpen = true"
-                    type="button"
-                    class="h-9.5 sm:h-10 px-3.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-700 dark:text-rose-300 border border-rose-500/30 text-xs sm:text-sm font-bold flex items-center gap-2 shadow-2xs transition-all cursor-pointer hover:scale-[1.02] active:scale-95"
-                    title="Buat dan cetak Laporan Resmi PDF"
-                  >
-                    <PdfIcon />
-                    <span class="hidden md:inline">Laporan PDF</span>
-                  </button>
-                </div>
               </div>
 
               <!-- Custom Date Picker -->
@@ -2235,38 +2206,4 @@ onUnmounted(() => {
       </div>
 
     </div>
-
-  <!-- Export Telemetry Modal (CSV) -->
-  <ExportTelemetryModal
-    :open="isExportModalOpen"
-    @update:open="isExportModalOpen = $event"
-    :node-id="nodeId"
-    :node-name="nodeName || 'Stasiun Agro'"
-    :sensors="sensors"
-    :current-feeds="chartData"
-  />
-
-  <!-- Executive PDF Report Preview & Generator Modal -->
-  <ReportPreviewModal
-    :open="isReportModalOpen"
-    @update:open="isReportModalOpen = $event"
-    :node-id="nodeId"
-    :node-name="nodeName || 'Stasiun Agro'"
-    :location="nodeLocation || 'Kebun Pertanian / Greenhouse'"
-    :coordinates="nodeCoords ? `${nodeCoords.lat.toFixed(4)}, ${nodeCoords.lng.toFixed(4)}` : '-7.6846, 110.3400'"
-    :sensors="sensors"
-    :current-feeds="chartData"
-    :initial-range="selectedRange"
-    :initial-category="selectedCategory"
-    :summary-metrics="(analyticsData?.metrics || []).slice(0, 3).map(mm => mm.name)"
-    :range-label="rangeLabel"
-    :npk-ratio="analyticsData?.distributionWidget?.subtitle"
-    :soil-avg-moisture="getLiveVal(avgMoistureMetric)"
-    :ph-val="getLiveVal(phMetric)"
-    :ec-val="getLiveVal(ecMetric)"
-    :enclosure-temp="getLiveVal(enclosureTempMetric)"
-    :enclosure-safe-limit="thermalStatus?.safeLimit || 55"
-    :agronomy-insight="analyticsData?.insightText"
-    :thermal-insight="thermalStatus?.insight"
-  />
 </template>
