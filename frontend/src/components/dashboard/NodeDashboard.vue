@@ -88,9 +88,9 @@ const categoryOptions = [
     icon: null,
     isLucide: true,
     lucideIcon: Zap,
-    iconColorClass: 'bg-amber-500 dark:bg-amber-400',
-    iconTextColorClass: 'text-amber-600 dark:text-amber-400',
-    wrapperClass: 'bg-amber-500/10 dark:bg-amber-500/15 border-amber-500/20 dark:border-amber-500/30'
+    iconColorClass: 'bg-foreground',
+    iconTextColorClass: 'text-foreground',
+    wrapperClass: 'bg-slate-100 dark:bg-slate-800 border-slate-200/80 dark:border-slate-700/80'
   },
   {
     id: 'all' as const,
