@@ -27,15 +27,16 @@ export function getSensorCategory(sensor: any): SensorCategory {
   // 2. Prioritas tipe semantik Tanah
   if (['soil_ph', 'soil_ec', 'soil_temp', 'soil_moisture', 'avg_soil_moisture', 'probe_moist', 'soil_probe'].includes(type) ||
       name.includes('soil') || name.includes('tanah') || name.includes('ph') ||
-      name.includes('ec') || name.includes('analog') || name.includes('probe') || type.includes('soil')) {
+      name.includes('ec') || name.includes('analog') || name.includes('probe') || name.includes('daya hantar') || type.includes('soil')) {
     return 'soil'
   }
 
   // 3. Prioritas tipe semantik Kelistrikan & Daya (Tegangan, Arus, Daya INA226)
   if (['batt_volt', 'load_volt', 'batt_current', 'load_current', 'load_power', 'power'].includes(type) ||
-      name.includes('baterai') || name.includes('daya') ||
+      name.includes('baterai') || name.includes('aki') || (name.includes('daya') && !name.includes('daya hantar')) ||
       (name.includes('load') && (name.includes('tegangan') || name.includes('arus') || name.includes('volt') || name.includes('ampere') || name.includes('watt'))) ||
-      name.includes('tegangan') || name.includes('arus') || name.includes('solar') || name.includes('listrik') || type.includes('volt') || type.includes('current')) {
+      (name.includes('beban') && (name.includes('tegangan') || name.includes('arus') || name.includes('volt') || name.includes('ampere') || name.includes('watt') || name.includes('daya'))) ||
+      name.includes('tegangan') || name.includes('arus') || name.includes('solar') || name.includes('surya') || (name.includes('listrik') && !name.includes('daya hantar')) || type.includes('volt') || type.includes('current')) {
     return 'power'
   }
 
@@ -141,11 +142,11 @@ export function sortSensorsCanonically<T extends { name?: string }>(list: T[]): 
     return 99
   }
   const powerOrder = (n: string) => {
-    if (n.includes('tegangan baterai')) return 1
-    if (n.includes('tegangan load') || n.includes('tegangan')) return 2
-    if (n.includes('arus baterai')) return 3
-    if (n.includes('arus load') || n.includes('arus')) return 4
-    if (n.includes('daya')) return 5
+    if (n.includes('tegangan baterai') || n.includes('tegangan aki') || n.includes('batt volt')) return 1
+    if (n.includes('tegangan load') || n.includes('tegangan beban') || n.includes('tegangan')) return 2
+    if (n.includes('arus baterai') || n.includes('arus aki') || n.includes('batt curr')) return 3
+    if (n.includes('arus load') || n.includes('arus beban') || n.includes('arus')) return 4
+    if (n.includes('daya') && !n.includes('daya hantar')) return 5
     return 99
   }
 

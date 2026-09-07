@@ -82,8 +82,8 @@ const categoryOptions = [
   },
   {
     id: 'power' as const,
-    label: 'Kelistrikan',
-    fullLabel: 'Sistem Kelistrikan',
+    label: 'Manajemen Daya',
+    fullLabel: 'Sistem Manajemen Daya',
     desc: 'Tegangan, Arus, & Daya Baterai/Beban',
     icon: null,
     isLucide: true,
@@ -1222,7 +1222,7 @@ const analyticsData = computed(() => {
     return {
       hasData: true,
       dataPoints: feeds.length,
-      summaryTitle: 'Analisis Sistem Kelistrikan',
+      summaryTitle: 'Analisis Sistem Manajemen Daya',
       badgeText: criticalAnomaly ? 'Peringatan Kritis' : (warningAnomaly ? (warningAnomaly.sensor.name + ' Perhatian') : defaultBadgeText),
       badgeColor: criticalAnomaly ? 'bg-rose-500/15 border-rose-500/30 text-rose-700 dark:text-rose-400' : (warningAnomaly ? 'bg-amber-500/15 border-amber-500/30 text-amber-700 dark:text-amber-400' : defaultBadgeColor),
       boxClass: criticalAnomaly ? 'bg-rose-500/10 dark:bg-rose-950/30 border-rose-500/25 text-rose-900 dark:text-rose-300' : (warningAnomaly ? 'bg-amber-500/10 dark:bg-amber-950/30 border-amber-500/25 text-amber-900 dark:text-amber-300' : defaultBoxClass),
@@ -1704,7 +1704,7 @@ onUnmounted(() => {
                 <SensorLineChart 
                   :key="selectedCategory"
                   :data="chartData" 
-                  :title="`Tren ${selectedCategory === 'npk' ? 'Unsur Hara NPK' : (selectedCategory === 'soil' ? 'Kondisi Tanah' : (selectedCategory === 'environment' ? 'Kondisi IoT' : (selectedCategory === 'power' ? 'Sistem Kelistrikan' : 'Sensor')))}`" 
+                  :title="`Tren ${selectedCategory === 'npk' ? 'Unsur Hara NPK' : (selectedCategory === 'soil' ? 'Kondisi Tanah' : (selectedCategory === 'environment' ? 'Kondisi IoT' : (selectedCategory === 'power' ? 'Sistem Manajemen Daya' : 'Sensor')))}`" 
                   :sensors="activeCategorySensors" 
                   :is-loading="isArchiveLoading || isLoading || (!isInitialLoaded && chartData.length === 0)"
                 />
