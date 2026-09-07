@@ -1410,7 +1410,7 @@ onUnmounted(() => {
               <!-- 1. Suhu Dalam Panel (Enclosure) -->
               <div 
                 :class="[
-                  'relative overflow-hidden p-2.5 rounded-2xl text-white shadow-xs border border-white/20 flex flex-col justify-between min-h-[96px] sm:min-h-[105px] group hover:scale-[1.01] transition-transform',
+                  'relative overflow-hidden p-2.5 sm:p-3 rounded-2xl text-white shadow-xs border border-white/20 flex flex-col justify-between group hover:scale-[1.01] transition-transform',
                   enclosureTempCardState.gradient,
                   enclosureTempCardState.shadow
                 ]"
@@ -1430,24 +1430,13 @@ onUnmounted(() => {
                       </span>
                     </div>
                   </div>
-                  <div class="pt-1.5">
-                    <div 
-                      :class="[
-                        'bg-white/25 text-white border border-white/40 shadow-2xs select-none px-1.5 py-0.5 rounded-full flex items-center justify-center text-center',
-                        enclosureTempCardState.isAlert && 'rounded-xl'
-                      ]"
-                      :title="enclosureTempStatus.text"
-                    >
-                      <span class="text-[9px] sm:text-[10px] font-extrabold leading-tight truncate">{{ enclosureTempStatus.text }}</span>
-                    </div>
-                  </div>
                 </div>
               </div>
 
               <!-- 2. Suhu Luar / Ambient -->
               <div 
                 :class="[
-                  'relative overflow-hidden p-2.5 rounded-2xl text-white shadow-xs border border-white/20 flex flex-col justify-between min-h-[96px] sm:min-h-[105px] group hover:scale-[1.01] transition-transform',
+                  'relative overflow-hidden p-2.5 sm:p-3 rounded-2xl text-white shadow-xs border border-white/20 flex flex-col justify-between group hover:scale-[1.01] transition-transform',
                   airTempCardState.gradient,
                   airTempCardState.shadow
                 ]"
@@ -1467,24 +1456,13 @@ onUnmounted(() => {
                       </span>
                     </div>
                   </div>
-                  <div class="pt-1.5">
-                    <div 
-                      :class="[
-                        'bg-white/25 text-white border border-white/40 shadow-2xs select-none px-1.5 py-0.5 rounded-full flex items-center justify-center text-center',
-                        airTempCardState.isAlert && 'rounded-xl'
-                      ]"
-                      :title="airTempStatus.text"
-                    >
-                      <span class="text-[9px] sm:text-[10px] font-extrabold leading-tight truncate">{{ airTempStatus.text }}</span>
-                    </div>
-                  </div>
                 </div>
               </div>
 
               <!-- 3. Kelembaban Udara -->
               <div 
                 :class="[
-                  'relative overflow-hidden p-2.5 rounded-2xl text-white shadow-xs border border-white/20 flex flex-col justify-between min-h-[96px] sm:min-h-[105px] group hover:scale-[1.01] transition-transform',
+                  'relative overflow-hidden p-2.5 sm:p-3 rounded-2xl text-white shadow-xs border border-white/20 flex flex-col justify-between group hover:scale-[1.01] transition-transform',
                   humidityCardState.gradient,
                   humidityCardState.shadow
                 ]"
@@ -1502,17 +1480,6 @@ onUnmounted(() => {
                       <span class="text-xs font-bold text-white/90">
                         {{ humidityMetric?.unit || '%' }}
                       </span>
-                    </div>
-                  </div>
-                  <div class="pt-1.5">
-                    <div 
-                      :class="[
-                        'bg-white/25 text-white border border-white/40 shadow-2xs select-none px-1.5 py-0.5 rounded-full flex items-center justify-center text-center',
-                        humidityCardState.isAlert && 'rounded-xl'
-                      ]"
-                      :title="humidityStatus.text"
-                    >
-                      <span class="text-[9px] sm:text-[10px] font-extrabold leading-tight truncate">{{ humidityStatus.text }}</span>
                     </div>
                   </div>
                 </div>
