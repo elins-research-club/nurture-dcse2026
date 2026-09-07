@@ -2039,10 +2039,10 @@ onUnmounted(() => {
                       <span class="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">Baterai 12V</span>
                     </div>
                     <span 
-                      class="text-xs font-bold px-2 py-0.5 rounded-lg border tracking-tight"
+                      class="text-[10px] font-mono font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md border shadow-2xs select-none"
                       :class="power?.i2c_0x40_active 
-                        ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/20' 
-                        : 'text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700'"
+                        ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/25 dark:border-emerald-500/30' 
+                        : 'text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700'"
                       title="Status Sensor Baterai (I2C 0x40)"
                     >
                       {{ power?.i2c_0x40_active ? 'Aktif' : 'Standby' }}
@@ -2102,10 +2102,10 @@ onUnmounted(() => {
                       <span class="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">Load Sistem</span>
                     </div>
                     <span 
-                      class="text-xs font-bold px-2 py-0.5 rounded-lg border tracking-tight"
+                      class="text-[10px] font-mono font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md border shadow-2xs select-none"
                       :class="power?.i2c_0x41_active 
-                        ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/20' 
-                        : 'text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700'"
+                        ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/25 dark:border-emerald-500/30' 
+                        : 'text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700'"
                       title="Status Sensor Beban (I2C 0x41)"
                     >
                       {{ power?.i2c_0x41_active ? 'Aktif' : 'Standby' }}
