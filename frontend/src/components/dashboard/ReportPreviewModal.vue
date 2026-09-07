@@ -69,12 +69,13 @@ const categoryOptions = [
   { id: 'all' as const, label: 'Semua Parameter' },
   { id: 'npk' as const, label: 'Unsur Hara NPK' },
   { id: 'soil' as const, label: 'Kondisi Tanah' },
-  { id: 'environment' as const, label: 'IoT & Lingkungan' }
+  { id: 'environment' as const, label: 'IoT & Lingkungan' },
+  { id: 'power' as const, label: 'Sistem Kelistrikan' }
 ]
 
 // State for Dropdowns
 const selectedRange = ref<'1d' | '1w' | '1M' | 'custom'>('1d')
-const selectedCategory = ref<'all' | 'npk' | 'soil' | 'environment'>('all')
+const selectedCategory = ref<'all' | 'npk' | 'soil' | 'environment' | 'power'>('all')
 const modalFeeds = ref<any[]>([])
 
 // Fetch Feeds when Range Changes

@@ -7,7 +7,7 @@
  * parameters for the same station and period. Everything now routes through here.
  */
 
-export type SensorCategory = 'npk' | 'soil' | 'environment' | 'other'
+export type SensorCategory = 'npk' | 'soil' | 'environment' | 'power' | 'other'
 
 /** Categories a user can pick in the dashboard and the export dialogs. */
 export type CategorySelection = 'all' | SensorCategory | 'iot'
@@ -31,12 +31,19 @@ export function getSensorCategory(sensor: any): SensorCategory {
     return 'soil'
   }
 
-  // 3. Prioritas tipe semantik Lingkungan & Daya
-  if (['air_temp', 'air_humidity', 'box_temp', 'batt_volt', 'load_volt', 'batt_current', 'load_current', 'load_power', 'power'].includes(type) ||
+  // 3. Prioritas tipe semantik Kelistrikan & Daya (Tegangan, Arus, Daya INA226)
+  if (['batt_volt', 'load_volt', 'batt_current', 'load_current', 'load_power', 'power'].includes(type) ||
+      name.includes('baterai') || name.includes('daya') ||
+      (name.includes('load') && (name.includes('tegangan') || name.includes('arus') || name.includes('volt') || name.includes('ampere') || name.includes('watt'))) ||
+      name.includes('tegangan') || name.includes('arus') || name.includes('solar') || name.includes('listrik') || type.includes('volt') || type.includes('current')) {
+    return 'power'
+  }
+
+  // 4. Prioritas tipe semantik Lingkungan & IoT
+  if (['air_temp', 'air_humidity', 'box_temp'].includes(type) ||
       name.includes('suhu') || name.includes('temp') || name.includes('kelembaban') ||
       name.includes('kelembapan') || name.includes('humidity') || name.includes('enclosure') ||
-      name.includes('udara') || name.includes('cahaya') || name.includes('baterai') ||
-      name.includes('daya') || name.includes('load') || type.includes('env') || type.includes('temp')) {
+      name.includes('udara') || name.includes('cahaya') || type.includes('env') || type.includes('temp')) {
     return 'environment'
   }
 
@@ -133,6 +140,14 @@ export function sortSensorsCanonically<T extends { name?: string }>(list: T[]): 
     if (n.includes('probe 3')) return 3
     return 99
   }
+  const powerOrder = (n: string) => {
+    if (n.includes('tegangan baterai')) return 1
+    if (n.includes('tegangan load') || n.includes('tegangan')) return 2
+    if (n.includes('arus baterai')) return 3
+    if (n.includes('arus load') || n.includes('arus')) return 4
+    if (n.includes('daya')) return 5
+    return 99
+  }
 
   return [...list].sort((a, b) => {
     const nameA = (a.name || '').toLowerCase()
@@ -145,6 +160,10 @@ export function sortSensorsCanonically<T extends { name?: string }>(list: T[]): 
     const probeA = probeOrder(nameA)
     const probeB = probeOrder(nameB)
     if (probeA !== 99 || probeB !== 99) return probeA - probeB
+
+    const powA = powerOrder(nameA)
+    const powB = powerOrder(nameB)
+    if (powA !== 99 || powB !== 99) return powA - powB
 
     return nameA.localeCompare(nameB)
   })

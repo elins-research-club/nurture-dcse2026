@@ -140,7 +140,11 @@ const getSensorDeterministicColor = (sensorName: string, index: number): string 
   if (name.includes('suhu') || name.includes('temp')) return '#ef4444' // Red
   if (name.includes('probe 1')) return '#0ea5e9' // Sky Blue
   if (name.includes('probe 2')) return '#06b6d4' // Cyan
-  if (name.includes('probe 3')) return '#14b8a6' // Teal
+  if (name.includes('tegangan baterai')) return '#10b981' // Emerald
+  if (name.includes('tegangan load') || name.includes('tegangan')) return '#3b82f6' // Blue
+  if (name.includes('arus baterai')) return '#06b6d4' // Cyan
+  if (name.includes('arus load') || name.includes('arus')) return '#f59e0b' // Amber
+  if (name.includes('daya') && !name.includes('daya hantar')) return '#8b5cf6' // Purple
   if (name.includes('kelembaban') || name.includes('moisture') || name.includes('lembab')) return '#06b6d4' // Cyan
   
   return COLOR_PALETTE[index % COLOR_PALETTE.length]

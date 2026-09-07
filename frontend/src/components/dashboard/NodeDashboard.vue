@@ -39,7 +39,7 @@ const isLoading = ref(true)
 const isInitialLoaded = ref(false)
 const isExportModalOpen = ref(false)
 const isReportModalOpen = ref(false)
-const selectedCategory = ref<'all' | 'npk' | 'soil' | 'environment'>('npk')
+const selectedCategory = ref<'all' | 'npk' | 'soil' | 'environment' | 'power'>('npk')
 const isCategoryDropdownOpen = ref(false)
 const categoryDropdownRef = ref<HTMLElement | null>(null)
 
@@ -51,6 +51,7 @@ const categoryOptions = [
     desc: 'Nitrogen (N), Fosfor (P), Kalium (K)',
     icon: '/npk-icon.svg',
     isLucide: false,
+    lucideIcon: null,
     iconColorClass: 'bg-emerald-600 dark:bg-emerald-400',
     iconTextColorClass: 'text-emerald-600 dark:text-emerald-400',
     wrapperClass: 'bg-emerald-500/10 dark:bg-emerald-500/15 border-emerald-500/20 dark:border-emerald-500/30'
@@ -62,6 +63,7 @@ const categoryOptions = [
     desc: 'pH Tanah, Multi-Probe Kelembapan, EC, Suhu',
     icon: '/soil-icon.svg',
     isLucide: false,
+    lucideIcon: null,
     iconColorClass: 'bg-amber-600 dark:bg-amber-400',
     iconTextColorClass: 'text-amber-600 dark:text-amber-400',
     wrapperClass: 'bg-amber-500/10 dark:bg-amber-500/15 border-amber-500/20 dark:border-amber-500/30'
@@ -73,9 +75,22 @@ const categoryOptions = [
     desc: 'Suhu Casing/Box, Kelembaban & Suhu Udara',
     icon: '/iot-icon.svg',
     isLucide: false,
+    lucideIcon: null,
     iconColorClass: 'bg-sky-600 dark:bg-sky-400',
     iconTextColorClass: 'text-sky-600 dark:text-sky-400',
     wrapperClass: 'bg-sky-500/10 dark:bg-sky-500/15 border-sky-500/20 dark:border-sky-500/30'
+  },
+  {
+    id: 'power' as const,
+    label: 'Kelistrikan',
+    fullLabel: 'Sistem Kelistrikan',
+    desc: 'Tegangan, Arus, & Daya Baterai/Beban',
+    icon: null,
+    isLucide: true,
+    lucideIcon: Zap,
+    iconColorClass: 'bg-amber-500 dark:bg-amber-400',
+    iconTextColorClass: 'text-amber-600 dark:text-amber-400',
+    wrapperClass: 'bg-amber-500/10 dark:bg-amber-500/15 border-amber-500/20 dark:border-amber-500/30'
   },
   {
     id: 'all' as const,
@@ -84,6 +99,7 @@ const categoryOptions = [
     desc: 'Agregasi seluruh telemetri',
     icon: null,
     isLucide: true,
+    lucideIcon: Layers,
     iconColorClass: 'bg-violet-600 dark:bg-violet-400',
     iconTextColorClass: 'text-violet-600 dark:text-violet-400',
     wrapperClass: 'bg-violet-500/10 dark:bg-violet-500/15 border-violet-500/20 dark:border-violet-500/30'
@@ -94,7 +110,7 @@ const currentCategoryMeta = computed(() => {
   return categoryOptions.find(c => c.id === selectedCategory.value) || categoryOptions[0]
 })
 
-const selectCategory = (catId: 'all' | 'npk' | 'soil' | 'environment') => {
+const selectCategory = (catId: 'all' | 'npk' | 'soil' | 'environment' | 'power') => {
   selectedCategory.value = catId
   isCategoryDropdownOpen.value = false
 }
@@ -1190,7 +1206,55 @@ const analyticsData = computed(() => {
     }
   }
 
-  // 4. Kategori Semua Sensor
+  // 4. Kategori Kelistrikan & Daya (Tegangan, Arus, Daya)
+  if (selectedCategory.value === 'power') {
+    const battVoltStat = sensorStats.find((s: any) => s.name.toLowerCase().includes('tegangan baterai') || s.name.toLowerCase().includes('batt'))
+    const loadVoltStat = sensorStats.find((s: any) => s.name.toLowerCase().includes('tegangan load') || s.name.toLowerCase().includes('load'))
+    const loadPowerStat = sensorStats.find((s: any) => s.name.toLowerCase().includes('daya') && !s.name.toLowerCase().includes('daya hantar'))
+    const netPow = power.value?.net_power != null ? Number(Number(power.value.net_power).toFixed(2)) : null
+
+    const vBatt = battVoltStat ? Number((battVoltStat.current ?? battVoltStat.avg ?? 0).toFixed(2)) : null
+    const vLoad = loadVoltStat ? Number((loadVoltStat.current ?? loadVoltStat.avg ?? 0).toFixed(2)) : null
+    const pLoad = loadPowerStat ? Number((loadPowerStat.current ?? loadPowerStat.avg ?? 0).toFixed(2)) : null
+
+    const distributionWidget = {
+      title: 'Neraca & Aliran Daya',
+      subtitle: netPow != null ? `${netPow > 0 ? '+' : ''}${netPow} W (${power.value?.status_aliran === 'surplus' ? 'Surplus' : 'Defisit'})` : 'INA226 Dual Monitor',
+      segments: [
+        { 
+          label: `Baterai: ${vBatt ?? '--'}V`, 
+          percent: 50, 
+          color: 'bg-emerald-500', 
+          textClass: 'text-emerald-600 dark:text-emerald-400' 
+        },
+        { 
+          label: `Beban: ${vLoad ?? '--'}V (${pLoad ?? '--'}W)`, 
+          percent: 50, 
+          color: 'bg-amber-500', 
+          textClass: 'text-amber-600 dark:text-amber-400' 
+        }
+      ]
+    }
+
+    defaultBadgeText = power.value?.status_aliran === 'surplus' ? 'Surplus Terjaga' : (power.value?.status_aliran === 'defisit' ? 'Konsumsi Aki' : 'Daya Stabil')
+    defaultInsightText = `Pemantauan sistem daya 12V DC INA226. Tegangan aki rata-rata ${vBatt ?? '--'}V dengan suplai beban ${pLoad ?? '--'}W.`
+
+    return {
+      hasData: true,
+      dataPoints: feeds.length,
+      summaryTitle: 'Analisis Sistem Kelistrikan',
+      badgeText: criticalAnomaly ? 'Peringatan Kritis' : (warningAnomaly ? (warningAnomaly.sensor.name + ' Perhatian') : defaultBadgeText),
+      badgeColor: criticalAnomaly ? 'bg-rose-500/15 border-rose-500/30 text-rose-700 dark:text-rose-400' : (warningAnomaly ? 'bg-amber-500/15 border-amber-500/30 text-amber-700 dark:text-amber-400' : defaultBadgeColor),
+      boxClass: criticalAnomaly ? 'bg-rose-500/10 dark:bg-rose-950/30 border-rose-500/25 text-rose-900 dark:text-rose-300' : (warningAnomaly ? 'bg-amber-500/10 dark:bg-amber-950/30 border-amber-500/25 text-amber-900 dark:text-amber-300' : defaultBoxClass),
+      iconClass: criticalAnomaly ? 'text-rose-600 dark:text-rose-400' : (warningAnomaly ? 'text-amber-600 dark:text-amber-400' : defaultIconClass),
+      icon: criticalAnomaly ? AlertTriangle : (warningAnomaly ? AlertTriangle : defaultIcon),
+      metrics: sensorStats,
+      insightText: criticalAnomaly?.message || warningAnomaly?.message || defaultInsightText,
+      distributionWidget
+    }
+  }
+
+  // 5. Kategori Semua Sensor
   const distributionWidget = {
     title: 'Sebaran Kanal Sensor Telemetri',
     subtitle: `${sensorStats.length} Kanal Aktif`,
@@ -1560,7 +1624,7 @@ onUnmounted(() => {
                           WebkitMask: `url(${currentCategoryMeta.icon}) no-repeat center / contain`
                         }"
                       />
-                      <Layers v-else :class="['w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 transition-colors', currentCategoryMeta.iconTextColorClass]" />
+                      <component :is="currentCategoryMeta.lucideIcon || Layers" v-else :class="['w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 transition-colors', currentCategoryMeta.iconTextColorClass]" />
                     </div>
 
                     <!-- Selected Category Label -->
@@ -1604,7 +1668,7 @@ onUnmounted(() => {
                               WebkitMask: `url(${cat.icon}) no-repeat center / contain`
                             }"
                           />
-                          <Layers v-else :class="['w-5 h-5 shrink-0 transition-colors', cat.iconTextColorClass]" />
+                          <component :is="cat.lucideIcon || Layers" v-else :class="['w-5 h-5 shrink-0 transition-colors', cat.iconTextColorClass]" />
                         </div>
                         <div class="min-w-0">
                           <div class="font-extrabold text-foreground leading-tight text-sm sm:text-base">{{ cat.fullLabel }}</div>
@@ -1720,7 +1784,7 @@ onUnmounted(() => {
                 <SensorLineChart 
                   :key="selectedCategory"
                   :data="chartData" 
-                  :title="`Tren ${selectedCategory === 'npk' ? 'Unsur Hara NPK' : (selectedCategory === 'soil' ? 'Kondisi Tanah' : (selectedCategory === 'environment' ? 'Kondisi IoT' : 'Sensor'))}`" 
+                  :title="`Tren ${selectedCategory === 'npk' ? 'Unsur Hara NPK' : (selectedCategory === 'soil' ? 'Kondisi Tanah' : (selectedCategory === 'environment' ? 'Kondisi IoT' : (selectedCategory === 'power' ? 'Sistem Kelistrikan' : 'Sensor')))}`" 
                   :sensors="activeCategorySensors" 
                   :is-loading="isArchiveLoading || isLoading || (!isInitialLoaded && chartData.length === 0)"
                 />
@@ -2121,7 +2185,7 @@ onUnmounted(() => {
                   <div class="flex items-center justify-between">
                     <div class="flex items-center gap-1.5">
                       <Zap class="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                      <span class="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">Beban Sistem</span>
+                      <span class="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">Load Sistem</span>
                     </div>
                     <span class="text-[10px] font-mono font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-lg border border-amber-500/20">
                       Output
