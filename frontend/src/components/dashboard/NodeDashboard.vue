@@ -453,9 +453,32 @@ const batteryStatusInfo = computed(() => {
   }
 })
 
+const loadCurrentMetric = computed(() => {
+  return wrapSensorAsMetric(findSensorByKeywords(['arus load', 'load_current', 'arus beban'], ['baterai', 'batt']))
+})
+
+const loadCurrentThresholds = computed(() => {
+  const metric = loadCurrentMetric.value
+  const min = metric?.min_threshold != null ? Number(metric.min_threshold) : 0.0
+  const max = metric?.max_threshold != null ? Number(metric.max_threshold) : 2.5
+  return { min, max }
+})
+
+const loadCurrentPercent = computed(() => {
+  const arus = power.value?.arus_out != null ? Number(power.value.arus_out) : null
+  if (arus == null) return 0
+  const { min, max } = loadCurrentThresholds.value
+  const range = max - min
+  if (range <= 0) return 0
+  const pct = ((arus - min) / range) * 100
+  return Math.min(Math.max(Math.round(pct), arus > 0 ? 5 : 0), 100)
+})
+
 const loadStatusInfo = computed(() => {
-  const daya = power.value?.daya_out != null ? Number(power.value.daya_out) : null
-  if (daya == null) {
+  const arus = power.value?.arus_out != null ? Number(power.value.arus_out) : null
+  const { max } = loadCurrentThresholds.value
+
+  if (arus == null) {
     return {
       barColor: 'from-slate-400 to-slate-500',
       textColor: 'text-slate-500 dark:text-slate-400',
@@ -463,31 +486,32 @@ const loadStatusInfo = computed(() => {
       statusText: 'Standby'
     }
   }
-  // Semantik Konsumsi Beban IoT:
-  // <= 2.5W: Ringan / Normal Standby (Hijau/Teal)
-  // 2.5W - 6.0W: Sedang / Aktuator Aktif (Amber/Kuning)
-  // > 6.0W: Tinggi / Mendekati Kapasitas (Merah/Rose)
-  if (daya <= 2.5) {
+
+  // Evaluasi semantik konsumsi arus terhadap ambang batas beban:
+  // > max: Overload (Merah/Rose)
+  // > 80% max: Beban Tinggi (Amber/Kuning)
+  // <= 80% max: Normal 12V Output (Hijau/Teal)
+  if (max != null && arus > max) {
     return {
-      barColor: 'from-emerald-400 to-teal-500',
-      textColor: 'text-emerald-600 dark:text-emerald-400',
-      dotColor: 'bg-emerald-500',
-      statusText: '12V Output'
+      barColor: 'from-rose-500 to-red-600',
+      textColor: 'text-rose-600 dark:text-rose-400',
+      dotColor: 'bg-rose-500',
+      statusText: 'Overload'
     }
   }
-  if (daya <= 6.0) {
+  if (max != null && arus > max * 0.8) {
     return {
       barColor: 'from-amber-400 to-amber-500',
       textColor: 'text-amber-600 dark:text-amber-400',
       dotColor: 'bg-amber-500',
-      statusText: '12V Output'
+      statusText: 'Beban Tinggi'
     }
   }
   return {
-    barColor: 'from-rose-500 to-red-600',
-    textColor: 'text-rose-600 dark:text-rose-400',
-    dotColor: 'bg-rose-500',
-    statusText: 'Beban Tinggi'
+    barColor: 'from-emerald-400 to-teal-500',
+    textColor: 'text-emerald-600 dark:text-emerald-400',
+    dotColor: 'bg-emerald-500',
+    statusText: arus > 0 ? '12V Output' : 'Standby'
   }
 })
 
@@ -2111,41 +2135,42 @@ onUnmounted(() => {
                     </span>
                   </div>
 
-                  <!-- Tegangan Load Utama & Indikator Output Beban -->
+                  <!-- Arus Load Utama (Highlight) & Indikator Output Beban -->
                   <div class="space-y-1">
                     <div class="flex items-baseline justify-between">
                       <div class="flex items-baseline gap-1">
                         <span class="text-2xl sm:text-3xl font-black font-mono tracking-tight text-slate-800 dark:text-slate-100">
-                          {{ power?.tegangan_out != null ? Number(power.tegangan_out).toFixed(2) : '--' }}
+                          {{ power?.arus_out != null ? Number(power.arus_out).toFixed(3) : '--' }}
                         </span>
-                        <span class="text-xs font-extrabold text-slate-500 dark:text-slate-400">V</span>
+                        <span class="text-xs font-extrabold text-slate-500 dark:text-slate-400">A</span>
                       </div>
                       <span class="text-xs font-mono font-extrabold uppercase tracking-wide flex items-center gap-1 transition-colors duration-300" :class="loadStatusInfo.textColor">
                         <span class="w-1.5 h-1.5 rounded-full animate-pulse" :class="loadStatusInfo.dotColor"></span>
                         {{ loadStatusInfo.statusText }}
                       </span>
                     </div>
-                    <!-- Visual Jalur Beban (Simetris dengan Bar Baterai) -->
+                    <!-- Visual Range Threshold Arus Beban (Simetris dengan Bar Baterai) -->
                     <div class="space-y-0.5">
                       <div class="h-1.5 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
                         <div 
                           :class="['h-full bg-gradient-to-r rounded-full transition-all duration-500', loadStatusInfo.barColor]"
-                          :style="{ width: `${Math.min(Math.max((Number(power?.daya_out || 0) / 10) * 100, 8), 100)}%` }"
+                          :style="{ width: `${loadCurrentPercent}%` }"
+                          :title="`Arus Beban: ${power?.arus_out != null ? Number(power.arus_out).toFixed(3) : '--'} A (Ambang: ${loadCurrentThresholds.min}A - ${loadCurrentThresholds.max}A)`"
                         />
                       </div>
                       <div class="flex justify-between text-[9px] text-muted-foreground font-mono">
-                        <span>Suplai Beban</span>
-                        <span>{{ power?.daya_out != null ? `${Number(power.daya_out).toFixed(2)} W` : '--' }}</span>
+                        <span>{{ loadCurrentThresholds.min.toFixed(1) }}A</span>
+                        <span>{{ loadCurrentThresholds.max.toFixed(1) }}A</span>
                       </div>
                     </div>
                   </div>
 
-                  <!-- Sub: Arus & Daya Beban -->
+                  <!-- Sub: Tegangan & Daya Beban -->
                   <div class="grid grid-cols-2 gap-1.5 pt-2 border-t border-slate-200/60 dark:border-slate-800/60 text-center">
                     <div class="bg-white/70 dark:bg-slate-800/50 rounded-lg p-1.5 border border-slate-200/50 dark:border-slate-700/50">
-                      <p class="text-[9px] font-bold text-muted-foreground uppercase">Arus</p>
+                      <p class="text-[9px] font-bold text-muted-foreground uppercase">Tegangan</p>
                       <p class="text-xs font-mono font-black text-foreground mt-0.5">
-                        {{ power?.arus_out != null ? `${Number(power.arus_out).toFixed(3)} A` : '--' }}
+                        {{ power?.tegangan_out != null ? `${Number(power.tegangan_out).toFixed(2)} V` : '--' }}
                       </p>
                     </div>
                     <div class="bg-white/70 dark:bg-slate-800/50 rounded-lg p-1.5 border border-slate-200/50 dark:border-slate-700/50">
