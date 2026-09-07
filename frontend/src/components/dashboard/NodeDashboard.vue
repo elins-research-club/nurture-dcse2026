@@ -2240,7 +2240,7 @@ onUnmounted(() => {
                       {{ power?.net_power != null ? `${power.net_power > 0 ? '+' : ''}${Number(power.net_power).toFixed(2)} W` : '--' }}
                     </span>
                     <span>
-                      ({{ power?.status_label || 'Status Daya' }})
+                      {{ power?.status_label || 'Status Daya' }}
                     </span>
                   </div>
                 </div>
