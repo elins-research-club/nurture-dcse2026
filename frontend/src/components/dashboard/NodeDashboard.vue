@@ -2093,7 +2093,7 @@ onUnmounted(() => {
                     <div class="bg-white/70 dark:bg-slate-800/50 rounded-lg p-1.5 border border-slate-200/50 dark:border-slate-700/50">
                       <p class="text-[9px] font-bold text-muted-foreground uppercase">Arus</p>
                       <p class="text-xs font-mono font-black text-foreground mt-0.5">
-                        {{ power?.arus_in != null ? `${Math.abs(Number(power.arus_in)).toFixed(2)} A` : '--' }}
+                        {{ power?.arus_in != null ? `${Number(power.arus_in).toFixed(3)} A` : '--' }}
                       </p>
                     </div>
                     <div class="bg-white/70 dark:bg-slate-800/50 rounded-lg p-1.5 border border-slate-200/50 dark:border-slate-700/50">
@@ -2157,7 +2157,7 @@ onUnmounted(() => {
                     <div class="bg-white/70 dark:bg-slate-800/50 rounded-lg p-1.5 border border-slate-200/50 dark:border-slate-700/50">
                       <p class="text-[9px] font-bold text-muted-foreground uppercase">Arus</p>
                       <p class="text-xs font-mono font-black text-foreground mt-0.5">
-                        {{ power?.arus_out != null ? `${Number(power.arus_out).toFixed(2)} A` : '--' }}
+                        {{ power?.arus_out != null ? `${Number(power.arus_out).toFixed(3)} A` : '--' }}
                       </p>
                     </div>
                     <div class="bg-white/70 dark:bg-slate-800/50 rounded-lg p-1.5 border border-slate-200/50 dark:border-slate-700/50">
