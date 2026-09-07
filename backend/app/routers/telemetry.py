@@ -172,6 +172,18 @@ async def get_history_telemetry(
     results: Optional[int] = Query(None, ge=1, le=8000, description="Max number of results (ThingSpeak cap: 8000)"),
     average: Optional[int] = Query(None, ge=1, le=1440, description="Aggregate: average per N minutes (e.g. 10, 60)")
 ):
+    # Sanitize parameters if called directly as a Python function (not via FastAPI dependency injection)
+    if not isinstance(time_range, str):
+        time_range = None
+    if not isinstance(start, str):
+        start = None
+    if not isinstance(end, str):
+        end = None
+    if not isinstance(results, int):
+        results = None
+    if not isinstance(average, int):
+        average = None
+
     if not node_id:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="node_id is required")
     node = await _find_node(db, node_id)
@@ -425,7 +437,16 @@ async def get_dashboard_summary(
     # 2. Fetch 24h history for min/max calculations
     history_feeds = []
     try:
-        hist = await get_history_telemetry(node_id, db, current_user, time_range="1d")
+        hist = await get_history_telemetry(
+            node_id=node_id, 
+            db=db, 
+            current_user=current_user, 
+            time_range="1d",
+            start=None,
+            end=None,
+            results=None,
+            average=None,
+        )
         if isinstance(hist, dict) and "feeds" in hist:
             history_feeds = hist["feeds"]
     except Exception:
