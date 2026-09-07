@@ -569,24 +569,25 @@ const kartuAmbang = (
   const max = metric?.max_threshold ?? null
   const v = getLiveVal(metric)
   const netral = { gradient: GRADIEN_NETRAL, shadow: 'shadow-slate-500/20' }
+  const normalRangeText = min != null && max != null 
+    ? `${min}–${max}` 
+    : (min != null ? `≥${min}` : (max != null ? `≤${max}` : ''))
 
   if (min == null && max == null) {
-    return { text: 'Ambang belum diatur', ...netral, isAlert: false, min, max, unset: true }
+    return { text: 'Ambang belum diatur', ...netral, isAlert: false, isLow: false, isHigh: false, min, max, normalRangeText, unset: true }
   }
   if (v == null) {
-    // Dulu kasus ini mengembalikan 'Optimal' berwarna hijau -- tidak ada
-    // pembacaan ditampilkan sebagai kondisi baik.
-    return { text: 'Tidak ada pembacaan', ...netral, isAlert: false, min, max, unset: false }
+    return { text: 'Tidak ada pembacaan', ...netral, isAlert: false, isLow: false, isHigh: false, min, max, normalRangeText, unset: false }
   }
 
   const num = Number(v)
   if (min != null && num < min) {
-    return { text: label.rendah, ...warna.rendah, isAlert: true, min, max, unset: false }
+    return { text: label.rendah, ...warna.rendah, isAlert: true, isLow: true, isHigh: false, min, max, normalRangeText, unset: false }
   }
   if (max != null && num > max) {
-    return { text: label.tinggi, ...warna.tinggi, isAlert: true, min, max, unset: false }
+    return { text: label.tinggi, ...warna.tinggi, isAlert: true, isLow: false, isHigh: true, min, max, normalRangeText, unset: false }
   }
-  return { text: label.optimal, ...warna.optimal, isAlert: false, min, max, unset: false }
+  return { text: label.optimal, ...warna.optimal, isAlert: false, isLow: false, isHigh: false, min, max, normalRangeText, unset: false }
 }
 
 const W_OPTIMAL: WarnaKartu = { gradient: GRADIEN_OPTIMAL, shadow: 'shadow-[#00b200]/20' }
@@ -596,7 +597,7 @@ const W_KERING: WarnaKartu = { gradient: 'bg-gradient-to-br from-amber-400 via-a
 
 const phCardState = computed(() => kartuAmbang(
   phMetric.value,
-  { rendah: 'Asam', optimal: 'Dalam ambang', tinggi: 'Basa' },
+  { rendah: 'Asam', optimal: 'Normal', tinggi: 'Basa' },
   {
     rendah: { gradient: 'bg-gradient-to-br from-orange-500 via-amber-600 to-rose-600', shadow: 'shadow-orange-500/25' },
     optimal: W_OPTIMAL,
@@ -607,14 +608,14 @@ const phStatus = computed(() => phCardState.value)
 
 const soilTempCardState = computed(() => kartuAmbang(
   soilTempMetric.value,
-  { rendah: 'Dingin', optimal: 'Dalam ambang', tinggi: 'Panas' },
+  { rendah: 'Dingin', optimal: 'Normal', tinggi: 'Panas' },
   { rendah: W_DINGIN, optimal: W_OPTIMAL, tinggi: W_PANAS }
 ))
 const soilTempStatus = computed(() => soilTempCardState.value)
 
 const ecCardState = computed(() => kartuAmbang(
   ecMetric.value,
-  { rendah: 'Rendah', optimal: 'Dalam ambang', tinggi: 'Pekat' },
+  { rendah: 'Rendah', optimal: 'Normal', tinggi: 'Pekat' },
   {
     rendah: W_KERING,
     optimal: { gradient: 'bg-gradient-to-br from-lime-500 via-emerald-500 to-teal-600', shadow: 'shadow-lime-500/20' },
@@ -1924,15 +1925,19 @@ onUnmounted(() => {
                     <!-- Unified Status & Threshold Capsule -->
                     <div 
                       :class="[
-                        'bg-white/25 hover:bg-white/30 backdrop-blur-md text-white border border-white/40 shadow-2xs transition-all shrink-0 select-none',
+                        'bg-white/25 hover:bg-white/30 backdrop-blur-md text-white border border-white/40 shadow-2xs transition-all shrink-0 select-none text-center',
                         phCardState.isAlert 
-                          ? 'px-2 py-0.5 rounded-xl flex flex-col items-center gap-0.5' 
+                          ? 'px-1.5 sm:px-2 py-0.5 rounded-xl flex flex-col items-center gap-0.5' 
                           : 'px-2 py-0.5 rounded-full flex items-center'
                       ]"
                     >
-                      <span class="text-[10px] sm:text-[11px] font-extrabold tracking-wide leading-tight drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)]">{{ phStatus.text }}</span>
-                      <span v-if="phCardState.isAlert" class="text-[9px] sm:text-[10px] font-bold text-white/95 border-t border-white/25 pt-0.5 tracking-tight whitespace-nowrap">
-                        {{ phCardState.min }}–{{ phCardState.max }}
+                      <span class="text-[10px] sm:text-[11px] font-extrabold tracking-wide leading-tight drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)] flex items-center gap-0.5">
+                        <span v-if="phCardState.isLow" class="text-[11px] font-black">↓</span>
+                        <span v-else-if="phCardState.isHigh" class="text-[11px] font-black">↑</span>
+                        <span>{{ phStatus.text }}</span>
+                      </span>
+                      <span v-if="phCardState.isAlert && phCardState.normalRangeText" class="text-[8.5px] sm:text-[9.5px] font-bold text-white/95 border-t border-white/25 pt-0.5 tracking-tight whitespace-nowrap">
+                        Normal: {{ phCardState.normalRangeText }}
                       </span>
                     </div>
                   </div>
@@ -1962,15 +1967,19 @@ onUnmounted(() => {
                     <!-- Unified Status & Threshold Capsule -->
                     <div 
                       :class="[
-                        'bg-white/25 hover:bg-white/30 backdrop-blur-md text-white border border-white/40 shadow-2xs transition-all shrink-0 select-none',
+                        'bg-white/25 hover:bg-white/30 backdrop-blur-md text-white border border-white/40 shadow-2xs transition-all shrink-0 select-none text-center',
                         soilTempCardState.isAlert 
-                          ? 'px-2 py-0.5 rounded-xl flex flex-col items-center gap-0.5' 
+                          ? 'px-1.5 sm:px-2 py-0.5 rounded-xl flex flex-col items-center gap-0.5' 
                           : 'px-2 py-0.5 rounded-full flex items-center'
                       ]"
                     >
-                      <span class="text-[10px] sm:text-[11px] font-extrabold tracking-wide leading-tight drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)]">{{ soilTempStatus.text }}</span>
-                      <span v-if="soilTempCardState.isAlert" class="text-[9px] sm:text-[10px] font-bold text-white/95 border-t border-white/25 pt-0.5 tracking-tight whitespace-nowrap">
-                        {{ soilTempCardState.min }}–{{ soilTempCardState.max }}°
+                      <span class="text-[10px] sm:text-[11px] font-extrabold tracking-wide leading-tight drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)] flex items-center gap-0.5">
+                        <span v-if="soilTempCardState.isLow" class="text-[11px] font-black">↓</span>
+                        <span v-else-if="soilTempCardState.isHigh" class="text-[11px] font-black">↑</span>
+                        <span>{{ soilTempStatus.text }}</span>
+                      </span>
+                      <span v-if="soilTempCardState.isAlert && soilTempCardState.normalRangeText" class="text-[8.5px] sm:text-[9.5px] font-bold text-white/95 border-t border-white/25 pt-0.5 tracking-tight whitespace-nowrap">
+                        Normal: {{ soilTempCardState.normalRangeText }}°
                       </span>
                     </div>
                   </div>
@@ -2000,15 +2009,19 @@ onUnmounted(() => {
                     <!-- Unified Status & Threshold Capsule -->
                     <div 
                       :class="[
-                        'bg-white/25 hover:bg-white/30 backdrop-blur-md text-white border border-white/40 shadow-2xs transition-all shrink-0 select-none',
+                        'bg-white/25 hover:bg-white/30 backdrop-blur-md text-white border border-white/40 shadow-2xs transition-all shrink-0 select-none text-center',
                         ecCardState.isAlert 
-                          ? 'px-2 py-0.5 rounded-xl flex flex-col items-center gap-0.5' 
+                          ? 'px-1.5 sm:px-2 py-0.5 rounded-xl flex flex-col items-center gap-0.5' 
                           : 'px-2 py-0.5 rounded-full flex items-center'
                       ]"
                     >
-                      <span class="text-[10px] sm:text-[11px] font-extrabold tracking-wide leading-tight drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)]">{{ ecStatus.text }}</span>
-                      <span v-if="ecCardState.isAlert" class="text-[9px] sm:text-[10px] font-bold text-white/95 border-t border-white/25 pt-0.5 tracking-tight whitespace-nowrap">
-                        {{ ecCardState.min }}–{{ ecCardState.max }}
+                      <span class="text-[10px] sm:text-[11px] font-extrabold tracking-wide leading-tight drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)] flex items-center gap-0.5">
+                        <span v-if="ecCardState.isLow" class="text-[11px] font-black">↓</span>
+                        <span v-else-if="ecCardState.isHigh" class="text-[11px] font-black">↑</span>
+                        <span>{{ ecStatus.text }}</span>
+                      </span>
+                      <span v-if="ecCardState.isAlert && ecCardState.normalRangeText" class="text-[8.5px] sm:text-[9.5px] font-bold text-white/95 border-t border-white/25 pt-0.5 tracking-tight whitespace-nowrap">
+                        Normal: {{ ecCardState.normalRangeText }}
                       </span>
                     </div>
                   </div>

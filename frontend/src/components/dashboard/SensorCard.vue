@@ -234,7 +234,7 @@ const semanticTheme = computed(() => {
           class="text-xs sm:text-[13px] font-bold text-white flex items-center justify-center gap-1.5 border-t border-white/25 pt-1.5 w-full tracking-tight whitespace-nowrap"
           :title="`Ambang Batas Normal: ${thresholdStatus.min ?? 0} - ${thresholdStatus.max ?? '∞'} ${unit}`"
         >
-          <span class="text-white/80 text-[11px] sm:text-xs font-medium">Batas:</span>
+          <span class="text-white/80 text-[11px] sm:text-xs font-medium">Normal:</span>
           <span class="font-black text-white">{{ thresholdStatus.min ?? 0 }}–{{ thresholdStatus.max ?? '∞' }}</span>
           <span class="text-[11px] sm:text-xs text-white/85 font-semibold">{{ unit }}</span>
         </div>
