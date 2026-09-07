@@ -605,6 +605,10 @@ const enclosureTempCardState = computed(() => kartuAmbang(
   { rendah: W_DINGIN, optimal: W_OPTIMAL, tinggi: W_PANAS }
 ))
 const enclosureTempStatus = computed(() => enclosureTempCardState.value)
+const thermalStatus = computed(() => ({
+  safeLimit: enclosureTempMetric.value?.max_threshold || 55,
+  insight: enclosureTempCardState.value?.text || 'Normal'
+}))
 
 const airTempCardState = computed(() => kartuAmbang(
   airTempMetric.value,

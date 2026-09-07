@@ -67,10 +67,7 @@ def hitung_metrik_daya(
     i2c_0x40_active = v_in is not None and v_in > 0.5
     i2c_0x41_active = v_out is not None and v_out > 0.5
 
-    # 3. Klasifikasi aliran daya & status pengisian aki
-    # Ambang batas arus pengisian: 0.05 A (50 mA)
-    AMBANG_ARUS = 0.05
-
+    # 3. Klasifikasi aliran daya & status pengisian aki berdasarkan daya fisik riil (P = V x A)
     if a_in is None or v_in is None:
         status_aliran = "offline"
         status_label = "Sensor Offline"
@@ -78,30 +75,32 @@ def hitung_metrik_daya(
         is_charging = False
         is_standby = True
         net_power = None
-    elif a_in > AMBANG_ARUS:
-        # Arus positif mengalir ke baterai: Surplus dari solar panel
-        status_aliran = "surplus"
-        status_label = "Surplus Solar"
-        battery_status_text = "Solar Aktif (Mengisi Aki)"
-        is_charging = True
-        is_standby = False
-        net_power = round(abs(a_in * v_in), 2)
-    elif abs(a_in) <= AMBANG_ARUS:
-        # Arus di sekitar nol: baterai siaga / float charging
-        status_aliran = "standby"
-        status_label = "Daya Seimbang"
-        battery_status_text = "Daya Seimbang (Siaga)"
-        is_charging = False
-        is_standby = True
-        net_power = 0.0
     else:
-        # Arus negatif: aki menyuplai beban (discharging)
-        status_aliran = "defisit"
-        status_label = "Suplai Cadangan Aki"
-        battery_status_text = "Tenaga Baterai (Solar Mati)"
-        is_charging = False
-        is_standby = False
-        net_power = round(-abs(a_in * v_in), 2)
+        # Daya netto riil baterai: positif = arus masuk (charging), negatif = arus keluar (discharging)
+        p_net = round(v_in * a_in, 2)
+        net_power = p_net
+
+        if p_net > 0:
+            # Arus positif: Solar panel menyuplai beban dan surplus mengisi aki
+            status_aliran = "surplus"
+            status_label = "Surplus Solar"
+            battery_status_text = "Solar Aktif (Mengisi Aki)"
+            is_charging = True
+            is_standby = False
+        elif p_net < 0:
+            # Arus negatif: Daya solar kurang/mati, aki aktif menyuplai beban
+            status_aliran = "defisit"
+            status_label = "Suplai Cadangan Aki"
+            battery_status_text = "Tenaga Baterai (Solar Mati)"
+            is_charging = False
+            is_standby = False
+        else:
+            # Daya netto 0.0 W: baterai seimbang / tidak ada arus mengalir
+            status_aliran = "standby"
+            status_label = "Daya Seimbang"
+            battery_status_text = "Daya Seimbang (Siaga)"
+            is_charging = False
+            is_standby = True
 
     # 4. Estimasi kapasitas baterai 12V (Aki Timbal / LiFePO4 buffer)
     # Rentang tegangan: 11.0V (0% habis total) sampai 13.8V (100% penuh)
