@@ -2109,11 +2109,8 @@ onUnmounted(() => {
                   <div>
                     <div class="flex items-center gap-2">
                       <h4 class="text-base sm:text-lg font-extrabold tracking-tight text-foreground leading-tight">
-                        Sistem Solar Panel
+                        Sistem Manajemen Daya
                       </h4>
-                      <Badge variant="outline" class="text-[10px] font-mono font-bold px-1.5 py-0.5 border-amber-500/30 text-amber-700 dark:text-amber-400 bg-amber-500/10">
-                        12V DC
-                      </Badge>
                     </div>
                   </div>
                 </div>
@@ -2212,7 +2209,7 @@ onUnmounted(() => {
                     </div>
                     <div class="bg-white/70 dark:bg-slate-800/50 rounded-lg p-1.5 border border-slate-200/50 dark:border-slate-700/50">
                       <p class="text-[9px] font-bold text-muted-foreground uppercase">Daya</p>
-                      <p class="text-xs font-mono font-black text-amber-600 dark:text-amber-400 mt-0.5">
+                      <p class="text-xs font-mono font-black text-foreground mt-0.5">
                         {{ power?.daya_out != null ? `${Number(power.daya_out).toFixed(2)} W` : '--' }}
                       </p>
                     </div>
