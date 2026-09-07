@@ -90,7 +90,7 @@ const categoryOptions = [
     lucideIcon: Zap,
     iconColorClass: 'bg-foreground',
     iconTextColorClass: 'text-foreground',
-    wrapperClass: 'bg-slate-100 dark:bg-slate-800 border-slate-200/80 dark:border-slate-700/80'
+    wrapperClass: 'bg-transparent border-transparent shadow-none'
   },
   {
     id: 'all' as const,
@@ -2019,17 +2019,11 @@ onUnmounted(() => {
             <div class="p-4 flex flex-col gap-3 flex-1 justify-between">
               <!-- Portlet Header -->
               <div class="flex items-center justify-between pb-2 border-b border-border/40">
-                <div class="flex items-center gap-2.5">
-                  <div class="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 text-foreground flex items-center justify-center shrink-0 shadow-2xs border border-slate-200/80 dark:border-slate-700/80">
-                    <Zap class="w-4.5 h-4.5 stroke-[2.5] text-foreground" />
-                  </div>
-                  <div>
-                    <div class="flex items-center gap-2">
-                      <h4 class="text-base sm:text-lg font-extrabold tracking-tight text-foreground leading-tight">
-                        Sistem Manajemen Daya
-                      </h4>
-                    </div>
-                  </div>
+                <div class="flex items-center gap-3">
+                  <Zap class="w-6 h-6 sm:w-7 sm:h-7 text-foreground stroke-[2.2] shrink-0" />
+                  <h4 class="text-base sm:text-lg font-extrabold tracking-tight text-foreground leading-tight">
+                    Sistem Manajemen Daya
+                  </h4>
                 </div>
               </div>
 
