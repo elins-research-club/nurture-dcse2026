@@ -1367,7 +1367,7 @@ onUnmounted(() => {
                 :class="[
                   'py-3 px-2 rounded-xl text-xs sm:text-sm font-medium border flex flex-col items-center justify-center gap-2 transition-all duration-200 text-center min-h-[96px] sm:min-h-[105px] select-none hover:-translate-y-0.5 cursor-default',
                   a.aktif 
-                    ? [a.activeBg, 'shadow-sm shadow-emerald-500/10 ring-1 ring-emerald-500/25'] 
+                    ? a.activeBg 
                     : 'bg-slate-50 dark:bg-slate-900/50 border-slate-200/80 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700'
                 ]"
               >
