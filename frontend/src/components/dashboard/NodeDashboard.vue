@@ -4,6 +4,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useTelemetryStore } from '@/stores/telemetry'
 import SensorCard from '@/components/dashboard/SensorCard.vue'
 import StatusBadge from '@/components/dashboard/StatusBadge.vue'
+import PowerStateBadge from '@/components/dashboard/PowerStateBadge.vue'
 import SensorLineChart from '@/components/charts/SensorLineChart.vue'
 import DashboardPreloader from '@/components/ui/DashboardPreloader.vue'
 import { DotPattern } from '@/components/ui/dot-pattern'
@@ -2053,19 +2054,11 @@ onUnmounted(() => {
                   </div>
                 </div>
 
-                <!-- Status Operasional Baterai -->
-                <div 
-                  :class="[
-                    'px-2.5 py-1 rounded-xl border flex items-center gap-1.5 shadow-2xs text-xs font-bold transition-all shrink-0',
-                    batteryStatusInfo.badgeClass
-                  ]"
-                >
-                  <span class="relative flex h-2 w-2">
-                    <span :class="['animate-ping absolute inline-flex h-full w-full rounded-full opacity-75', batteryStatusInfo.dotClass]"></span>
-                    <span :class="['relative inline-flex rounded-full h-2 w-2', batteryStatusInfo.dotClass]"></span>
-                  </span>
-                  <span class="text-[11px] sm:text-xs">{{ batteryStatusInfo.text }}</span>
-                </div>
+                <!-- Status Operasional Baterai & Solar Panel (Micro-Animation) -->
+                <PowerStateBadge 
+                  :status="power?.status_aliran" 
+                  :label="power?.battery_status_text" 
+                />
               </div>
 
               <!-- Top Section: Baterai 12V & Beban Sistem Berdampingan (2 Kolom) -->
