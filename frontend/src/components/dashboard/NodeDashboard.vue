@@ -1438,25 +1438,23 @@ onUnmounted(() => {
               <!-- 1. Suhu Dalam Panel (Enclosure) -->
               <div 
                 :class="[
-                  'relative overflow-hidden p-2.5 sm:p-3 rounded-2xl text-white shadow-xs border border-white/20 flex flex-col justify-between group hover:scale-[1.01] transition-transform',
+                  'relative overflow-hidden p-2.5 sm:p-3 rounded-2xl text-white shadow-xs border border-white/20 flex flex-col justify-between group hover:scale-[1.01] transition-transform h-full',
                   enclosureTempCardState.gradient,
                   enclosureTempCardState.shadow
                 ]"
               >
                 <DotPattern :width="12" :height="12" :cx="6" :cy="6" :cr="1" class="text-white/20" />
-                <div class="relative z-10 flex flex-col justify-between h-full">
-                  <div>
-                    <span class="text-[10px] sm:text-[11px] font-semibold text-white/95 line-clamp-2 leading-tight block" :title="enclosureTempMetric?.name || 'Suhu Dalam Panel'">
-                      {{ enclosureTempMetric?.name || 'Suhu Dalam Panel' }}
+                <div class="relative z-10 flex flex-col justify-between h-full flex-1">
+                  <span class="text-[10px] sm:text-[11px] font-semibold text-white/95 line-clamp-2 leading-tight block" :title="enclosureTempMetric?.name || 'Suhu Dalam Panel'">
+                    {{ enclosureTempMetric?.name || 'Suhu Dalam Panel' }}
+                  </span>
+                  <div class="flex items-baseline gap-1 mt-auto pt-2">
+                    <span class="text-xl sm:text-2xl font-black tracking-tight text-white font-mono">
+                      {{ getLiveVal(enclosureTempMetric) ?? '--' }}
                     </span>
-                    <div class="flex items-baseline gap-1 mt-1.5">
-                      <span class="text-xl sm:text-2xl font-black tracking-tight text-white font-mono">
-                        {{ getLiveVal(enclosureTempMetric) ?? '--' }}
-                      </span>
-                      <span class="text-xs font-bold text-white/90">
-                        {{ enclosureTempMetric?.unit || '°C' }}
-                      </span>
-                    </div>
+                    <span class="text-xs font-bold text-white/90">
+                      {{ enclosureTempMetric?.unit || '°C' }}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -1464,25 +1462,23 @@ onUnmounted(() => {
               <!-- 2. Suhu Luar / Ambient -->
               <div 
                 :class="[
-                  'relative overflow-hidden p-2.5 sm:p-3 rounded-2xl text-white shadow-xs border border-white/20 flex flex-col justify-between group hover:scale-[1.01] transition-transform',
+                  'relative overflow-hidden p-2.5 sm:p-3 rounded-2xl text-white shadow-xs border border-white/20 flex flex-col justify-between group hover:scale-[1.01] transition-transform h-full',
                   airTempCardState.gradient,
                   airTempCardState.shadow
                 ]"
               >
                 <DotPattern :width="12" :height="12" :cx="6" :cy="6" :cr="1" class="text-white/20" />
-                <div class="relative z-10 flex flex-col justify-between h-full">
-                  <div>
-                    <span class="text-[10px] sm:text-[11px] font-semibold text-white/95 line-clamp-2 leading-tight block" :title="airTempMetric?.name || 'Suhu Luar'">
-                      {{ airTempMetric?.name || 'Suhu Luar' }}
+                <div class="relative z-10 flex flex-col justify-between h-full flex-1">
+                  <span class="text-[10px] sm:text-[11px] font-semibold text-white/95 line-clamp-2 leading-tight block" :title="airTempMetric?.name || 'Suhu Luar'">
+                    {{ airTempMetric?.name || 'Suhu Luar' }}
+                  </span>
+                  <div class="flex items-baseline gap-1 mt-auto pt-2">
+                    <span class="text-xl sm:text-2xl font-black tracking-tight text-white font-mono">
+                      {{ getLiveVal(airTempMetric) ?? '--' }}
                     </span>
-                    <div class="flex items-baseline gap-1 mt-1.5">
-                      <span class="text-xl sm:text-2xl font-black tracking-tight text-white font-mono">
-                        {{ getLiveVal(airTempMetric) ?? '--' }}
-                      </span>
-                      <span class="text-xs font-bold text-white/90">
-                        {{ airTempMetric?.unit || '°C' }}
-                      </span>
-                    </div>
+                    <span class="text-xs font-bold text-white/90">
+                      {{ airTempMetric?.unit || '°C' }}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -1490,25 +1486,23 @@ onUnmounted(() => {
               <!-- 3. Kelembaban Udara -->
               <div 
                 :class="[
-                  'relative overflow-hidden p-2.5 sm:p-3 rounded-2xl text-white shadow-xs border border-white/20 flex flex-col justify-between group hover:scale-[1.01] transition-transform',
+                  'relative overflow-hidden p-2.5 sm:p-3 rounded-2xl text-white shadow-xs border border-white/20 flex flex-col justify-between group hover:scale-[1.01] transition-transform h-full',
                   humidityCardState.gradient,
                   humidityCardState.shadow
                 ]"
               >
                 <DotPattern :width="12" :height="12" :cx="6" :cy="6" :cr="1" class="text-white/20" />
-                <div class="relative z-10 flex flex-col justify-between h-full">
-                  <div>
-                    <span class="text-[10px] sm:text-[11px] font-semibold text-white/95 line-clamp-2 leading-tight block" :title="humidityMetric?.name || 'Kelembaban'">
-                      {{ humidityMetric?.name || 'Kelembaban' }}
+                <div class="relative z-10 flex flex-col justify-between h-full flex-1">
+                  <span class="text-[10px] sm:text-[11px] font-semibold text-white/95 line-clamp-2 leading-tight block" :title="humidityMetric?.name || 'Kelembaban'">
+                    {{ humidityMetric?.name || 'Kelembaban' }}
+                  </span>
+                  <div class="flex items-baseline gap-1 mt-auto pt-2">
+                    <span class="text-xl sm:text-2xl font-black tracking-tight text-white font-mono">
+                      {{ getLiveVal(humidityMetric) ?? '--' }}
                     </span>
-                    <div class="flex items-baseline gap-1 mt-1.5">
-                      <span class="text-xl sm:text-2xl font-black tracking-tight text-white font-mono">
-                        {{ getLiveVal(humidityMetric) ?? '--' }}
-                      </span>
-                      <span class="text-xs font-bold text-white/90">
-                        {{ humidityMetric?.unit || '%' }}
-                      </span>
-                    </div>
+                    <span class="text-xs font-bold text-white/90">
+                      {{ humidityMetric?.unit || '%' }}
+                    </span>
                   </div>
                 </div>
               </div>
