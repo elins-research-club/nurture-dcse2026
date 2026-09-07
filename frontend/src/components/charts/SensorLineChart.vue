@@ -265,11 +265,11 @@ const option = computed(() => {
           let formattedVal = ''
           const nameLower = seriesName.toLowerCase()
           if (nameLower.includes('(a)') || nameLower.includes('arus') || nameLower.includes('current')) {
-            formattedVal = `${valNum.toFixed(3)} A`
+            formattedVal = `${valNum > 0 ? '+' : ''}${valNum.toFixed(3)} A`
           } else if (nameLower.includes('(v)') || nameLower.includes('tegangan') || nameLower.includes('volt')) {
             formattedVal = `${valNum.toFixed(2)} V`
           } else if (nameLower.includes('(w)') || nameLower.includes('watt') || (nameLower.includes('daya') && !nameLower.includes('daya hantar'))) {
-            formattedVal = `${valNum.toFixed(2)} W`
+            formattedVal = `${valNum > 0 ? '+' : ''}${valNum.toFixed(2)} W`
           } else if (nameLower.includes('ph')) {
             formattedVal = `${valNum.toFixed(2)} pH`
           } else {
