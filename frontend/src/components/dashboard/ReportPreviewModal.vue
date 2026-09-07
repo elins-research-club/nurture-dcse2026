@@ -160,6 +160,12 @@ const computedStats = computed(() => {
     const max = rawVals.length ? Number(Math.max(...rawVals).toFixed(1)) : '--'
     const avg = rawVals.length ? Number((rawVals.reduce((a, b) => a + b, 0) / rawVals.length).toFixed(1)) : '--'
 
+    let status = 'Optimal'
+    if (typeof lastVal === 'number') {
+      if (s.max_threshold != null && lastVal > s.max_threshold) status = 'Melebihi Batas'
+      else if (s.min_threshold != null && lastVal < s.min_threshold) status = 'Di Bawah Batas'
+    }
+
     const domainName = (s.name?.toLowerCase().includes('nitrogen') || s.name?.toLowerCase().includes('phosphor') || s.name?.toLowerCase().includes('kalium')) ? 'NPK' : (s.name?.toLowerCase().includes('panel') || s.name?.toLowerCase().includes('udara') ? 'IoT' : 'Tanah')
 
     return {
@@ -174,7 +180,7 @@ const computedStats = computed(() => {
       max,
       minThreshold: s.min_threshold,
       maxThreshold: s.max_threshold,
-      status: 'Optimal'
+      status
     }
   })
 })
@@ -191,6 +197,7 @@ const handleGeneratePDF = async (isPrint = false) => {
       location: props.location,
       coordinates: props.coordinates || (props.location && props.location.includes(',') ? props.location : undefined),
       rangeLabel: selectedRangeLabel.value,
+      categoryId: selectedCategory.value,
       categoryLabel: selectedCategoryLabel.value,
       // Only mirror the dashboard's ikhtisar while the report still covers the
       // same category; once the user picks another, those names no longer apply.
