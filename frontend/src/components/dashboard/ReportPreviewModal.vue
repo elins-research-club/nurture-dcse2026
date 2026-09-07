@@ -17,7 +17,7 @@ import {
 } from 'lucide-vue-next'
 import { generateExecutivePDFReport, downloadExecutivePDFReport, type PDFReportOptions } from '@/lib/pdfReportGenerator'
 import { useTelemetryStore } from '@/stores/telemetry'
-import { filterSensorsByCategory } from '@/lib/sensorTaxonomy'
+import { filterSensorsByCategory, getSensorCategory } from '@/lib/sensorTaxonomy'
 
 const props = withDefaults(defineProps<{
   open: boolean
@@ -161,19 +161,24 @@ const computedStats = computed(() => {
     const avg = rawVals.length ? Number((rawVals.reduce((a, b) => a + b, 0) / rawVals.length).toFixed(1)) : '--'
 
     let status = 'Optimal'
-    if (typeof lastVal === 'number') {
+    const hasThreshold = s.min_threshold != null || s.max_threshold != null
+    if (typeof lastVal === 'number' && hasThreshold) {
       if (s.max_threshold != null && lastVal > s.max_threshold) status = 'Melebihi Batas'
       else if (s.min_threshold != null && lastVal < s.min_threshold) status = 'Di Bawah Batas'
+    } else if (!hasThreshold) {
+      status = 'Optimal'
     }
 
-    const domainName = (s.name?.toLowerCase().includes('nitrogen') || s.name?.toLowerCase().includes('phosphor') || s.name?.toLowerCase().includes('kalium')) ? 'NPK' : (s.name?.toLowerCase().includes('panel') || s.name?.toLowerCase().includes('udara') ? 'IoT' : 'Tanah')
+    const cat = getSensorCategory(s)
+    const domainMap: Record<string, string> = { npk: 'NPK', soil: 'Tanah', environment: 'IoT', power: 'Daya' }
 
     return {
       id: s.id,
       name: s.name,
       unit: s.unit || '',
       type: s.type,
-      domain: domainName,
+      domain: domainMap[cat] || 'Lahan',
+      category: cat,
       lastVal,
       avg,
       min,
