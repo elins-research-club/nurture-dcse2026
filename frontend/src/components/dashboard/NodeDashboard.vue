@@ -1389,17 +1389,17 @@ onUnmounted(() => {
                 v-for="a in actuatorList" 
                 :key="a.id"
                 :class="[
-                  'py-3 px-2 rounded-xl text-xs sm:text-sm font-medium border flex flex-col items-center justify-center gap-2 transition-all duration-200 text-center min-h-[96px] sm:min-h-[105px] select-none hover:-translate-y-0.5 cursor-default',
+                  'py-3.5 px-2 rounded-2xl text-xs sm:text-sm font-medium border flex flex-col items-center justify-center gap-2.5 transition-all duration-200 text-center min-h-[135px] sm:min-h-[148px] select-none hover:-translate-y-0.5 cursor-default',
                   a.aktif 
                     ? a.activeBg 
                     : 'bg-slate-50 dark:bg-slate-900/50 border-slate-200/80 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700'
                 ]"
               >
-                <!-- 1. Large Animated Icon on Top (Centered Horizontal) -->
-                <div class="flex items-center justify-center h-8 sm:h-9">
+                <!-- 1. Large Animated Icon on Top (Centered Horizontal - 2x Size) -->
+                <div class="flex items-center justify-center h-14 sm:h-16">
                   <component 
                     :is="a.icon" 
-                    :class="['w-7 h-7 sm:w-8 sm:h-8 transition-all', a.aktif ? a.iconActiveClass : a.iconInactiveClass]" 
+                    :class="['w-14 h-14 sm:w-16 sm:h-16 transition-all', a.aktif ? a.iconActiveClass : a.iconInactiveClass]" 
                   />
                 </div>
 
@@ -2061,15 +2061,6 @@ onUnmounted(() => {
                       <component :is="power?.is_charging ? BatteryCharging : Battery" class="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                       <span class="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">Baterai 12V</span>
                     </div>
-                    <span 
-                      class="text-[10px] font-mono font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md border shadow-2xs select-none"
-                      :class="power?.i2c_0x40_active 
-                        ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/25 dark:border-emerald-500/30' 
-                        : 'text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700'"
-                      title="Status Sensor Baterai (I2C 0x40)"
-                    >
-                      {{ power?.i2c_0x40_active ? 'Aktif' : 'Standby' }}
-                    </span>
                   </div>
 
                   <!-- Tegangan Utama Baterai & Level % di Kanan Atas Bar -->
@@ -2124,15 +2115,6 @@ onUnmounted(() => {
                       <Zap class="w-4 h-4 text-amber-600 dark:text-amber-400" />
                       <span class="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">Load Sistem</span>
                     </div>
-                    <span 
-                      class="text-[10px] font-mono font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md border shadow-2xs select-none"
-                      :class="power?.i2c_0x41_active 
-                        ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/25 dark:border-emerald-500/30' 
-                        : 'text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700'"
-                      title="Status Sensor Beban (I2C 0x41)"
-                    >
-                      {{ power?.i2c_0x41_active ? 'Aktif' : 'Standby' }}
-                    </span>
                   </div>
 
                   <!-- Arus Load Utama (Highlight) & Indikator Output Beban -->
