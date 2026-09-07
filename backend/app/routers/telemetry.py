@@ -9,9 +9,11 @@ from app.schemas.telemetry import DashboardSummaryResponse, SensorMetricSummary
 from app.services.websocket_manager import manager
 from app.services import soil_health
 from app.services.aktuator import baca_aktuator
+from app.services.power_system import hitung_metrik_daya
 from app.services.field_decoder import (
     LAYOUT_DEFAULT,
     extract_channel_fields,
+    get_actuator_field,
     has_valve,
     is_support_channel,
 )
@@ -137,8 +139,10 @@ async def get_latest_telemetry(
             ).items():
                 merged_data[f"{ch_uuid}_{nama_field}"] = nilai
 
-            if is_support_channel(channel.label) and data.get("field8") is not None:
-                aktuator = baca_aktuator(data.get("field8"), punya_valve=has_valve(layout))
+            if is_support_channel(channel.label):
+                actuator_f = get_actuator_field(layout)
+                if data.get(actuator_f) is not None:
+                    aktuator = baca_aktuator(data.get(actuator_f), punya_valve=has_valve(layout))
 
             ts = data.get("created_at")
             if ts:
@@ -368,9 +372,9 @@ def _peran_sensor(s) -> Optional[str]:
         return "ec"
     if t in ("soil_temperature", "soil_temp") or "suhu tanah" in n or "soil temp" in n:
         return "soil_temperature"
-    # Hanya probe analog yang dirata-ratakan. Lengas dari probe NPK sensor lain,
-    # kalibrasinya beda, jadi tidak dicampur.
     if t in ("soil_probe", "soil_moisture_probe") or "probe analog" in n or "soil probe" in n:
+        return "soil_probe"
+    if t in ("avg_soil_moisture", "soil_moisture") or "rata-rata kelembapan" in n:
         return "soil_moisture"
     if "nitrogen" in n or t in ("nitrogen", "npk_n"):
         return "nitrogen"
@@ -378,14 +382,23 @@ def _peran_sensor(s) -> Optional[str]:
         return "phosphorus"
     if "kalium" in n or "potassium" in n or t in ("potassium", "npk_k"):
         return "potassium"
-    # Baterai & arus dibedakan lewat field, bukan nama: field3/field4 selalu
-    # tegangan masuk/keluar, dan "arus masuk" ada di field5_in (Node 1, hasil
-    # bongkaran) atau field5 mentah (Node 2).
+    # Daya & Baterai INA226
+    if t == "batt_volt" or ("baterai" in n and "tegangan" in n):
+        return "tegangan_in"
+    if t == "load_volt" or ("load" in n and "tegangan" in n):
+        return "tegangan_out"
+    if t == "batt_current" or ("baterai" in n and "arus" in n):
+        return "arus_in"
+    if t == "load_current" or ("load" in n and "arus" in n):
+        return "arus_out"
+    if t in ("load_power", "power") or "daya" in n:
+        return "daya_out"
+    # Fallback legacy
     if t == "batt_volt":
-        return "tegangan_in" if s.thingspeak_field == "field3" else "tegangan_out"
+        return "tegangan_in" if s.thingspeak_field in ("field2", "field3") else "tegangan_out"
     if t == "current":
-        return "arus_in" if s.thingspeak_field in ("field5_in", "field5") else "arus_out"
-    if t in ("probe_moist", "soil_moisture"):
+        return "arus_in" if s.thingspeak_field in ("field4", "field5", "field5_in") else "arus_out"
+    if t in ("probe_moist", "npk_moisture"):
         return "lengas_npk"
     return None
 
@@ -534,58 +547,53 @@ async def get_dashboard_summary(
             npk_sensors.append(m)
         elif "probe" in name_lower and ("soil" in name_lower or "tanah" in name_lower or "titik" in name_lower):
             soil_probes.append(m)
-        elif "ph" in name_lower or type_lower == "ph":
+        elif "ph" in name_lower or type_lower in ("ph", "soil_ph"):
             soil_metrics["ph"] = m
-        elif "suhu tanah" in name_lower or "soil temp" in name_lower or type_lower == "soil_temperature":
+        elif "suhu tanah" in name_lower or "soil temp" in name_lower or type_lower in ("soil_temp", "soil_temperature"):
             soil_metrics["soil_temp"] = m
-        elif "ec" in name_lower or "conductivity" in name_lower or type_lower == "ec":
+        elif "ec" in name_lower or "conductivity" in name_lower or type_lower in ("ec", "soil_ec"):
             soil_metrics["ec"] = m
-        elif "rata-rata kelembapan" in name_lower or "avg moisture" in name_lower:
+        elif "rata-rata kelembapan" in name_lower or "avg moisture" in name_lower or type_lower in ("avg_soil_moisture", "soil_moisture"):
             soil_metrics["avg_moisture"] = m
         elif ("suhu dalam" in name_lower or "dalam casing" in name_lower or "box panel" in name_lower or "enclosure" in name_lower) and "luar" not in name_lower:
             iot_metrics["enclosure_temp"] = m
-        elif "suhu luar" in name_lower or "luar casing" in name_lower or "ambient" in name_lower or "suhu udara" in name_lower or type_lower == "air_temperature":
+        elif "suhu luar" in name_lower or "luar casing" in name_lower or "ambient" in name_lower or "suhu udara" in name_lower or type_lower in ("air_temp", "air_temperature"):
             iot_metrics["air_temp"] = m
-        elif "lembab luar" in name_lower or "kelembapan udara" in name_lower or "kelembaban udara" in name_lower or "humidity" in name_lower or type_lower == "humidity":
+        elif "lembab luar" in name_lower or "kelembapan udara" in name_lower or "kelembaban udara" in name_lower or "humidity" in name_lower or type_lower in ("air_humidity", "humidity"):
             iot_metrics["humidity"] = m
+        elif "daya" in name_lower or type_lower in ("load_power", "power"):
+            iot_metrics["power"] = m
         elif "modbus" in name_lower or "error" in name_lower:
             iot_metrics["modbus"] = m
 
     soil_probes.sort(key=lambda p: p.name)
 
-    # Rata-rata lengas dihitung dari probe analog, tidak diambil dari field --
-    # CLAUDE.md: "Mean soil moisture -- removed from ThingSpeak. Compute from the
-    # individual probes." Node 2 tidak punya probe analog, jadi di sana dipakai
-    # lengas dari probe NPK sebagai satu-satunya bacaan yang ada.
-    if lengas_probe:
+    # Rata-rata lengas:
+    # 1. Dari field rata-rata kelembapan tanah firmware (Node 1 Ch1 field6)
+    # 2. Rata-rata dari probe analog individual (jika ada)
+    # 3. Lengas dari probe NPK Modbus (Node 2 Ch2 field2)
+    if nilai_per_peran.get("soil_moisture") is not None:
+        rerata_lengas = nilai_per_peran["soil_moisture"]
+        sumber_lengas = "rata-rata kelembapan tanah (firmware)"
+    elif lengas_probe:
         rerata_lengas = round(sum(lengas_probe) / len(lengas_probe), 1)
         sumber_lengas = f"rata-rata {len(lengas_probe)} probe analog"
     elif nilai_per_peran.get("lengas_npk") is not None:
         rerata_lengas = nilai_per_peran["lengas_npk"]
-        sumber_lengas = "probe NPK (node ini tidak punya probe analog)"
+        sumber_lengas = "probe NPK (Node 2)"
     else:
         rerata_lengas = None
         sumber_lengas = None
 
-    # Daya = tegangan x arus. CLAUDE.md: tidak ada field yang dialokasikan untuk
-    # ini, jadi diturunkan di sini dan tidak pernah disimpan.
-    def _daya(v_key: str, a_key: str):
-        v = nilai_per_peran.get(v_key)
-        a = nilai_per_peran.get(a_key)
-        if v is None or a is None:
-            return None
-        return round(v * a, 2)
-
-    power_metrics = {
-        "tegangan_in": nilai_per_peran.get("tegangan_in"),
-        "tegangan_out": nilai_per_peran.get("tegangan_out"),
-        "arus_in": nilai_per_peran.get("arus_in"),
-        "arus_out": nilai_per_peran.get("arus_out"),
-        "daya_in": _daya("tegangan_in", "arus_in"),
-        "daya_out": _daya("tegangan_out", "arus_out"),
-        "satuan": {"tegangan": "V", "arus": "A", "daya": "W"},
-        "catatan": "Daya diturunkan (V x A), tidak ada field ThingSpeak untuknya.",
-    }
+    # Sistem Solar Panel (INA226): disintesis melalui service terpusat power_system
+    power_metrics = hitung_metrik_daya(
+        tegangan_in=nilai_per_peran.get("tegangan_in"),
+        arus_in=nilai_per_peran.get("arus_in"),
+        tegangan_out=nilai_per_peran.get("tegangan_out"),
+        arus_out=nilai_per_peran.get("arus_out"),
+        daya_out_langsung=nilai_per_peran.get("daya_out"),
+        node_id=node.node_id,
+    )
 
     vonis = soil_health.nilai_kesehatan_tanah(
         ph=nilai_per_peran.get("ph"),

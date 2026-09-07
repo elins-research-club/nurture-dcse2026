@@ -16,20 +16,103 @@ export function getSensorCategory(sensor: any): SensorCategory {
   const name = (sensor?.name || '').toLowerCase()
   const type = (sensor?.type || '').toLowerCase()
 
-  if (name.includes('nitrogen') || name.includes('phosphorus') || name.includes('phosphor') || name.includes('phospor') || name.includes('potassium') ||
-      name.includes('kalium') || name.includes('fosfor') || type.includes('npk')) {
+  // 1. Prioritas tipe semantik NPK
+  if (['npk_n', 'npk_p', 'npk_k', 'nitrogen', 'phosphorus', 'potassium'].includes(type) ||
+      name.includes('nitrogen') || name.includes('phosphorus') || name.includes('phosphor') ||
+      name.includes('phospor') || name.includes('potassium') || name.includes('kalium') ||
+      name.includes('fosfor') || type.includes('npk')) {
     return 'npk'
   }
-  if (name.includes('soil') || name.includes('tanah') || name.includes('ph') ||
+
+  // 2. Prioritas tipe semantik Tanah
+  if (['soil_ph', 'soil_ec', 'soil_temp', 'soil_moisture', 'avg_soil_moisture', 'probe_moist', 'soil_probe'].includes(type) ||
+      name.includes('soil') || name.includes('tanah') || name.includes('ph') ||
       name.includes('ec') || name.includes('analog') || name.includes('probe') || type.includes('soil')) {
     return 'soil'
   }
-  if (name.includes('suhu') || name.includes('temp') || name.includes('kelembaban') ||
-      name.includes('humidity') || name.includes('enclosure') || name.includes('udara') ||
-      name.includes('cahaya') || name.includes('light') || type.includes('env') || type.includes('temp')) {
+
+  // 3. Prioritas tipe semantik Lingkungan & Daya
+  if (['air_temp', 'air_humidity', 'box_temp', 'batt_volt', 'load_volt', 'batt_current', 'load_current', 'load_power', 'power'].includes(type) ||
+      name.includes('suhu') || name.includes('temp') || name.includes('kelembaban') ||
+      name.includes('kelembapan') || name.includes('humidity') || name.includes('enclosure') ||
+      name.includes('udara') || name.includes('cahaya') || name.includes('baterai') ||
+      name.includes('daya') || name.includes('load') || type.includes('env') || type.includes('temp')) {
     return 'environment'
   }
+
   return 'other'
+}
+
+export type TargetWidgetInfo = {
+  widgetName: string
+  badgeVariant: 'default' | 'secondary' | 'outline' | 'destructive'
+  icon: string
+  description: string
+}
+
+/**
+ * Menghasilkan informasi target widget visual di Dashboard berdasarkan type/name sensor.
+ * Berguna untuk visual hint di menu Settings agar developer/operator langsung paham
+ * di mana metrik ini akan ditampilkan.
+ */
+export function getTargetWidget(sensor: any): TargetWidgetInfo {
+  const name = (sensor?.name || '').toLowerCase()
+  const type = (sensor?.type || '').toLowerCase()
+
+  if (type === 'actuator' || name.includes('aktuator')) {
+    return {
+      widgetName: 'Status Aktuator',
+      badgeVariant: 'outline',
+      icon: '🎮',
+      description: 'Panel status saklar (Kipas, Lampu, Valve) di sidebar kiri.'
+    }
+  }
+  if (['npk_n', 'npk_p', 'npk_k', 'nitrogen', 'phosphorus', 'potassium'].includes(type) ||
+      name.includes('nitrogen') || name.includes('fosfor') || name.includes('phosphor') ||
+      name.includes('kalium') || name.includes('potassium')) {
+    return {
+      widgetName: 'Highlight NPK',
+      badgeVariant: 'default',
+      icon: '🌿',
+      description: 'Kartu metrik utama Nitrogen, Fosfor, dan Kalium di baris atas.'
+    }
+  }
+  if (['soil_ph', 'soil_ec', 'soil_temp', 'soil_moisture', 'avg_soil_moisture', 'probe_moist', 'soil_probe'].includes(type) ||
+      name.includes('tanah') || name.includes('keasaman') || name.includes('conductivity') ||
+      name.includes('kelembapan tanah') || name.includes('kelembaban tanah') || name.includes('ph tanah') || name.includes('ec tanah')) {
+    return {
+      widgetName: 'Kondisi Tanah',
+      badgeVariant: 'secondary',
+      icon: '💧',
+      description: 'Wrapper kartu kondisi tanah (Kelembapan, pH, Suhu, EC).'
+    }
+  }
+  if (['batt_volt', 'load_volt', 'batt_current', 'load_current', 'load_power', 'power'].includes(type) ||
+      name.includes('baterai') || name.includes('daya') ||
+      (name.includes('load') && (name.includes('tegangan') || name.includes('arus')))) {
+    return {
+      widgetName: 'Daya & Baterai',
+      badgeVariant: 'outline',
+      icon: '⚡',
+      description: 'Portlet sistem solar panel (Tegangan, Arus, Daya Beban).'
+    }
+  }
+  if (['box_temp', 'air_temp', 'air_humidity', 'humidity', 'temperature'].includes(type) ||
+      name.includes('box') || name.includes('panel') || name.includes('enclosure') ||
+      name.includes('luar') || name.includes('udara') || name.includes('suhu') || name.includes('lembab')) {
+    return {
+      widgetName: 'Kondisi IoT',
+      badgeVariant: 'secondary',
+      icon: '🌡️',
+      description: 'Wrapper kartu kondisi IoT & Lingkungan (Suhu Box, Udara, Kelembaban).'
+    }
+  }
+  return {
+    widgetName: 'Metrik Tambahan',
+    badgeVariant: 'outline',
+    icon: '📌',
+    description: 'Grid metrik tambahan/dinamis di bawah dashboard.'
+  }
 }
 
 /**

@@ -15,6 +15,7 @@ from app.services.aktuator import baca_aktuator
 from app.services.field_decoder import (
     LAYOUT_DEFAULT,
     extract_channel_fields,
+    get_actuator_field,
     has_valve,
     is_support_channel,
 )
@@ -54,12 +55,13 @@ async def process_thingspeak_payload(channel_str_id: str, data: Dict[str, Any]):
             ).items():
                 extracted_data[f"{channel_uuid_str}_{nama_field}"] = nilai
 
-            # Decode actuator bitmask if support channel or field8 is present
-            if is_support_channel(channel.label) or "field8" in data:
-                field8_val = data.get("field8")
-                if field8_val is not None:
+            # Decode actuator bitmask if support channel
+            if is_support_channel(channel.label):
+                actuator_f = get_actuator_field(layout)
+                actuator_val = data.get(actuator_f)
+                if actuator_val is not None:
                     node_latest_actuators[node.node_id] = baca_aktuator(
-                        field8_val, punya_valve=has_valve(layout)
+                        actuator_val, punya_valve=has_valve(layout)
                     )
 
             aktuator = node_latest_actuators.get(node.node_id)

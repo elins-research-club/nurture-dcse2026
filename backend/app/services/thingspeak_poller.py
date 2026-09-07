@@ -10,10 +10,12 @@ from datetime import datetime
 from sqlalchemy.future import select
 from app.models.system_config import SystemConfig
 from app.services.aktuator import baca_aktuator
+from app.services.power_system import ekstrak_dan_hitung_daya
 from app.services.telemetry_buffer import append_node_telemetry
 from app.services.field_decoder import (
     LAYOUT_DEFAULT,
     extract_channel_fields,
+    get_actuator_field,
     has_valve,
     is_support_channel,
 )
@@ -108,11 +110,11 @@ async def poll_node(node_id: str, channels: list, db_session, layout: str = LAYO
         ).items():
             extracted_data[f"{channel_uuid_str}_{nama_field}"] = nilai
 
-        # field8 kanal pendukung itu bitmask, bukan pengukuran -- didekode
-        # terpisah supaya tidak ikut dibandingkan dengan ambang. Dulu blok ini
-        # tersangkut di dalam loop field, jadi jalan delapan kali per kanal.
+        # Bitmask aktuator kanal pendukung (field7 di Node 1, field8 di Node 2) didekode
+        # terpisah supaya tidak ikut dibandingkan dengan ambang sensor.
         if is_support_channel(channel.label):
-            aktuator = baca_aktuator(data.get("field8"), punya_valve=has_valve(layout))
+            field_aktuator = get_actuator_field(layout)
+            aktuator = baca_aktuator(data.get(field_aktuator), punya_valve=has_valve(layout))
 
         # Find the most recent timestamp among all channels
         ts = data.get("created_at")
@@ -120,12 +122,22 @@ async def poll_node(node_id: str, channels: list, db_session, layout: str = LAYO
             if latest_ts is None or ts > latest_ts:
                 latest_ts = ts
 
+    node = await node_repo.get_by_node_id(db_session, node_id)
+    power_metrics = None
+    if node:
+        sensors = await sensor_repo.list_by_node(db_session, node.id)
+        power_metrics = ekstrak_dan_hitung_daya(sensors, extracted_data, node_id=node_id)
+        await evaluate_sensor_thresholds(db_session, node, sensors, extracted_data)
+        await node_repo.update_last_seen(db_session, node)
+        await mark_node_online(db_session, node)
+
     payload = {
         "event": "sensor_update",
         "node_id": node_id,
         "status": "online",
         "data": extracted_data,
         "aktuator": aktuator,
+        "power_metrics": power_metrics,
         "created_at": latest_ts
     }
 
@@ -134,13 +146,6 @@ async def poll_node(node_id: str, channels: list, db_session, layout: str = LAYO
 
     await manager.broadcast(node_id, payload)
     await manager.broadcast("dashboard", payload)
-
-    node = await node_repo.get_by_node_id(db_session, node_id)
-    if node:
-        sensors = await sensor_repo.list_by_node(db_session, node.id)
-        await evaluate_sensor_thresholds(db_session, node, sensors, extracted_data)
-        await node_repo.update_last_seen(db_session, node)
-        await mark_node_online(db_session, node)
 
 
 async def check_offline_nodes(db_session):

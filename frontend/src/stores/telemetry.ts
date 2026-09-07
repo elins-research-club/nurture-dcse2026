@@ -39,6 +39,15 @@ export interface PowerMetrics {
   arus_out?: number | null;
   daya_in?: number | null;
   daya_out?: number | null;
+  net_power?: number | null;
+  status_aliran?: "surplus" | "standby" | "defisit" | "offline";
+  status_label?: string;
+  battery_status_text?: string;
+  battery_level_percent?: number | null;
+  is_charging?: boolean;
+  is_standby?: boolean;
+  i2c_0x40_active?: boolean;
+  i2c_0x41_active?: boolean;
   satuan?: { tegangan: string; arus: string; daya: string };
   catatan?: string;
 }
@@ -370,6 +379,15 @@ export const useTelemetryStore = defineStore("telemetry", () => {
             // Dikirim backend di tiap pesan; sebelumnya diabaikan total.
             if (msg.aktuator !== undefined) {
               aktuatorByNode.value[nodeId] = msg.aktuator;
+            }
+
+            if (msg.power_metrics) {
+              if (dashboardSummaries.value[nodeId]) {
+                dashboardSummaries.value[nodeId].power_metrics = {
+                  ...(dashboardSummaries.value[nodeId].power_metrics || {}),
+                  ...msg.power_metrics,
+                };
+              }
             }
 
             // Batch reactive update into next browser animation frame (60 FPS smooth rendering)

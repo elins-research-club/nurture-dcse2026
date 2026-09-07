@@ -11,7 +11,8 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
-import { Sun, Moon, CheckCircle, XCircle, Loader2, ChevronDown, ChevronRight, Sprout, Bot, ExternalLink, Send, AlertCircle, HelpCircle, User, Users, Bell, BellOff, Check, RotateCcw, Save } from 'lucide-vue-next'
+import { Sun, Moon, CheckCircle, XCircle, Loader2, ChevronDown, ChevronRight, Sprout, Bot, ExternalLink, Send, AlertCircle, HelpCircle, User, Users, Bell, BellOff, Check, RotateCcw, Save, Info } from 'lucide-vue-next'
+import { getTargetWidget } from '@/lib/sensorTaxonomy'
 
 const tabList = [
   { value: 'appearance', label: 'Tampilan' },
@@ -1293,6 +1294,21 @@ const updatePassword = async () => {
             <CardHeader>
               <CardTitle>Ambang Batas & Pemetaan Sensor</CardTitle>
               <CardDescription>Sesuaikan nama sensor, satuan, serta ambang batas aman untuk setiap field ThingSpeak.</CardDescription>
+              
+              <!-- Inline Info Banner: Pemetaan Dashboard Otomatis -->
+              <div class="mt-3 p-3.5 rounded-xl border border-sky-500/30 bg-sky-50/50 dark:bg-sky-950/25 flex items-start gap-3 text-xs leading-relaxed text-slate-700 dark:text-slate-300 shadow-2xs">
+                <div class="w-7 h-7 rounded-lg bg-sky-500/15 text-sky-600 dark:text-sky-400 flex items-center justify-center shrink-0 mt-0.5">
+                  <Info class="w-4 h-4" />
+                </div>
+                <div class="space-y-1 flex-1">
+                  <p class="font-bold text-foreground">
+                    Bagaimana Pemetaan Sensor ke Dashboard Bekerja?
+                  </p>
+                  <p class="text-[12px] text-muted-foreground">
+                    Sistem secara cerdas menempatkan setiap field ke kartu Dashboard Bento Grid berdasarkan tipe semantik (<code class="font-mono font-semibold text-foreground">type</code>) dan nama parameter (misal: NPK di baris atas, Kelembapan/pH/Suhu/EC di kartu <i>Kondisi Tanah</i>, dan kelistrikan di portlet <i>Sistem Solar Panel</i>). Perhatikan badge target widget di samping nama field. Parameter baru yang belum memiliki kartu khusus otomatis akan tampil di section <b>Sensor &amp; Metrik Tambahan</b> di dashboard.
+                  </p>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               <div class="border border-muted-foreground/30 rounded-lg bg-card">
@@ -1397,6 +1413,13 @@ const updatePassword = async () => {
                                     </span>
                                     <Label class="text-[10px] text-muted-foreground uppercase font-bold tracking-wider truncate">Nama Parameter</Label>
                                     <span v-if="isFieldDirty(sensor, 'name')" class="text-[9px] font-semibold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/50 px-1.5 py-0.2 rounded border border-amber-300/80 dark:border-amber-700/60 shrink-0">Diedit</span>
+                                    <span 
+                                      :title="getTargetWidget(sensor).description"
+                                      class="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded border border-border/70 bg-slate-100 dark:bg-slate-800 text-foreground shrink-0 cursor-help flex items-center gap-1"
+                                    >
+                                      <span>{{ getTargetWidget(sensor).icon }}</span>
+                                      <span class="hidden xl:inline text-[9px]">{{ getTargetWidget(sensor).widgetName }}</span>
+                                    </span>
                                   </div>
                                   <Input 
                                     type="text" 

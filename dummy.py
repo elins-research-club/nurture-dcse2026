@@ -12,17 +12,25 @@ Mirrors the real firmware's behaviour:
   - Modbus code (support field3) is ALWAYS sent, including on simulated failure
   - Actuator state is packed into a bitmask on support field8
 
-Channel layout
---------------
-MAIN (Ch1 = node1, Ch2 = node2)
-  field1 nitrogen mg/kg | field2 phosphorus mg/kg | field3 potassium mg/kg
-  field4 pH 0-14        | field5 EC (unit unverified, raw Modbus value)
-  field6 soil moisture avg %  | field7 air temp C | field8 air humidity %
+Channel layout (Verified against firmware .ino)
+-----------------------------------------------
+Node 1:
+  Main (3461921):
+    field1 N | field2 P | field3 K | field4 pH | field5 EC
+    field6 Rata-rata Kelembapan Tanah % | field7 Suhu Luar C | field8 Lembab Luar %
+  Support (3461926):
+    field1 Suhu Tanah C | field2 Tegangan Baterai V | field3 Tegangan Load V
+    field4 Arus Baterai A | field5 Arus Load A | field6 Suhu Dalam Panel C
+    field7 Status Aktuator (bitmask) | field8 Daya Beban Aktual W
 
-SUPPORT (Ch3 = node1, Ch4 = node2)
-  field1 soil temp C    | field2 moisture at NPK probe % | field3 modbus code
-  field4-6 analog probe 1/2/3 % | field7 enclosure temp C
-  field8 actuator bitmask (bit0 kipas, bit1 lampu, bit2 valve)
+Node 2:
+  Main (3461925):
+    field1 N | field2 P | field3 K | field4 pH | field5 EC
+    field6 Suhu Luar C | field7 Lembab Luar % | field8 Daya Beban Aktual W
+  Support (3461928):
+    field1 Suhu Tanah C | field2 Kelembapan Probe NPK % | field3 Tegangan Baterai V
+    field4 Tegangan Load V | field5 Arus Baterai A | field6 Arus Load A
+    field7 Suhu Dalam Panel C | field8 Status Aktuator (bitmask)
 
 Usage
 -----
@@ -84,12 +92,16 @@ class NodeSimulator:
         self.ph = self.rng.uniform(5.8, 6.8)
         self.ec = self.rng.uniform(800, 1500)
 
-        # Three analog probes, each with its own offset so they don't move in lockstep
-        self.probes = [self.rng.uniform(35, 55) for _ in range(3)]
-        self.probe_offsets = [self.rng.uniform(-4, 4) for _ in range(3)]
-
+        # Soil moisture:
+        # Node 1 uses 2 active analog probes + NPK probe -> average
+        # Node 2 uses NPK probe only (JUMLAH_SOIL_AKTIF = 0)
+        self.probes = [self.rng.uniform(35, 55) for _ in range(2)]
         self.npk_moisture = self.rng.uniform(35, 55)
         self.enclosure_temp = self.rng.uniform(30, 34)
+
+        # INA226 power metrics simulation
+        self.tegangan_baterai = self.rng.uniform(12.2, 12.8)
+        self.tegangan_load = self.rng.uniform(3.28, 3.32)
 
         self.irrigating = False
         self.irrigation_left = 0
@@ -105,6 +117,7 @@ class NodeSimulator:
 
     def step(self, now, fail_rate, cycle=0, spike_interval=0):
         hour = now.hour + now.minute / 60
+        is_node1 = (self.node_key == "node1")
 
         # --- Environment -------------------------------------------------
         air_temp = self._diurnal(hour, base=27, amplitude=5) + self.rng.uniform(-0.6, 0.6)
@@ -118,27 +131,34 @@ class NodeSimulator:
             air_temp + self.rng.uniform(4, 8), 26, 52, 0.6
         )
 
-        # --- Soil moisture: dries out, then an irrigation cycle refills ---
-        if min(self.probes) <= 33 and not self.irrigating:
-            self.irrigating = True
-            self.irrigation_left = self.rng.randint(3, 6)
+        # --- Soil moisture & irrigation (Node 1 only has valve) ----------
+        if is_node1:
+            if min(self.probes) <= 33 and not self.irrigating:
+                self.irrigating = True
+                self.irrigation_left = self.rng.randint(3, 6)
 
-        for i in range(3):
+            for i in range(2):
+                if self.irrigating:
+                    self.probes[i] += self.rng.uniform(3, 6)
+                else:
+                    self.probes[i] -= self.rng.uniform(0.2, 0.7)
+                self.probes[i] = max(12, min(75, self.probes[i]))
+
             if self.irrigating:
-                self.probes[i] += self.rng.uniform(3, 6)
-            else:
-                self.probes[i] -= self.rng.uniform(0.2, 0.7)
-            self.probes[i] = max(12, min(75, self.probes[i]))
+                self.irrigation_left -= 1
+                if self.irrigation_left <= 0 or min(self.probes) >= 58:
+                    self.irrigating = False
 
-        if self.irrigating:
-            self.irrigation_left -= 1
-            if self.irrigation_left <= 0 or min(self.probes) >= 58:
-                self.irrigating = False
-
-        # NPK probe sits elsewhere in the bed, so it tracks but doesn't match
-        self.npk_moisture = self._drift(
-            sum(self.probes) / 3 + self.rng.uniform(-5, 5), 12, 75, 1.5
-        )
+            self.npk_moisture = self._drift(
+                sum(self.probes) / 2 + self.rng.uniform(-4, 4), 12, 75, 1.5
+            )
+            # Rata-rata 2 probe analog + probe NPK
+            rata_tanah = round((self.probes[0] + self.probes[1] + self.npk_moisture) / 3.0, 1)
+        else:
+            # Node 2: No analog probes, no irrigation valve
+            self.irrigating = False
+            self.npk_moisture = self._drift(self.npk_moisture, 25, 75, 0.8)
+            rata_tanah = None
 
         # --- Soil chemistry ----------------------------------------------
         self.nitrogen = self._drift(self.nitrogen, 5, 80, 2.5)
@@ -149,24 +169,14 @@ class NodeSimulator:
 
         # --- Simulated Modbus failure ------------------------------------
         npk_ok = self.rng.random() >= fail_rate
-        modbus_code = MODBUS_SUCCESS if npk_ok else MODBUS_TIMEOUT
 
-        # --- Probe validity: firmware marks <=1% as invalid (-1.0) --------
-        probe_values = []
-        for value in self.probes:
-            # Small chance a probe drops out, as if unplugged
-            if self.rng.random() < 0.03:
-                probe_values.append(None)
-            else:
-                probe_values.append(round(value, 1))
-
-        valid_probes = [p for p in probe_values if p is not None]
-        moisture_avg = round(sum(valid_probes) / len(valid_probes), 1) if valid_probes else None
-
-        # --- Actuators ----------------------------------------------------
-        kipas = self.enclosure_temp >= 28.0
+        # --- Actuators (Kipas, Lampu, Valve) -----------------------------
+        # Node 1: Fan on at >= 34°C, has valve
+        # Node 2: Fan on at >= 38°C, no valve
+        fan_thresh = 34.0 if is_node1 else 38.0
+        kipas = self.enclosure_temp >= fan_thresh
         lampu = hour >= 18 or hour < 6
-        valve = self.irrigating
+        valve = self.irrigating if is_node1 else False
 
         bitmask = 0
         if kipas:
@@ -175,6 +185,30 @@ class NodeSimulator:
             bitmask |= 0b0010
         if valve:
             bitmask |= 0b0100
+
+        # --- INA226 Power Metrics ----------------------------------------
+        self.tegangan_baterai = self._drift(self.tegangan_baterai, 11.5, 13.8, 0.04)
+        self.tegangan_load = self._drift(self.tegangan_load, 3.25, 3.35, 0.01)
+
+        base_arus_load = 0.18
+        if kipas:
+            base_arus_load += 0.35
+        if lampu:
+            base_arus_load += 0.25
+        if valve:
+            base_arus_load += 0.40
+        arus_load = round(base_arus_load + self.rng.uniform(-0.02, 0.02), 3)
+        daya_load = round(self.tegangan_load * arus_load, 2)
+
+        # Arus baterai: siang = charging (Node 1 firmware membalik tanda minus), malam = discharging
+        is_daylight = 7 <= hour < 17
+        if is_daylight:
+            i_bat_mag = self.rng.uniform(0.6, 1.5)
+            # Firmware Node 1: arus_baterai = -(rawI / 1000.0)
+            # Firmware Node 2: arus_baterai = rawI / 1000.0
+            arus_baterai = round(-i_bat_mag if is_node1 else i_bat_mag, 3)
+        else:
+            arus_baterai = round(self.rng.uniform(0.15, 0.45), 3)
 
         # --- Periodic Threshold Anomaly Injection (Spikes) ----------------
         spike_info = None
@@ -190,8 +224,10 @@ class NodeSimulator:
             if s_field == "air_temp":
                 air_temp = s_val
             elif s_field == "moisture":
-                moisture_avg = s_val
-                probe_values = [s_val, s_val, s_val]
+                if is_node1:
+                    rata_tanah = s_val
+                else:
+                    self.npk_moisture = s_val
             elif s_field == "nitrogen":
                 self.nitrogen = s_val
             elif s_field == "ph":
@@ -200,29 +236,64 @@ class NodeSimulator:
                 self.ec = s_val
             spike_info = f"[!] [THRESHOLD SPIKE] {s_name} -> {s_val} ({s_threshold})"
 
-        # --- Build payloads, omitting invalid fields like the firmware -----
+        # --- Build payloads according to verified .ino firmware ----------
         main = {}
-        if npk_ok:
-            main["field1"] = round(self.nitrogen, 1)
-            main["field2"] = round(self.phosphorus, 1)
-            main["field3"] = round(self.potassium, 1)
-            main["field4"] = round(self.ph, 2)
-            main["field5"] = round(self.ec)
-        if moisture_avg is not None:
-            main["field6"] = moisture_avg
-        main["field7"] = round(air_temp, 2)
-        main["field8"] = round(air_humidity, 2)
-
         support = {}
-        if npk_ok:
-            support["field1"] = round(soil_temp, 1)
-            support["field2"] = round(self.npk_moisture, 1)
-        support["field3"] = modbus_code           # always sent
-        for idx, value in enumerate(probe_values):
-            if value is not None:
-                support[f"field{idx + 4}"] = value
-        support["field7"] = round(self.enclosure_temp, 1)
-        support["field8"] = bitmask
+
+        if is_node1:
+            # NODE 1:
+            # Channel 1 (Main):
+            # field1..5: NPK
+            if npk_ok:
+                main["field1"] = round(self.nitrogen, 1)
+                main["field2"] = round(self.phosphorus, 1)
+                main["field3"] = round(self.potassium, 1)
+                main["field4"] = round(self.ph, 2)
+                main["field5"] = round(self.ec)
+            # field6: Rata-rata Kelembapan Tanah (%)
+            if rata_tanah is not None:
+                main["field6"] = rata_tanah
+            # field7-8: Suhu & Lembab Luar Rata-rata
+            main["field7"] = round(air_temp, 2)
+            main["field8"] = round(air_humidity, 2)
+
+            # Channel 2 (Support):
+            if npk_ok:
+                support["field1"] = round(soil_temp, 1)
+            support["field2"] = round(self.tegangan_baterai, 2)
+            support["field3"] = round(self.tegangan_load, 2)
+            support["field4"] = arus_baterai
+            support["field5"] = arus_load
+            support["field6"] = round(self.enclosure_temp, 1)
+            support["field7"] = bitmask
+            support["field8"] = daya_load
+
+        else:
+            # NODE 2:
+            # Channel 1 (Main):
+            # field1..5: NPK
+            if npk_ok:
+                main["field1"] = round(self.nitrogen, 1)
+                main["field2"] = round(self.phosphorus, 1)
+                main["field3"] = round(self.potassium, 1)
+                main["field4"] = round(self.ph, 2)
+                main["field5"] = round(self.ec)
+            # field6-7: Suhu & Lembab Luar Rata-rata
+            main["field6"] = round(air_temp, 2)
+            main["field7"] = round(air_humidity, 2)
+            # field8: Daya Beban Aktual (Watt)
+            main["field8"] = daya_load
+
+            # Channel 2 (Support):
+            if npk_ok:
+                support["field1"] = round(soil_temp, 1)
+                support["field2"] = round(self.npk_moisture, 1)
+            support["field3"] = round(self.tegangan_baterai, 2)
+            support["field4"] = round(self.tegangan_load, 2)
+            support["field5"] = arus_baterai
+            support["field6"] = arus_load
+            support["field7"] = round(self.enclosure_temp, 1)
+            support["field8"] = bitmask
 
         return main, support, npk_ok, spike_info
 
@@ -331,7 +402,8 @@ def main():
             for name, support_payload in pending:
                 entry = post(NODES[name]["support_key"], support_payload, args.dry_run)
                 report(f"{name} support", support_payload, entry, args.dry_run)
-                state = decode_bitmask(support_payload["field8"])
+                actuator_key = "field7" if name == "node1" else "field8"
+                state = decode_bitmask(support_payload[actuator_key])
                 on = [k for k, v in state.items() if v] or ["all off"]
                 print(f"           actuators: {', '.join(on)}")
 

@@ -21,7 +21,8 @@ import {
   Thermometer, Droplet, Sparkles, TrendingUp, 
   TrendingDown, Minus, Info, Activity, AlertTriangle,
   ChevronDown, Fan, Lightbulb, Droplets, Download,
-  Sun, ShieldCheck, Beaker, Zap
+  Sun, ShieldCheck, Beaker, Zap,
+  Battery, BatteryCharging, ArrowDownRight, Cpu
 } from 'lucide-vue-next'
 import L from 'leaflet'
 
@@ -351,13 +352,18 @@ const soilTempMetric = computed(() => {
 const ecMetric = computed(() => {
   return dashboardSummary.value?.soil_metrics?.ec || wrapSensorAsMetric(findSensorByKeywords(['ec', 'conductivity']))
 })
-// Tidak ada field rata-rata kelembapan di ThingSpeak -- CLAUDE.md menghapusnya
-// supaya frontend bisa menampilkan tiap probe terpisah atau membuang yang rusak.
-// Jadi jangan dicari lewat nama sensor; dihitung di realTimeAvgMoisture.
-const avgMoistureMetric = computed<any>(() => null)
+// Rata-rata kelembapan tanah: didukung langsung dari field ThingSpeak (Node 1 Ch1 field6 atau Node 2 Ch2 field2)
+const avgMoistureMetric = computed(() => {
+  return dashboardSummary.value?.soil_metrics?.avg_moisture ||
+         wrapSensorAsMetric(findSensorByKeywords(['rata-rata kelembapan', 'kelembapan probe npk', 'kelembapan tanah', 'kelembaban tanah']))
+})
 
-// Real-time Average Moisture: calculated dynamically from live soil probes to eliminate channel polling lag
+// Real-time Average Moisture: membaca nilai live dari sensor kelembapan tanah atau rata-rata probe
 const realTimeAvgMoisture = computed(() => {
+  const val = getLiveVal(avgMoistureMetric.value)
+  if (val != null && !isNaN(Number(val))) {
+    return Number(val).toFixed(1)
+  }
   if (soilProbes.value?.length) {
     const validVals = soilProbes.value
       .map((p: any) => getLiveVal(p))
@@ -368,8 +374,7 @@ const realTimeAvgMoisture = computed(() => {
       return (sum / validVals.length).toFixed(1)
     }
   }
-  const val = getLiveVal(avgMoistureMetric.value)
-  return val != null ? Number(val).toFixed(1) : null
+  return null
 })
 
 const enclosureTempMetric = computed(() => {
@@ -381,48 +386,51 @@ const airTempMetric = computed(() => {
 const humidityMetric = computed(() => {
   return dashboardSummary.value?.iot_metrics?.humidity || wrapSensorAsMetric(findSensorByKeywords(['lembab luar', 'kelembaban udara', 'humidity']))
 })
-// Tegangan/arus dari INA226 + daya turunan (V x A) dari backend.
-// Dihitung ulang dari stream WebSocket, bukan cuma dibaca dari ringkasan REST.
-//
-// dashboardSummary hanya diambil sekali saat loadNodeData() (mount / ganti node),
-// jadi kalau portlet ini bersandar padanya, angkanya beku sementara kartu lain
-// yang memakai getLiveVal() terus bergerak. Ringkasan tetap dipakai sebagai
-// cadangan untuk render pertama sebelum pesan WS pertama datang.
-const sensorPeran = (tipe: string, field: string[]) =>
-  wrapSensorAsMetric(
-    sensors.value.find(
-      (s: any) => (s.type || '').toLowerCase() === tipe && field.includes(s.thingspeak_field)
-    )
-  )
 
+// --- Sistem Solar Panel (INA226 dari Backend FastAPI) ---
 const power = computed<any>(() => {
-  const ringkasan = dashboardSummary.value?.power_metrics ?? null
+  return dashboardSummary.value?.power_metrics || {}
+})
 
-  const ambil = (tipe: string, field: string[], cadangan: any) => {
-    const v = getLiveVal(sensorPeran(tipe, field))
-    if (v == null) return cadangan ?? null
-    const n = Number(v)
-    return Number.isFinite(n) ? n : (cadangan ?? null)
+const batteryLevelPercent = computed<number | null>(() => {
+  return power.value?.battery_level_percent ?? null
+})
+
+const batteryStatusInfo = computed(() => {
+  const statusAliran = power.value?.status_aliran
+  if (statusAliran === 'surplus') {
+    return {
+      text: power.value?.battery_status_text || 'Solar Aktif (Mengisi Aki)',
+      badgeClass: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30',
+      dotClass: 'bg-emerald-500',
+      barColor: 'from-emerald-400 via-teal-400 to-emerald-500',
+      textColor: 'text-emerald-600 dark:text-emerald-400'
+    }
   }
-
-  // Node 1 memakai field5_in/field5_out hasil bongkaran; Node 2 field5/field6.
-  const teganganIn = ambil('batt_volt', ['field3'], ringkasan?.tegangan_in)
-  const teganganOut = ambil('batt_volt', ['field4'], ringkasan?.tegangan_out)
-  const arusIn = ambil('current', ['field5_in', 'field5'], ringkasan?.arus_in)
-  const arusOut = ambil('current', ['field5_out', 'field6'], ringkasan?.arus_out)
-
-  // Daya = V x A. Tidak ada field ThingSpeak untuknya (CLAUDE.md).
-  const daya = (v: number | null, a: number | null) =>
-    v == null || a == null ? null : Number((v * a).toFixed(2))
-
+  if (statusAliran === 'standby') {
+    return {
+      text: power.value?.battery_status_text || 'Daya Seimbang (Siaga)',
+      badgeClass: 'bg-sky-500/15 text-sky-700 dark:text-sky-400 border-sky-500/30',
+      dotClass: 'bg-sky-500',
+      barColor: 'from-sky-400 to-blue-500',
+      textColor: 'text-sky-600 dark:text-sky-400'
+    }
+  }
+  if (statusAliran === 'defisit') {
+    return {
+      text: power.value?.battery_status_text || 'Tenaga Baterai (Solar Mati)',
+      badgeClass: 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30',
+      dotClass: 'bg-amber-500',
+      barColor: 'from-amber-400 via-orange-400 to-amber-500',
+      textColor: 'text-amber-600 dark:text-amber-400'
+    }
+  }
   return {
-    tegangan_in: teganganIn,
-    tegangan_out: teganganOut,
-    arus_in: arusIn,
-    arus_out: arusOut,
-    daya_in: daya(teganganIn, arusIn),
-    daya_out: daya(teganganOut, arusOut),
-    catatan: ringkasan?.catatan,
+    text: power.value?.battery_status_text || 'Sensor Offline',
+    badgeClass: 'bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/30',
+    dotClass: 'bg-slate-400',
+    barColor: 'from-slate-400 to-slate-500',
+    textColor: 'text-slate-600 dark:text-slate-400'
   }
 })
 
@@ -436,6 +444,35 @@ const enclosureMaxVal = computed(() => {
   if (enclosureTempMetric.value?.max_recorded != null) return enclosureTempMetric.value.max_recorded
   const curr = getLiveVal(enclosureTempMetric.value)
   return curr != null ? curr : null
+})
+
+// Sensor tambahan yang belum terangkum di dalam widget Bento Grid utama (fallback otomatis)
+const additionalSensors = computed(() => {
+  const capturedFields = new Set<string>()
+
+  npkSensors.value.forEach((s: any) => { if (s?.thingspeak_field) capturedFields.add(s.thingspeak_field) })
+  if (phMetric.value?.thingspeak_field) capturedFields.add(phMetric.value.thingspeak_field)
+  if (soilTempMetric.value?.thingspeak_field) capturedFields.add(soilTempMetric.value.thingspeak_field)
+  if (ecMetric.value?.thingspeak_field) capturedFields.add(ecMetric.value.thingspeak_field)
+  if (avgMoistureMetric.value?.thingspeak_field) capturedFields.add(avgMoistureMetric.value.thingspeak_field)
+  soilProbes.value.forEach((s: any) => { if (s?.thingspeak_field) capturedFields.add(s.thingspeak_field) })
+  if (enclosureTempMetric.value?.thingspeak_field) capturedFields.add(enclosureTempMetric.value.thingspeak_field)
+  if (airTempMetric.value?.thingspeak_field) capturedFields.add(airTempMetric.value.thingspeak_field)
+  if (humidityMetric.value?.thingspeak_field) capturedFields.add(humidityMetric.value.thingspeak_field)
+
+  sensors.value.forEach((s: any) => {
+    const t = (s.type || '').toLowerCase()
+    const n = (s.name || '').toLowerCase()
+    if (['actuator', 'batt_volt', 'load_volt', 'batt_current', 'load_current', 'load_power', 'power'].includes(t) ||
+        n.includes('aktuator') || n.includes('baterai') || n.includes('daya')) {
+      if (s.thingspeak_field) capturedFields.add(s.thingspeak_field)
+    }
+  })
+
+  return sensors.value
+    .filter((s: any) => s.enabled !== false && !capturedFields.has(s.thingspeak_field))
+    .map((s: any) => wrapSensorAsMetric(s))
+    .filter(Boolean)
 })
 
 // --- Kartu ambang operator --------------------------------------------------
@@ -1316,6 +1353,161 @@ onUnmounted(() => {
           </div>
         </Card>
 
+        <!-- CARD 4: KONDISI IOT (Suhu & Kelembaban Box Panel / Lingkungan) -->
+        <Card class="relative overflow-hidden flex flex-col">
+          <div class="p-4 flex flex-col gap-3 flex-1 justify-between">
+            <!-- Portlet Header -->
+            <div class="flex items-center justify-between pb-2 border-b border-border/40">
+              <div class="flex items-center gap-3">
+                <img src="/iot-icon.svg" alt="Kondisi IoT" class="w-6 h-6 sm:w-7 sm:h-7 object-contain dark:invert shrink-0" />
+                <h4 class="text-base sm:text-lg font-extrabold tracking-tight text-foreground leading-tight">Kondisi IoT</h4>
+              </div>
+            </div>
+
+            <!-- Highlight Suhu Dalam Panel (Enclosure) & Dynamic Thermal Safety Card -->
+            <div 
+              class="relative overflow-hidden p-3.5 sm:p-4 rounded-2xl transition-all duration-300 flex-1 flex flex-col justify-between gap-2.5 text-white border-0 min-h-[125px]"
+              :class="thermalStatus.shadowClass"
+              :style="{ background: thermalStatus.gradient }"
+            >
+              <div 
+                class="absolute inset-0 pointer-events-none opacity-20"
+                style="background: radial-gradient(circle at 85% 15%, rgba(255, 255, 255, 0.4) 0%, transparent 60%);"
+              ></div>
+
+              <DotPattern 
+                :width="12" 
+                :height="12" 
+                :cx="1" 
+                :cy="1" 
+                :cr="1" 
+                class="text-white/20" 
+              />
+
+              <!-- Top: Thermometer Icon, Label, Main Value, and Min/Max Stats -->
+              <div class="flex items-center justify-between gap-2 relative z-10 my-auto">
+                <div class="flex items-center gap-2.5">
+                  <div class="w-8 h-8 rounded-xl bg-white/25 backdrop-blur-md flex items-center justify-center text-white shrink-0 border-0">
+                    <Thermometer class="w-4 h-4 stroke-[2.5]" />
+                  </div>
+                  <div>
+                    <p class="text-xs font-semibold text-white/95 tracking-wide drop-shadow-[0_1px_1px_rgba(0,0,0,0.1)]">
+                      {{ enclosureTempMetric?.name || 'Suhu Box Panel' }}
+                    </p>
+                    <div class="flex items-baseline gap-1 mt-0.5">
+                      <span class="text-2xl font-extrabold tracking-tight text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.15)]">
+                        {{ getLiveVal(enclosureTempMetric) ?? '--' }}
+                      </span>
+                      <span class="text-xs font-semibold text-white/90 drop-shadow-[0_1px_1px_rgba(0,0,0,0.1)]">
+                        {{ enclosureTempMetric?.unit || '°C' }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Min & Max Stats Capsule -->
+                <div class="grid grid-cols-2 divide-x divide-white/35 items-center bg-white/30 hover:bg-white/35 backdrop-blur-md px-1.5 py-1 rounded-xl shrink-0 border border-white/50 shadow-sm w-24 sm:w-26">
+                  <div class="px-1 flex flex-col items-center justify-center text-center">
+                    <span class="text-[9px] font-bold text-white/90 block leading-none tracking-wider">MIN</span>
+                    <span class="text-xs font-extrabold text-white font-mono leading-tight mt-0.5">
+                      {{ enclosureMinVal != null ? `${enclosureMinVal}°` : '--' }}
+                    </span>
+                  </div>
+                  <div class="px-1 flex flex-col items-center justify-center text-center">
+                    <span class="text-[9px] font-bold text-white/90 block leading-none tracking-wider">MAX</span>
+                    <span class="text-xs font-extrabold text-white font-mono leading-tight mt-0.5">
+                      {{ enclosureMaxVal != null ? `${enclosureMaxVal}°` : '--' }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Bottom: Thermal Safety Threshold Bar -->
+              <div class="space-y-1 relative z-10 pt-1 mt-auto">
+                <div class="flex items-center justify-between text-[11px] text-white/90 font-medium">
+                  <span v-if="thermalStatus.safeLimit != null">Batas: <strong class="text-white font-bold">{{ thermalStatus.safeLimit }}°C</strong></span>
+                  <span v-else>Batas belum diatur</span>
+                  <span class="font-bold text-white">{{ getLiveVal(enclosureTempMetric) ?? '--' }}°C</span>
+                </div>
+                <div class="relative h-1.5 w-full bg-black/25 rounded-full overflow-hidden backdrop-blur-xs">
+                  <div 
+                    :class="['h-full bg-gradient-to-r rounded-full transition-all duration-500', thermalStatus.barGradient]" 
+                    :style="{ width: `${thermalStatus.percentage}%` }"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <!-- Mini Grid: Suhu Luar (Ambient) & Kelembaban Udara -->
+            <div class="grid grid-cols-2 gap-2">
+              <!-- Suhu Luar / Ambient -->
+              <div 
+                :class="[
+                  'relative overflow-hidden p-2.5 rounded-2xl text-white shadow-xs border border-white/20 flex flex-col justify-between min-h-[88px] group hover:scale-[1.01] transition-transform',
+                  airTempCardState.gradient,
+                  airTempCardState.shadow
+                ]"
+              >
+                <DotPattern :width="12" :height="12" :cx="6" :cy="6" :cr="1" class="text-white/20" />
+                <div class="flex items-start justify-between gap-1 relative z-10">
+                  <span class="text-[11px] font-semibold text-white/95 line-clamp-2 leading-tight flex-1">
+                    {{ airTempMetric?.name || 'Suhu Luar' }}
+                  </span>
+                  <div 
+                    :class="[
+                      'bg-white/25 text-white border border-white/40 shadow-2xs shrink-0 select-none px-1.5 py-0.5 rounded-full flex items-center',
+                      airTempCardState.isAlert && 'rounded-xl flex-col'
+                    ]"
+                  >
+                    <span class="text-[10px] font-extrabold leading-tight">{{ airTempStatus.text }}</span>
+                  </div>
+                </div>
+                <div class="flex items-baseline gap-1 mt-1 relative z-10">
+                  <span class="text-xl font-extrabold tracking-tight text-white">
+                    {{ getLiveVal(airTempMetric) ?? '--' }}
+                  </span>
+                  <span class="text-xs font-bold text-white/90">
+                    {{ airTempMetric?.unit || '°C' }}
+                  </span>
+                </div>
+              </div>
+
+              <!-- Kelembaban Udara -->
+              <div 
+                :class="[
+                  'relative overflow-hidden p-2.5 rounded-2xl text-white shadow-xs border border-white/20 flex flex-col justify-between min-h-[88px] group hover:scale-[1.01] transition-transform',
+                  humidityCardState.gradient,
+                  humidityCardState.shadow
+                ]"
+              >
+                <DotPattern :width="12" :height="12" :cx="6" :cy="6" :cr="1" class="text-white/20" />
+                <div class="flex items-start justify-between gap-1 relative z-10">
+                  <span class="text-[11px] font-semibold text-white/95 line-clamp-2 leading-tight flex-1">
+                    {{ humidityMetric?.name || 'Kelembaban' }}
+                  </span>
+                  <div 
+                    :class="[
+                      'bg-white/25 text-white border border-white/40 shadow-2xs shrink-0 select-none px-1.5 py-0.5 rounded-full flex items-center',
+                      humidityCardState.isAlert && 'rounded-xl flex-col'
+                    ]"
+                  >
+                    <span class="text-[10px] font-extrabold leading-tight">{{ humidityStatus.text }}</span>
+                  </div>
+                </div>
+                <div class="flex items-baseline gap-1 mt-1 relative z-10">
+                  <span class="text-xl font-extrabold tracking-tight text-white">
+                    {{ getLiveVal(humidityMetric) ?? '--' }}
+                  </span>
+                  <span class="text-xs font-bold text-white/90">
+                    {{ humidityMetric?.unit || '%' }}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </Card>
+
       </div>
 
       <!-- ═══════════════════════════════════════════════════════════════════════════ -->
@@ -1639,8 +1831,8 @@ onUnmounted(() => {
 
         </div>
 
-        <!-- ROW 3: Dua Portlet Berdampingan (Kondisi Tanah & Kondisi IoT) -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+        <!-- ROW 3: Dua Portlet Berdampingan (Kondisi Tanah & Sistem Daya Kelistrikan) -->
+        <div class="grid grid-cols-1 xl:grid-cols-2 gap-3.5">
           
           <!-- PORTLET 1: KONDISI TANAH -->
           <Card class="relative overflow-hidden flex flex-col">
@@ -1699,11 +1891,24 @@ onUnmounted(() => {
                       />
                     </div>
                   </div>
-                  <!-- Node 2 tidak punya probe analog sama sekali (field6 kanal
-                       utama kosong), jadi daftar ini memang bisa kosong. -->
-                  <p v-if="!soilProbes.length" class="text-xs text-slate-500 dark:text-slate-400 italic">
-                    Node ini tidak punya probe analog — lengas diambil dari probe NPK.
-                  </p>
+                  <!-- Tampilan bar utama ketika data dikirim sebagai nilai gabungan / probe NPK -->
+                  <div v-if="!soilProbes.length" class="space-y-1.5 pt-0.5">
+                    <div class="flex justify-between items-center text-xs text-slate-600 dark:text-slate-400 font-medium">
+                      <span>Tingkat Lengas Tanah</span>
+                      <span class="font-bold text-slate-800 dark:text-slate-200 font-mono">
+                        {{ realTimeAvgMoisture != null ? `${realTimeAvgMoisture}%` : '--' }}
+                      </span>
+                    </div>
+                    <div class="h-3 w-full bg-slate-200/80 dark:bg-slate-800/90 rounded-full overflow-hidden p-0.5 flex items-center">
+                      <div 
+                        class="h-full bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full transition-all duration-500 shadow-xs" 
+                        :style="{ width: `${Math.min(Math.max(Number(realTimeAvgMoisture || 0), 0), 100)}%` }"
+                      />
+                    </div>
+                    <p class="text-[11px] text-slate-500 dark:text-slate-400 italic">
+                      {{ avgMoistureMetric?.name ? `Sumber: ${avgMoistureMetric.name}` : 'Sumber data kelembapan terpadu stasiun IoT' }}
+                    </p>
+                  </div>
                 </div>
               </div>
 
@@ -1827,214 +2032,222 @@ onUnmounted(() => {
             </div>
           </Card>
 
-          <!-- PORTLET 2: KONDISI IOT -->
+          <!-- PORTLET 2: SISTEM SOLAR PANEL (INA226) -->
           <Card class="relative overflow-hidden flex flex-col">
             <div class="p-4 flex flex-col gap-3 flex-1 justify-between">
               <!-- Portlet Header -->
               <div class="flex items-center justify-between pb-2 border-b border-border/40">
-                <div class="flex items-center gap-3">
-                  <img src="/iot-icon.svg" alt="Kondisi IoT" class="w-6 h-6 sm:w-7 sm:h-7 object-contain dark:invert shrink-0" />
-                  <h4 class="text-base sm:text-lg font-extrabold tracking-tight text-foreground leading-tight">Kondisi IoT</h4>
+                <div class="flex items-center gap-2.5">
+                  <div class="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 shadow-2xs">
+                    <Zap class="w-4.5 h-4.5 stroke-[2.5]" />
+                  </div>
+                  <div>
+                    <div class="flex items-center gap-2">
+                      <h4 class="text-base sm:text-lg font-extrabold tracking-tight text-foreground leading-tight">
+                        Sistem Solar Panel
+                      </h4>
+                      <Badge variant="outline" class="text-[10px] font-mono font-bold px-1.5 py-0.5 border-amber-500/30 text-amber-700 dark:text-amber-400 bg-amber-500/10">
+                        12V DC
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Status Operasional Baterai -->
+                <div 
+                  :class="[
+                    'px-2.5 py-1 rounded-xl border flex items-center gap-1.5 shadow-2xs text-xs font-bold transition-all shrink-0',
+                    batteryStatusInfo.badgeClass
+                  ]"
+                >
+                  <span class="relative flex h-2 w-2">
+                    <span :class="['animate-ping absolute inline-flex h-full w-full rounded-full opacity-75', batteryStatusInfo.dotClass]"></span>
+                    <span :class="['relative inline-flex rounded-full h-2 w-2', batteryStatusInfo.dotClass]"></span>
+                  </span>
+                  <span class="text-[11px] sm:text-xs">{{ batteryStatusInfo.text }}</span>
                 </div>
               </div>
 
-              <!-- Highlight Suhu Dalam Panel (Enclosure) & Dynamic Thermal Safety Card (NPK Style - Expanded Height) -->
-              <div 
-                class="relative overflow-hidden p-4 sm:p-4.5 rounded-2xl transition-all duration-300 flex-1 flex flex-col justify-between gap-3 text-white border-0 min-h-[135px]"
-                :class="thermalStatus.shadowClass"
-                :style="{ background: thermalStatus.gradient }"
-              >
-                <!-- Soft Glass Inner Glow / Lighting Reflection (Same as NPK Card) -->
-                <div 
-                  class="absolute inset-0 pointer-events-none opacity-20"
-                  style="background: radial-gradient(circle at 85% 15%, rgba(255, 255, 255, 0.4) 0%, transparent 60%);"
-                ></div>
-
-                <!-- Inspira UI DotPattern Texture Overlay -->
-                <DotPattern 
-                  :width="12" 
-                  :height="12" 
-                  :cx="1" 
-                  :cy="1" 
-                  :cr="1" 
-                  class="text-white/20" 
-                />
-
-                <!-- Top: Thermometer Icon, Label, Main Value, and Min/Max Stats -->
-                <div class="flex items-center justify-between gap-2.5 relative z-10 my-auto">
-                  <div class="flex items-center gap-3">
-                    <div class="w-9 h-9 rounded-xl bg-white/25 backdrop-blur-md flex items-center justify-center text-white shadow-none shrink-0 border-0">
-                      <Thermometer class="w-5 h-5 stroke-[2.5]" />
+              <!-- Top Section: Baterai 12V & Beban Sistem Berdampingan (2 Kolom) -->
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 flex-1">
+                
+                <!-- KOTAK 1: BATERAI 12V -->
+                <div class="bg-slate-50/80 dark:bg-slate-900/50 rounded-2xl p-3 border border-slate-200/80 dark:border-slate-800 flex flex-col justify-between gap-2.5">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-1.5">
+                      <component :is="power?.is_charging ? BatteryCharging : Battery" class="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                      <span class="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">Baterai 12V</span>
                     </div>
-                    <div>
-                      <p class="text-sm sm:text-base font-semibold text-white/95 tracking-wide drop-shadow-[0_1px_1px_rgba(0,0,0,0.1)]">
-                        {{ enclosureTempMetric?.name || 'Suhu Dalam Box Panel' }}
-                      </p>
-                      <div class="flex items-baseline gap-1 mt-0.5">
-                        <span class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.15)]">
-                          {{ getLiveVal(enclosureTempMetric) ?? '--' }}
-                        </span>
-                        <span class="text-sm font-semibold text-white/90 drop-shadow-[0_1px_1px_rgba(0,0,0,0.1)]">
-                          {{ enclosureTempMetric?.unit || '°C' }}
-                        </span>
+                    <span v-if="batteryLevelPercent != null" class="text-xs font-mono font-black text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-lg border border-emerald-500/20">
+                      {{ batteryLevelPercent }}%
+                    </span>
+                  </div>
+
+                  <!-- Tegangan Utama Baterai -->
+                  <div class="space-y-1">
+                    <div class="flex items-baseline gap-1">
+                      <span class="text-2xl sm:text-3xl font-black font-mono tracking-tight text-slate-800 dark:text-slate-100">
+                        {{ power?.tegangan_in != null ? Number(power.tegangan_in).toFixed(2) : '--' }}
+                      </span>
+                      <span class="text-xs font-extrabold text-slate-500 dark:text-slate-400">V</span>
+                    </div>
+                    <!-- Level Gauge Bar -->
+                    <div class="space-y-0.5">
+                      <div class="h-1.5 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                        <div 
+                          :class="['h-full bg-gradient-to-r rounded-full transition-all duration-500', batteryStatusInfo.barColor]"
+                          :style="{ width: `${batteryLevelPercent ?? 0}%` }"
+                        />
+                      </div>
+                      <div class="flex justify-between text-[9px] text-muted-foreground font-mono">
+                        <span>11.0V</span>
+                        <span>13.8V</span>
                       </div>
                     </div>
                   </div>
 
-                  <!-- Min & Max Stats (Compact, Sleek 50/50 Symmetrical Grid Capsule) -->
-                  <div class="grid grid-cols-2 divide-x divide-white/35 items-center bg-white/30 hover:bg-white/35 backdrop-blur-md px-1.5 py-1 sm:py-1.5 rounded-xl shrink-0 border border-white/50 shadow-sm w-28 sm:w-32">
-                    <div class="px-1.5 flex flex-col items-center justify-center text-center">
-                      <span class="text-[10px] font-bold text-white/90 block leading-none tracking-wider drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)]">MIN</span>
-                      <span class="text-xs sm:text-sm font-extrabold text-white font-mono leading-tight mt-0.5 drop-shadow-[0_1px_1px_rgba(0,0,0,0.2)]">
-                        {{ enclosureMinVal != null ? `${enclosureMinVal}°` : '--' }}
-                      </span>
+                  <!-- Sub: Arus & Daya Baterai -->
+                  <div class="grid grid-cols-2 gap-1.5 pt-2 border-t border-slate-200/60 dark:border-slate-800/60 text-center">
+                    <div class="bg-white/70 dark:bg-slate-800/50 rounded-lg p-1.5 border border-slate-200/50 dark:border-slate-700/50">
+                      <p class="text-[9px] font-bold text-muted-foreground uppercase">Arus</p>
+                      <p class="text-xs font-mono font-black text-foreground mt-0.5">
+                        {{ power?.arus_in != null ? `${Math.abs(Number(power.arus_in)).toFixed(2)} A` : '--' }}
+                      </p>
                     </div>
-                    <div class="px-1.5 flex flex-col items-center justify-center text-center">
-                      <span class="text-[10px] font-bold text-white/90 block leading-none tracking-wider drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)]">MAX</span>
-                      <span class="text-xs sm:text-sm font-extrabold text-white font-mono leading-tight mt-0.5 drop-shadow-[0_1px_1px_rgba(0,0,0,0.2)]">
-                        {{ enclosureMaxVal != null ? `${enclosureMaxVal}°` : '--' }}
-                      </span>
+                    <div class="bg-white/70 dark:bg-slate-800/50 rounded-lg p-1.5 border border-slate-200/50 dark:border-slate-700/50">
+                      <p class="text-[9px] font-bold text-muted-foreground uppercase">Daya</p>
+                      <p class="text-xs font-mono font-black text-foreground mt-0.5">
+                        {{ power?.daya_in != null ? `${Math.abs(Number(power.daya_in)).toFixed(2)} W` : '--' }}
+                      </p>
                     </div>
                   </div>
                 </div>
 
-                <!-- Bottom: Thermal Safety Threshold Bar (Current / Max Threshold) -->
-                <div class="space-y-1.5 relative z-10 pt-1 mt-auto">
-                  <div class="flex items-center justify-between text-xs text-white/90 font-medium">
-                    <span v-if="thermalStatus.safeLimit != null">Batas Aman Panel: <strong class="text-white font-bold">{{ thermalStatus.safeLimit }}°C</strong></span>
-                    <span v-else>Batas aman panel belum diatur</span>
-                    <span class="font-bold text-white">{{ getLiveVal(enclosureTempMetric) ?? '--' }} / {{ thermalStatus.safeLimit }}°C</span>
+                <!-- KOTAK 2: BEBAN SISTEM -->
+                <div class="bg-slate-50/80 dark:bg-slate-900/50 rounded-2xl p-3 border border-slate-200/80 dark:border-slate-800 flex flex-col justify-between gap-2.5">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-1.5">
+                      <Zap class="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                      <span class="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">Beban Sistem</span>
+                    </div>
+                    <span class="text-[10px] font-mono font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-lg border border-amber-500/20">
+                      Output
+                    </span>
                   </div>
-                  <!-- Progress bar -->
-                  <div class="relative h-1.5 w-full bg-black/25 rounded-full overflow-hidden backdrop-blur-xs">
-                    <div 
-                      :class="['h-full bg-gradient-to-r rounded-full transition-all duration-500', thermalStatus.barGradient]" 
-                      :style="{ width: `${thermalStatus.percentage}%` }"
-                    />
+
+                  <!-- Tegangan Load Utama -->
+                  <div class="space-y-1">
+                    <div class="flex items-baseline gap-1">
+                      <span class="text-2xl sm:text-3xl font-black font-mono tracking-tight text-slate-800 dark:text-slate-100">
+                        {{ power?.tegangan_out != null ? Number(power.tegangan_out).toFixed(2) : '--' }}
+                      </span>
+                      <span class="text-xs font-extrabold text-slate-500 dark:text-slate-400">V</span>
+                    </div>
+                    <p class="text-[11px] text-muted-foreground flex items-center gap-1">
+                      <Cpu class="w-3 h-3 text-slate-400" />
+                      ESP32 &amp; Sensor Aktif
+                    </p>
+                  </div>
+
+                  <!-- Sub: Arus & Daya Beban -->
+                  <div class="grid grid-cols-2 gap-1.5 pt-2 border-t border-slate-200/60 dark:border-slate-800/60 text-center">
+                    <div class="bg-white/70 dark:bg-slate-800/50 rounded-lg p-1.5 border border-slate-200/50 dark:border-slate-700/50">
+                      <p class="text-[9px] font-bold text-muted-foreground uppercase">Arus</p>
+                      <p class="text-xs font-mono font-black text-foreground mt-0.5">
+                        {{ power?.arus_out != null ? `${Number(power.arus_out).toFixed(2)} A` : '--' }}
+                      </p>
+                    </div>
+                    <div class="bg-white/70 dark:bg-slate-800/50 rounded-lg p-1.5 border border-slate-200/50 dark:border-slate-700/50">
+                      <p class="text-[9px] font-bold text-muted-foreground uppercase">Daya</p>
+                      <p class="text-xs font-mono font-black text-amber-600 dark:text-amber-400 mt-0.5">
+                        {{ power?.daya_out != null ? `${Number(power.daya_out).toFixed(2)} W` : '--' }}
+                      </p>
+                    </div>
                   </div>
                 </div>
+
               </div>
 
-              <!-- Mini Grid: Suhu Luar (Ambient), Kelembaban Udara, Status Modbus (Dynamic 3-State Semantic Gradient Cards) -->
-              <div class="grid grid-cols-3 gap-2 sm:gap-2.5">
-                <!-- Suhu Luar / Ambient (Dynamic 3-State: Sejuk: Biru | Optimal: Oranye Hangat | Panas: Merah Rose Alert) -->
+              <!-- Bottom Section: Neraca Daya & Modul I2C Hardware -->
+              <div class="bg-slate-50/80 dark:bg-slate-900/50 rounded-2xl p-3 border border-slate-200/80 dark:border-slate-800 flex flex-col gap-2">
+                <!-- Banner Net Power Flow (Disintesis dari Backend FastAPI) -->
                 <div 
                   :class="[
-                    'relative overflow-hidden p-2.5 sm:p-3 rounded-2xl text-white shadow-xs border border-white/20 flex flex-col justify-between min-h-[92px] sm:min-h-[96px] group hover:scale-[1.01] transition-transform',
-                    airTempCardState.gradient,
-                    airTempCardState.shadow
+                    'p-2 rounded-xl border flex items-center justify-between transition-colors',
+                    power?.status_aliran === 'surplus'
+                      ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-800 dark:text-emerald-300'
+                      : power?.status_aliran === 'standby'
+                        ? 'bg-slate-500/10 border-slate-500/25 text-slate-700 dark:text-slate-300'
+                        : power?.status_aliran === 'defisit'
+                          ? 'bg-amber-500/10 border-amber-500/25 text-amber-800 dark:text-amber-300'
+                          : 'bg-slate-500/10 border-slate-500/25 text-slate-600 dark:text-slate-400'
                   ]"
                 >
-                  <DotPattern :width="12" :height="12" :cx="6" :cy="6" :cr="1" class="text-white/20" />
-                  <div class="flex items-start justify-between gap-1.5 relative z-10">
-                    <span class="text-[11px] sm:text-xs font-semibold text-white/95 line-clamp-2 leading-tight flex-1 drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)]">
-                      {{ airTempMetric?.name || 'Suhu Luar' }}
-                    </span>
-                    <!-- Unified Status & Threshold Capsule -->
-                    <div 
-                      :class="[
-                        'bg-white/25 hover:bg-white/30 backdrop-blur-md text-white border border-white/40 shadow-2xs transition-all shrink-0 select-none',
-                        airTempCardState.isAlert 
-                          ? 'px-2 py-0.5 rounded-xl flex flex-col items-center gap-0.5' 
-                          : 'px-2 py-0.5 rounded-full flex items-center'
-                      ]"
-                    >
-                      <span class="text-[10px] sm:text-[11px] font-extrabold tracking-wide leading-tight drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)]">{{ airTempStatus.text }}</span>
-                      <span v-if="airTempCardState.isAlert" class="text-[9px] sm:text-[10px] font-bold text-white/95 border-t border-white/25 pt-0.5 tracking-tight whitespace-nowrap">
-                        {{ airTempCardState.min }}–{{ airTempCardState.max }}°
-                      </span>
-                    </div>
-                  </div>
-                  <div class="flex items-baseline gap-1 mt-1 relative z-10">
-                    <span class="text-xl sm:text-2xl font-extrabold tracking-tight text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.2)]">
-                      {{ getLiveVal(airTempMetric) ?? '--' }}
-                    </span>
-                    <span class="text-xs font-bold text-white/90 drop-shadow-[0_1px_1px_rgba(0,0,0,0.1)]">
-                      {{ airTempMetric?.unit || '°C' }}
+                  <div class="flex items-center gap-2">
+                    <component :is="power?.status_aliran === 'surplus' ? Sun : power?.status_aliran === 'standby' ? Minus : ArrowDownRight" class="w-4 h-4 shrink-0" />
+                    <span class="text-xs font-bold">
+                      {{ power?.status_label || 'Status Daya' }}
                     </span>
                   </div>
+                  <span class="text-sm font-mono font-black">
+                    {{ power?.net_power != null ? `${power.net_power > 0 ? '+' : ''}${Number(power.net_power).toFixed(2)} W` : '--' }}
+                  </span>
                 </div>
 
-                <!-- Kelembaban Udara (Dynamic 3-State: Kering: Amber | Optimal: Sky Blue | Tinggi: Deep Ocean) -->
-                <div 
-                  :class="[
-                    'relative overflow-hidden p-2.5 sm:p-3 rounded-2xl text-white shadow-xs border border-white/20 flex flex-col justify-between min-h-[92px] sm:min-h-[96px] group hover:scale-[1.01] transition-transform',
-                    humidityCardState.gradient,
-                    humidityCardState.shadow
-                  ]"
-                >
-                  <DotPattern :width="12" :height="12" :cx="6" :cy="6" :cr="1" class="text-white/20" />
-                  <div class="flex items-start justify-between gap-1.5 relative z-10">
-                    <span class="text-[11px] sm:text-xs font-semibold text-white/95 line-clamp-2 leading-tight flex-1 drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)]">
-                      {{ humidityMetric?.name || 'Kelembaban' }}
-                    </span>
-                    <!-- Unified Status & Threshold Capsule -->
-                    <div 
-                      :class="[
-                        'bg-white/25 hover:bg-white/30 backdrop-blur-md text-white border border-white/40 shadow-2xs transition-all shrink-0 select-none',
-                        humidityCardState.isAlert 
-                          ? 'px-2 py-0.5 rounded-xl flex flex-col items-center gap-0.5' 
-                          : 'px-2 py-0.5 rounded-full flex items-center'
-                      ]"
-                    >
-                      <span class="text-[10px] sm:text-[11px] font-extrabold tracking-wide leading-tight drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)]">{{ humidityStatus.text }}</span>
-                      <span v-if="humidityCardState.isAlert" class="text-[9px] sm:text-[10px] font-bold text-white/95 border-t border-white/25 pt-0.5 tracking-tight whitespace-nowrap">
-                        {{ humidityCardState.min }}–{{ humidityCardState.max }}%
-                      </span>
-                    </div>
-                  </div>
-                  <div class="flex items-baseline gap-1 mt-1 relative z-10">
-                    <span class="text-xl sm:text-2xl font-extrabold tracking-tight text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.2)]">
-                      {{ getLiveVal(humidityMetric) ?? '--' }}
-                    </span>
-                    <span class="text-xs font-bold text-white/90 drop-shadow-[0_1px_1px_rgba(0,0,0,0.1)]">
-                      {{ humidityMetric?.unit || '%' }}
-                    </span>
-                  </div>
-                </div>
-
-                <!-- Daya & Baterai (INA226 0x40 masuk / 0x41 keluar).
-                     Menggantikan kartu "Kode Error Modbus": npk_error tidak
-                     pernah ada di ThingSpeak (CLAUDE.md, "Read but not stored"),
-                     jadi kartu itu selama ini menampilkan tegangan baterai.
-                     Daya diturunkan backend (V x A) -- tidak ada field untuknya. -->
-                <div class="col-span-2 relative overflow-hidden p-3 rounded-2xl border border-slate-200/70 dark:border-slate-700/60 bg-white/60 dark:bg-slate-900/40 space-y-2">
-                  <div class="flex items-center justify-between">
-                    <p class="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-100">Daya &amp; Baterai</p>
-                    <span class="text-[10px] text-slate-500 dark:text-slate-400 font-semibold">INA226</span>
-                  </div>
-                  <div class="grid grid-cols-2 gap-2">
-                    <div class="rounded-xl bg-slate-100/80 dark:bg-slate-800/60 px-2.5 py-2">
-                      <p class="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wide">Masuk</p>
-                      <p class="text-xs font-mono font-extrabold text-slate-800 dark:text-slate-100">
-                        {{ power?.tegangan_in ?? '--' }} V · {{ power?.arus_in ?? '--' }} A
-                      </p>
-                      <p class="text-sm font-mono font-black text-emerald-600 dark:text-emerald-400">
-                        {{ power?.daya_in != null ? `${power.daya_in} W` : '--' }}
-                      </p>
-                    </div>
-                    <div class="rounded-xl bg-slate-100/80 dark:bg-slate-800/60 px-2.5 py-2">
-                      <p class="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wide">Keluar</p>
-                      <p class="text-xs font-mono font-extrabold text-slate-800 dark:text-slate-100">
-                        {{ power?.tegangan_out ?? '--' }} V · {{ power?.arus_out ?? '--' }} A
-                      </p>
-                      <p class="text-sm font-mono font-black text-amber-600 dark:text-amber-400">
-                        {{ power?.daya_out != null ? `${power.daya_out} W` : '--' }}
-                      </p>
-                    </div>
-                  </div>
+                <!-- Hardware I2C Status (Validasi Hardware dari Backend) -->
+                <div class="flex items-center justify-between text-[11px] pt-0.5 px-1">
+                  <span class="text-muted-foreground flex items-center gap-1">
+                    <span class="w-1.5 h-1.5 rounded-full" :class="power?.i2c_0x40_active ? 'bg-emerald-500' : 'bg-slate-400'"></span>
+                    I2C 0x40 (Baterai): <strong class="text-foreground">{{ power?.i2c_0x40_active ? 'Aktif' : 'Standby' }}</strong>
+                  </span>
+                  <span class="text-muted-foreground flex items-center gap-1">
+                    <span class="w-1.5 h-1.5 rounded-full" :class="power?.i2c_0x41_active ? 'bg-amber-500' : 'bg-slate-400'"></span>
+                    I2C 0x41 (Beban): <strong class="text-foreground">{{ power?.i2c_0x41_active ? 'Aktif' : 'Standby' }}</strong>
+                  </span>
                 </div>
               </div>
 
             </div>
           </Card>
+        </div>
+
+        <!-- Sensor & Metrik Tambahan (Jaring Pengaman Otomatis jika ada parameter baru) -->
+          <div v-if="additionalSensors.length" class="mt-4 pt-4 border-t border-slate-200/80 dark:border-slate-800 space-y-3">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="text-lg">📌</span>
+                <h4 class="text-base font-extrabold tracking-tight text-foreground">
+                  Sensor &amp; Metrik Tambahan
+                </h4>
+                <Badge variant="outline" class="text-[11px] font-mono px-2 py-0.5">
+                  {{ additionalSensors.length }} Parameter
+                </Badge>
+              </div>
+              <span class="text-xs text-muted-foreground italic">
+                Metrik aktif di database yang belum terdaftar di widget utama
+              </span>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              <SensorCard
+                v-for="s in additionalSensors"
+                :key="s.id || s.field_key"
+                :title="s.name"
+                :value="getLiveVal(s)"
+                :unit="s.unit"
+                :type="s.type"
+                :status="s.status"
+                :min-threshold="s.min_threshold"
+                :max-threshold="s.max_threshold"
+              />
+            </div>
+          </div>
 
         </div>
 
       </div>
 
     </div>
-  </div>
 
   <!-- Export Telemetry Modal (CSV) -->
   <ExportTelemetryModal

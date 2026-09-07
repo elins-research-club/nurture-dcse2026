@@ -52,12 +52,17 @@ def has_valve(layout: str) -> bool:
     return layout == LAYOUT_NODE1_PACKED
 
 
-def decode_packed_current(mentah: Any) -> Tuple[Optional[float], Optional[float]]:
-    """field5 Node 1 -> (arus_masuk, arus_keluar) dalam ampere.
+def get_actuator_field(layout: str) -> str:
+    """Mendapatkan nama field ThingSpeak untuk status bitmask aktuator pada kanal pendukung.
+    - Node 1 (node1_packed): field7 (karena field8 dipakai untuk Daya Beban Aktual)
+    - Node 2 (node2_plain): field8 (sesuai firmware Node 2)
+    """
+    return "field7" if layout == LAYOUT_NODE1_PACKED else "field8"
 
-    Mengembalikan (None, None) kalau kosong, bukan angka, atau sudah melewati
-    batas encoding. Lebih baik tidak ada pembacaan daripada dua angka yang
-    kelihatan wajar tapi salah.
+
+def decode_packed_current(mentah: Any) -> Tuple[Optional[float], Optional[float]]:
+    """Legacy helper: field5 Node 1 -> (arus_masuk, arus_keluar) dalam ampere.
+    Dipertahankan untuk kompatibilitas data arsip lama.
     """
     if mentah is None:
         return None, None
@@ -81,26 +86,16 @@ def extract_channel_fields(
     layout: str = LAYOUT_DEFAULT,
     channel_label: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """field1..field8 mentah -> dict siap pakai, sudah dibongkar sesuai layout.
-
-    Field yang tidak ada atau null DILEWATI, bukan dijadikan nol. Firmware
-    memang menghilangkan field saat pembacaan gagal; nol akan terbaca sebagai
-    tanah yang benar-benar habis haranya.
+    """field1..field8 mentah -> dict siap pakai.
+    
+    Firmware baru Node 1 dan Node 2 mengirimkan nilai float/angka langsung
+    di setiap field tanpa kompresi. Field yang tidak ada atau null dilewati.
     """
     hasil: Dict[str, Any] = {}
-    dipampatkan = layout == LAYOUT_NODE1_PACKED and is_support_channel(channel_label)
 
     for i in range(1, 9):
         nama = f"field{i}"
         if nama not in data or data[nama] is None:
-            continue
-
-        if dipampatkan and nama == "field5":
-            masuk, keluar = decode_packed_current(data[nama])
-            if masuk is not None:
-                hasil["field5_in"] = masuk
-            if keluar is not None:
-                hasil["field5_out"] = keluar
             continue
 
         try:
@@ -109,3 +104,4 @@ def extract_channel_fields(
             hasil[nama] = data[nama]
 
     return hasil
+

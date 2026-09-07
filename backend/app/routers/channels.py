@@ -23,46 +23,87 @@ from sqlalchemy import delete
 # probe analog 1, Node 2 tidak punya probe analog sama sekali.
 # --------------------------------------------------------------------------
 
-TEMPLATE_UTAMA = [
+# Peta field ThingSpeak terverifikasi dari firmware .ino:
+# Node 1:
+#   Kanal Utama (Ch 1):
+#     field1: Nitrogen (npk_n, mg/kg)
+#     field2: Fosfor (npk_p, mg/kg)
+#     field3: Kalium (npk_k, mg/kg)
+#     field4: pH Tanah (soil_ph, pH)
+#     field5: EC Tanah (soil_ec, uS/cm)
+#     field6: Rata-rata Kelembapan Tanah (soil_moisture, %)
+#     field7: Suhu Luar Rata-Rata (air_temp, C)
+#     field8: Lembab Luar Rata-Rata (air_humidity, %)
+#   Kanal Pendukung (Ch 2):
+#     field1: Suhu Tanah (soil_temp, C)
+#     field2: Tegangan Baterai (batt_volt, V)
+#     field3: Tegangan Load (load_volt, V)
+#     field4: Arus Baterai (batt_current, A)
+#     field5: Arus Load (load_current, A)
+#     field6: Suhu Dalam Panel (box_temp, C)
+#     field7: Status Aktuator (actuator, "")
+#     field8: Daya Beban Aktual (load_power, W)
+#
+# Node 2:
+#   Kanal Utama (Ch 1):
+#     field1: Nitrogen (npk_n, mg/kg)
+#     field2: Fosfor (npk_p, mg/kg)
+#     field3: Kalium (npk_k, mg/kg)
+#     field4: pH Tanah (soil_ph, pH)
+#     field5: EC Tanah (soil_ec, uS/cm)
+#     field6: Suhu Luar Rata-Rata (air_temp, C)
+#     field7: Lembab Luar Rata-Rata (air_humidity, %)
+#     field8: Daya Beban Aktual (load_power, W)
+#   Kanal Pendukung (Ch 2):
+#     field1: Suhu Tanah (soil_temp, C)
+#     field2: Kelembapan Probe NPK (soil_moisture, %)
+#     field3: Tegangan Baterai (batt_volt, V)
+#     field4: Tegangan Load (load_volt, V)
+#     field5: Arus Baterai (batt_current, A)
+#     field6: Arus Load (load_current, A)
+#     field7: Suhu Dalam Panel (box_temp, C)
+#     field8: Status Aktuator (actuator, "")
+
+TEMPLATE_UTAMA_NODE1 = [
     {"name": "Nitrogen", "field": "field1", "unit": "mg/kg", "type": "npk_n"},
     {"name": "Fosfor", "field": "field2", "unit": "mg/kg", "type": "npk_p"},
     {"name": "Kalium", "field": "field3", "unit": "mg/kg", "type": "npk_k"},
     {"name": "pH Tanah", "field": "field4", "unit": "pH", "type": "soil_ph"},
     {"name": "EC Tanah", "field": "field5", "unit": "uS/cm", "type": "soil_ec"},
-    # field6 hanya untuk Node 1 -- disisipkan di bawah.
+    {"name": "Rata-rata Kelembapan Tanah", "field": "field6", "unit": "%", "type": "soil_moisture"},
     {"name": "Suhu Luar Rata-Rata", "field": "field7", "unit": "C", "type": "air_temp"},
     {"name": "Lembab Luar Rata-Rata", "field": "field8", "unit": "%", "type": "air_humidity"},
 ]
 
-PROBE_ANALOG_1 = {
-    "name": "Soil Probe 1", "field": "field6", "unit": "%", "type": "soil_probe",
-}
-
-# Kanal pendukung berbeda mulai field3. Node 1 kehabisan field sehingga arus
-# masuk dan keluar dipampatkan jadi satu angka di field5; ingest membongkarnya
-# jadi field5_in / field5_out (lihat services/field_decoder.py), jadi sensor di
-# sini memakai nama field hasil bongkaran itu, bukan "field5" mentah.
 TEMPLATE_PENDUKUNG_NODE1 = [
     {"name": "Suhu Tanah", "field": "field1", "unit": "C", "type": "soil_temp"},
-    {"name": "Kelembapan Probe NPK", "field": "field2", "unit": "%", "type": "probe_moist"},
-    {"name": "Tegangan Input", "field": "field3", "unit": "V", "type": "batt_volt"},
-    {"name": "Tegangan Output", "field": "field4", "unit": "V", "type": "batt_volt"},
-    {"name": "Arus Input", "field": "field5_in", "unit": "A", "type": "current"},
-    {"name": "Arus Output", "field": "field5_out", "unit": "A", "type": "current"},
-    {"name": "Soil Probe 2", "field": "field6", "unit": "%", "type": "soil_probe"},
-    {"name": "Suhu Dalam Panel", "field": "field7", "unit": "C", "type": "box_temp"},
-    # Bitmask, bukan pengukuran. Jangan diberi ambang batas -- angkanya tidak
-    # punya urutan yang berarti (12 bukan "lebih besar" dari 3).
-    {"name": "Status Aktuator", "field": "field8", "unit": "", "type": "actuator"},
+    {"name": "Tegangan Baterai", "field": "field2", "unit": "V", "type": "batt_volt"},
+    {"name": "Tegangan Load", "field": "field3", "unit": "V", "type": "load_volt"},
+    {"name": "Arus Baterai", "field": "field4", "unit": "A", "type": "batt_current"},
+    {"name": "Arus Load", "field": "field5", "unit": "A", "type": "load_current"},
+    {"name": "Suhu Dalam Panel", "field": "field6", "unit": "C", "type": "box_temp"},
+    {"name": "Status Aktuator", "field": "field7", "unit": "", "type": "actuator"},
+    {"name": "Daya Beban Aktual", "field": "field8", "unit": "W", "type": "load_power"},
+]
+
+TEMPLATE_UTAMA_NODE2 = [
+    {"name": "Nitrogen", "field": "field1", "unit": "mg/kg", "type": "npk_n"},
+    {"name": "Fosfor", "field": "field2", "unit": "mg/kg", "type": "npk_p"},
+    {"name": "Kalium", "field": "field3", "unit": "mg/kg", "type": "npk_k"},
+    {"name": "pH Tanah", "field": "field4", "unit": "pH", "type": "soil_ph"},
+    {"name": "EC Tanah", "field": "field5", "unit": "uS/cm", "type": "soil_ec"},
+    {"name": "Suhu Luar Rata-Rata", "field": "field6", "unit": "C", "type": "air_temp"},
+    {"name": "Lembab Luar Rata-Rata", "field": "field7", "unit": "%", "type": "air_humidity"},
+    {"name": "Daya Beban Aktual", "field": "field8", "unit": "W", "type": "load_power"},
 ]
 
 TEMPLATE_PENDUKUNG_NODE2 = [
     {"name": "Suhu Tanah", "field": "field1", "unit": "C", "type": "soil_temp"},
-    {"name": "Kelembapan Probe NPK", "field": "field2", "unit": "%", "type": "probe_moist"},
-    {"name": "Tegangan Input", "field": "field3", "unit": "V", "type": "batt_volt"},
-    {"name": "Tegangan Output", "field": "field4", "unit": "V", "type": "batt_volt"},
-    {"name": "Arus Input", "field": "field5", "unit": "A", "type": "current"},
-    {"name": "Arus Output", "field": "field6", "unit": "A", "type": "current"},
+    {"name": "Kelembapan Probe NPK", "field": "field2", "unit": "%", "type": "soil_moisture"},
+    {"name": "Tegangan Baterai", "field": "field3", "unit": "V", "type": "batt_volt"},
+    {"name": "Tegangan Load", "field": "field4", "unit": "V", "type": "load_volt"},
+    {"name": "Arus Baterai", "field": "field5", "unit": "A", "type": "batt_current"},
+    {"name": "Arus Load", "field": "field6", "unit": "A", "type": "load_current"},
     {"name": "Suhu Dalam Panel", "field": "field7", "unit": "C", "type": "box_temp"},
     {"name": "Status Aktuator", "field": "field8", "unit": "", "type": "actuator"},
 ]
@@ -77,14 +118,10 @@ def pilih_template(layout: str, label: str | None, urutan: int) -> list[dict]:
     pendukung = is_support_channel(label) if label else urutan > 0
     node1 = layout == LAYOUT_NODE1_PACKED
 
-    if pendukung:
-        return TEMPLATE_PENDUKUNG_NODE1 if node1 else TEMPLATE_PENDUKUNG_NODE2
-
-    utama = list(TEMPLATE_UTAMA)
     if node1:
-        # Node 2 tidak punya probe analog, field6-nya kosong.
-        utama.insert(5, PROBE_ANALOG_1)
-    return utama
+        return TEMPLATE_PENDUKUNG_NODE1 if pendukung else TEMPLATE_UTAMA_NODE1
+    else:
+        return TEMPLATE_PENDUKUNG_NODE2 if pendukung else TEMPLATE_UTAMA_NODE2
 
 
 router = APIRouter(prefix="/nodes")
