@@ -2162,8 +2162,8 @@ onUnmounted(() => {
                 <!-- Neraca Daya Bersih Tanpa Background Warna -->
                 <div class="flex items-center gap-2">
                   <span class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Neraca Daya:</span>
-                  <span 
-                    class="text-sm font-mono font-black tracking-tight"
+                  <div 
+                    class="flex items-center gap-1.5 text-sm font-black tracking-tight"
                     :class="[
                       power?.net_power > 0 
                         ? 'text-emerald-600 dark:text-emerald-400' 
@@ -2172,11 +2172,13 @@ onUnmounted(() => {
                           : 'text-slate-600 dark:text-slate-400'
                     ]"
                   >
-                    {{ power?.net_power != null ? `${power.net_power > 0 ? '+' : ''}${Number(power.net_power).toFixed(2)} W` : '--' }}
-                  </span>
-                  <span class="text-xs font-semibold text-muted-foreground">
-                    ({{ power?.status_label || 'Status Daya' }})
-                  </span>
+                    <span class="font-mono">
+                      {{ power?.net_power != null ? `${power.net_power > 0 ? '+' : ''}${Number(power.net_power).toFixed(2)} W` : '--' }}
+                    </span>
+                    <span>
+                      ({{ power?.status_label || 'Status Daya' }})
+                    </span>
+                  </div>
                 </div>
 
                 <!-- Hardware I2C Status (Validasi Hardware dari Backend) -->
