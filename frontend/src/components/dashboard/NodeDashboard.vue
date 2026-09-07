@@ -100,9 +100,9 @@ const categoryOptions = [
     icon: null,
     isLucide: true,
     lucideIcon: Layers,
-    iconColorClass: 'bg-violet-600 dark:bg-violet-400',
-    iconTextColorClass: 'text-violet-600 dark:text-violet-400',
-    wrapperClass: 'bg-violet-500/10 dark:bg-violet-500/15 border-violet-500/20 dark:border-violet-500/30'
+    iconColorClass: 'bg-foreground',
+    iconTextColorClass: 'text-foreground',
+    wrapperClass: 'bg-transparent border-transparent shadow-none'
   }
 ]
 
