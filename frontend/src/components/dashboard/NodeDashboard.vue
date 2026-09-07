@@ -1868,7 +1868,7 @@ onUnmounted(() => {
                   <!-- Tampilan bar utama ketika data dikirim sebagai nilai gabungan / probe NPK -->
                   <div v-if="!soilProbes.length" class="space-y-1.5 pt-0.5">
                     <div class="flex justify-between items-center text-xs text-slate-600 dark:text-slate-400 font-medium">
-                      <span>Tingkat Lengas Tanah</span>
+                      <span>Kadar Air Tanah</span>
                       <span class="font-bold text-slate-800 dark:text-slate-200 font-mono">
                         {{ realTimeAvgMoisture != null ? `${realTimeAvgMoisture}%` : '--' }}
                       </span>
@@ -1879,9 +1879,6 @@ onUnmounted(() => {
                         :style="{ width: `${Math.min(Math.max(Number(realTimeAvgMoisture || 0), 0), 100)}%` }"
                       />
                     </div>
-                    <p class="text-[11px] text-slate-500 dark:text-slate-400 italic">
-                      {{ avgMoistureMetric?.name ? `Sumber: ${avgMoistureMetric.name}` : 'Sumber data kelembapan terpadu stasiun IoT' }}
-                    </p>
                   </div>
                 </div>
               </div>
@@ -2041,29 +2038,29 @@ onUnmounted(() => {
                       <component :is="power?.is_charging ? BatteryCharging : Battery" class="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                       <span class="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">Baterai 12V</span>
                     </div>
-                    <div class="flex items-center gap-1.5">
-                      <span 
-                        class="text-[10px] font-bold px-1.5 py-0.5 rounded-md border tracking-tight"
-                        :class="power?.i2c_0x40_active 
-                          ? 'text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 border-emerald-500/20' 
-                          : 'text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700'"
-                        title="Status Sensor Baterai (I2C 0x40)"
-                      >
-                        {{ power?.i2c_0x40_active ? 'Aktif' : 'Standby' }}
-                      </span>
-                      <span v-if="batteryLevelPercent != null" class="text-xs font-mono font-black text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-lg border border-emerald-500/20">
-                        {{ batteryLevelPercent }}%
-                      </span>
-                    </div>
+                    <span 
+                      class="text-xs font-bold px-2 py-0.5 rounded-lg border tracking-tight"
+                      :class="power?.i2c_0x40_active 
+                        ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/20' 
+                        : 'text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700'"
+                      title="Status Sensor Baterai (I2C 0x40)"
+                    >
+                      {{ power?.i2c_0x40_active ? 'Aktif' : 'Standby' }}
+                    </span>
                   </div>
 
-                  <!-- Tegangan Utama Baterai -->
+                  <!-- Tegangan Utama Baterai & Level % di Kanan Atas Bar -->
                   <div class="space-y-1">
-                    <div class="flex items-baseline gap-1">
-                      <span class="text-2xl sm:text-3xl font-black font-mono tracking-tight text-slate-800 dark:text-slate-100">
-                        {{ power?.tegangan_in != null ? Number(power.tegangan_in).toFixed(2) : '--' }}
+                    <div class="flex items-baseline justify-between">
+                      <div class="flex items-baseline gap-1">
+                        <span class="text-2xl sm:text-3xl font-black font-mono tracking-tight text-slate-800 dark:text-slate-100">
+                          {{ power?.tegangan_in != null ? Number(power.tegangan_in).toFixed(2) : '--' }}
+                        </span>
+                        <span class="text-xs font-extrabold text-slate-500 dark:text-slate-400">V</span>
+                      </div>
+                      <span v-if="batteryLevelPercent != null" class="text-base sm:text-lg font-mono font-black text-emerald-600 dark:text-emerald-400">
+                        {{ batteryLevelPercent }}%
                       </span>
-                      <span class="text-xs font-extrabold text-slate-500 dark:text-slate-400">V</span>
                     </div>
                     <!-- Level Gauge Bar -->
                     <div class="space-y-0.5">
@@ -2104,29 +2101,43 @@ onUnmounted(() => {
                       <Zap class="w-4 h-4 text-amber-600 dark:text-amber-400" />
                       <span class="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">Load Sistem</span>
                     </div>
-                    <div class="flex items-center gap-1.5">
-                      <span 
-                        class="text-[10px] font-bold px-1.5 py-0.5 rounded-md border tracking-tight"
-                        :class="power?.i2c_0x41_active 
-                          ? 'text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 border-emerald-500/20' 
-                          : 'text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700'"
-                        title="Status Sensor Beban (I2C 0x41)"
-                      >
-                        {{ power?.i2c_0x41_active ? 'Aktif' : 'Standby' }}
-                      </span>
-                      <span class="text-[10px] font-mono font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-lg border border-amber-500/20">
-                        Output
-                      </span>
-                    </div>
+                    <span 
+                      class="text-xs font-bold px-2 py-0.5 rounded-lg border tracking-tight"
+                      :class="power?.i2c_0x41_active 
+                        ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/20' 
+                        : 'text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700'"
+                      title="Status Sensor Beban (I2C 0x41)"
+                    >
+                      {{ power?.i2c_0x41_active ? 'Aktif' : 'Standby' }}
+                    </span>
                   </div>
 
-                  <!-- Tegangan Load Utama -->
+                  <!-- Tegangan Load Utama & Indikator Output Beban -->
                   <div class="space-y-1">
-                    <div class="flex items-baseline gap-1">
-                      <span class="text-2xl sm:text-3xl font-black font-mono tracking-tight text-slate-800 dark:text-slate-100">
-                        {{ power?.tegangan_out != null ? Number(power.tegangan_out).toFixed(2) : '--' }}
+                    <div class="flex items-baseline justify-between">
+                      <div class="flex items-baseline gap-1">
+                        <span class="text-2xl sm:text-3xl font-black font-mono tracking-tight text-slate-800 dark:text-slate-100">
+                          {{ power?.tegangan_out != null ? Number(power.tegangan_out).toFixed(2) : '--' }}
+                        </span>
+                        <span class="text-xs font-extrabold text-slate-500 dark:text-slate-400">V</span>
+                      </div>
+                      <span class="text-xs font-mono font-extrabold text-amber-600 dark:text-amber-400 uppercase tracking-wide flex items-center gap-1">
+                        <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                        12V Output
                       </span>
-                      <span class="text-xs font-extrabold text-slate-500 dark:text-slate-400">V</span>
+                    </div>
+                    <!-- Visual Jalur Beban (Simetris dengan Bar Baterai) -->
+                    <div class="space-y-0.5">
+                      <div class="h-1.5 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                        <div 
+                          class="h-full bg-gradient-to-r from-amber-400 to-amber-500 rounded-full transition-all duration-500"
+                          :style="{ width: `${Math.min(Math.max((Number(power?.daya_out || 0) / 10) * 100, 8), 100)}%` }"
+                        />
+                      </div>
+                      <div class="flex justify-between text-[9px] text-muted-foreground font-mono">
+                        <span>Suplai Beban</span>
+                        <span>{{ power?.daya_out != null ? `${Number(power.daya_out).toFixed(2)} W` : '--' }}</span>
+                      </div>
                     </div>
                   </div>
 
