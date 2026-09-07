@@ -2053,18 +2053,18 @@ onUnmounted(() => {
                     </div>
                   </div>
                 </div>
+              </div>
 
-                <!-- Status Operasional Baterai & Solar Panel (Micro-Animation) -->
+              <!-- Top Section: Status Sistem 3D, Baterai 12V & Beban Sistem (3 Kolom) -->
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 flex-1">
+                
+                <!-- KOTAK 1: STATUS SISTEM (3D Jumbo Micro-Animation) -->
                 <PowerStateBadge 
                   :status="power?.status_aliran" 
                   :label="power?.battery_status_text" 
                 />
-              </div>
 
-              <!-- Top Section: Baterai 12V & Beban Sistem Berdampingan (2 Kolom) -->
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 flex-1">
-                
-                <!-- KOTAK 1: BATERAI 12V -->
+                <!-- KOTAK 2: BATERAI 12V -->
                 <div class="bg-slate-50/80 dark:bg-slate-900/50 rounded-2xl p-3 border border-slate-200/80 dark:border-slate-800 flex flex-col justify-between gap-2.5">
                   <div class="flex items-center justify-between">
                     <div class="flex items-center gap-1.5">

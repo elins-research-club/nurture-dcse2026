@@ -19,76 +19,116 @@ const normalizedStatus = computed(() => {
   return 'offline'
 })
 
-const defaultLabels: Record<string, string> = {
-  surplus: 'Solar Aktif (Mengisi Aki)',
-  defisit: 'Tenaga Baterai (Solar Mati)',
-  standby: 'Daya Seimbang (Siaga)',
-  offline: 'Sensor Offline'
+const defaultLabels: Record<string, { title: string; subtitle: string; colorClass: string }> = {
+  surplus: {
+    title: 'Solar Aktif',
+    subtitle: 'Mengisi Aki',
+    colorClass: 'text-emerald-600 dark:text-emerald-400'
+  },
+  defisit: {
+    title: 'Tenaga Baterai',
+    subtitle: 'Solar Mati',
+    colorClass: 'text-amber-600 dark:text-amber-400'
+  },
+  standby: {
+    title: 'Daya Seimbang',
+    subtitle: 'Siaga / Float',
+    colorClass: 'text-sky-600 dark:text-sky-400'
+  },
+  offline: {
+    title: 'Sensor Offline',
+    subtitle: 'Tidak Terbaca',
+    colorClass: 'text-slate-400 dark:text-slate-500'
+  }
 }
 
-const displayLabel = computed(() => {
-  return props.label || defaultLabels[normalizedStatus.value] || 'Sensor Offline'
+const parsedLabel = computed(() => {
+  const defaults = defaultLabels[normalizedStatus.value] || defaultLabels.offline
+  if (!props.label) return defaults
+  
+  // Format parsing: "Judul (Keterangan)"
+  const match = props.label.match(/^([^(]+)(?:\(([^)]+)\))?/)
+  if (match) {
+    return {
+      title: match[1].trim(),
+      subtitle: match[2] ? match[2].trim() : defaults.subtitle,
+      colorClass: defaults.colorClass
+    }
+  }
+  return {
+    title: props.label,
+    subtitle: defaults.subtitle,
+    colorClass: defaults.colorClass
+  }
 })
 
-const containerClasses = computed(() => {
+const ambientGlowClass = computed(() => {
   switch (normalizedStatus.value) {
     case 'surplus':
-      return 'bg-emerald-500/10 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30'
+      return 'from-amber-500/10 via-emerald-500/5 to-transparent'
     case 'defisit':
-      return 'bg-amber-500/10 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30'
+      return 'from-amber-500/10 via-orange-500/5 to-transparent'
     case 'standby':
-      return 'bg-sky-500/10 dark:bg-sky-500/15 text-sky-700 dark:text-sky-300 border-sky-500/30'
+      return 'from-sky-500/10 via-blue-500/5 to-transparent'
     default:
-      return 'bg-slate-500/10 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-700'
+      return 'from-slate-500/5 to-transparent'
   }
 })
 </script>
 
 <template>
+  <!-- KOTAK STATUS JUMBO TANPA WRAPPER PILL HIJAU -->
   <div 
-    :class="[
-      'px-2.5 py-1 rounded-xl border flex items-center gap-2 shadow-2xs text-xs font-bold transition-all shrink-0 select-none',
-      containerClasses
-    ]"
+    class="bg-slate-50/80 dark:bg-slate-900/50 rounded-2xl p-3 border border-slate-200/80 dark:border-slate-800 flex flex-col items-center justify-center text-center gap-1.5 select-none relative overflow-hidden group min-h-[140px]"
   >
-    <!-- STATE 1: SURPLUS (3D Sun - Float & Subtle Glow) -->
-    <div v-if="normalizedStatus === 'surplus'" class="relative flex items-center justify-center w-5 h-5 shrink-0">
+    <!-- Ambient Glow Background -->
+    <div :class="['absolute inset-0 bg-radial pointer-events-none opacity-80', ambientGlowClass]"></div>
+
+    <!-- STATE 1: SURPLUS (3D Sun - Jumbo Floating Levitation) -->
+    <div v-if="normalizedStatus === 'surplus'" class="relative flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 shrink-0 z-10">
       <img 
         src="/sun-dynamic-color.svg" 
         alt="Solar Aktif" 
-        class="w-5 h-5 object-contain animate-float-sun select-none pointer-events-none drop-shadow-sun"
+        class="w-full h-full object-contain animate-float-sun select-none pointer-events-none drop-shadow-sun"
       />
     </div>
 
-    <!-- STATE 2: DEFISIT (3D Battery - Pulse Breathing) -->
-    <div v-else-if="normalizedStatus === 'defisit'" class="relative flex items-center justify-center w-5 h-5 shrink-0">
+    <!-- STATE 2: DEFISIT (3D Battery - Jumbo Heartbeat Pulse) -->
+    <div v-else-if="normalizedStatus === 'defisit'" class="relative flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 shrink-0 z-10">
       <img 
         src="/battery-dynamic-color.svg" 
         alt="Tenaga Baterai" 
-        class="w-5 h-5 object-contain animate-pulse-battery select-none pointer-events-none drop-shadow-battery"
+        class="w-full h-full object-contain animate-pulse-battery select-none pointer-events-none drop-shadow-battery"
       />
     </div>
 
-    <!-- STATE 3: STANDBY (3D Shield Check - Calm Equilibrium) -->
-    <div v-else-if="normalizedStatus === 'standby'" class="relative flex items-center justify-center w-5 h-5 shrink-0">
+    <!-- STATE 3: STANDBY (3D Shield Check - Jumbo Calm Breathing) -->
+    <div v-else-if="normalizedStatus === 'standby'" class="relative flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 shrink-0 z-10">
       <img 
         src="/sheild-dynamic-color.svg" 
         alt="Daya Seimbang" 
-        class="w-5 h-5 object-contain animate-breathe-shield select-none pointer-events-none drop-shadow-shield"
+        class="w-full h-full object-contain animate-breathe-shield select-none pointer-events-none drop-shadow-shield"
       />
     </div>
 
-    <!-- STATE 4: OFFLINE (3D Wi-Fi - Muted Grayscale) -->
-    <div v-else class="relative flex items-center justify-center w-5 h-5 shrink-0">
+    <!-- STATE 4: OFFLINE (3D Wi-Fi - Jumbo Grayscale) -->
+    <div v-else class="relative flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 shrink-0 z-10">
       <img 
         src="/wifi-dynamic-color.svg" 
         alt="Sensor Offline" 
-        class="w-5 h-5 object-contain grayscale opacity-50 select-none pointer-events-none"
+        class="w-full h-full object-contain grayscale opacity-45 select-none pointer-events-none"
       />
     </div>
 
-    <!-- Text Label -->
-    <span class="text-[11px] sm:text-xs tracking-tight">{{ displayLabel }}</span>
+    <!-- Typography Underneath Icon -->
+    <div class="relative z-10 flex flex-col items-center">
+      <span class="text-xs sm:text-sm font-extrabold text-foreground tracking-tight leading-tight">
+        {{ parsedLabel.title }}
+      </span>
+      <span :class="['text-[10px] sm:text-[11px] font-bold mt-0.5 leading-tight', parsedLabel.colorClass]">
+        {{ parsedLabel.subtitle }}
+      </span>
+    </div>
   </div>
 </template>
 
@@ -98,7 +138,7 @@ const containerClasses = computed(() => {
     transform: translateY(0px) rotate(0deg) scale(1);
   }
   50% {
-    transform: translateY(-2px) rotate(4deg) scale(1.05);
+    transform: translateY(-4px) rotate(5deg) scale(1.05);
   }
 }
 
@@ -135,14 +175,14 @@ const containerClasses = computed(() => {
 }
 
 .drop-shadow-sun {
-  filter: drop-shadow(0 2px 5px rgba(245, 158, 11, 0.4));
+  filter: drop-shadow(0 4px 12px rgba(245, 158, 11, 0.45));
 }
 
 .drop-shadow-battery {
-  filter: drop-shadow(0 2px 5px rgba(245, 158, 11, 0.35));
+  filter: drop-shadow(0 4px 12px rgba(245, 158, 11, 0.4));
 }
 
 .drop-shadow-shield {
-  filter: drop-shadow(0 2px 5px rgba(14, 165, 233, 0.35));
+  filter: drop-shadow(0 4px 12px rgba(14, 165, 233, 0.4));
 }
 </style>
