@@ -1,10 +1,20 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import Sidebar from './Sidebar.vue'
 import { useAuthStore } from '@/stores/auth'
 import { Button } from '@/components/ui/button'
-import { LogIn } from 'lucide-vue-next'
+import { 
+  LogIn, LogOut, LayoutDashboard, Network, MapPin, 
+  ScrollText, Settings, BookmarkCheck, Trash2 
+} from 'lucide-vue-next'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog'
 import { useDark, useStorage } from '@vueuse/core'
 
 const props = withDefaults(defineProps<{
@@ -16,6 +26,7 @@ const props = withDefaults(defineProps<{
 })
 
 const router = useRouter()
+const route = useRoute()
 // Default is false (wide/expanded), and persisted in localStorage across page transitions
 const isCollapsed = useStorage('gconnect_sidebar_collapsed', false)
 const authStore = useAuthStore()
@@ -30,6 +41,31 @@ const toggleTheme = () => {
   isDarkMode.value = !isDarkMode.value
 }
 
+const navItems = [
+  { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+  { name: 'Alat IoT', path: '/nodes', icon: Network },
+  { name: 'Peta', path: '/map', icon: MapPin },
+  { name: 'Logs', path: '/logs', icon: ScrollText },
+  { name: 'Setelan', path: '/settings', icon: Settings },
+]
+
+const isActive = (path: string) => {
+  if (path === '/nodes' && route.path.startsWith('/nodes')) return true
+  if (path === '/logs' && (route.path.startsWith('/logs') || route.path.startsWith('/alerts'))) return true
+  return route.path === path
+}
+
+const isLogoutModalOpen = ref(false)
+
+const handleSoftLogout = () => {
+  isLogoutModalOpen.value = false
+  authStore.logout(false)
+}
+
+const handleFullLogout = () => {
+  isLogoutModalOpen.value = false
+  authStore.logout(true)
+}
 </script>
 
 <template>
@@ -60,23 +96,78 @@ const toggleTheme = () => {
 
     <!-- Foreground UI Container with relative z-10 -->
     <div class="relative z-10 flex flex-col flex-1 min-h-screen">
-      <!-- Clean Minimalist Sidebar for Authenticated Users -->
+      <!-- Clean Minimalist Sidebar for Authenticated Users (Desktop Only >=md) -->
       <Sidebar 
         v-if="authStore.isAuthenticated()" 
         :collapsed="isCollapsed" 
         @update:collapsed="isCollapsed = $event" 
       />
 
+      <!-- Mobile Top Navigation Bar for Authenticated Users (<md) -->
+      <header
+        v-if="authStore.isAuthenticated()"
+        class="md:hidden sticky top-0 z-30 w-full px-3 py-2 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-b border-border/70 flex items-center justify-between gap-2 shadow-2xs transition-all"
+      >
+        <!-- Logo & Branding -->
+        <router-link to="/dashboard" class="flex items-center gap-1.5 shrink-0 focus:outline-none select-none">
+          <img src="/logo-icon.webp" alt="G-Connect Logo" class="w-6 h-6 object-contain shrink-0" />
+          <span class="text-sm font-black tracking-tight text-foreground">G-CONNECT</span>
+        </router-link>
+
+        <!-- Center Slot for Node Switcher on Mobile -->
+        <div class="flex-1 flex items-center justify-center min-w-0 px-1">
+          <slot name="header-center" />
+        </div>
+
+        <!-- Right Controls: Theme Toggle & Logout -->
+        <div class="flex items-center gap-1.5 shrink-0">
+          <!-- Compact Theme Pill Toggle -->
+          <button 
+            type="button"
+            @click="toggleTheme" 
+            class="relative inline-flex h-7 w-12 items-center rounded-full p-0.5 transition-colors duration-300 focus:outline-none cursor-pointer border overflow-hidden active:scale-95 shadow-2xs"
+            :class="isDarkMode 
+              ? 'bg-[#1e2338] border-indigo-500/30' 
+              : 'bg-[#fed7aa] border-amber-300'"
+            :title="isDarkMode ? 'Mode Terang' : 'Mode Gelap'"
+          >
+            <span 
+              class="relative z-10 flex h-5.5 w-5.5 items-center justify-center rounded-full shadow-xs transition-transform duration-300 transform"
+              :class="isDarkMode 
+                ? 'translate-x-5 bg-slate-900 text-indigo-200' 
+                : 'translate-x-0 bg-gradient-to-tr from-amber-400 to-yellow-300 text-amber-700'"
+            >
+              <svg v-if="!isDarkMode" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <circle cx="12" cy="12" r="4" fill="#f59e0b" stroke="#ea580c"/>
+              </svg>
+              <svg v-else class="w-3 h-3 text-indigo-200" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+              </svg>
+            </span>
+          </button>
+
+          <!-- Logout Button Trigger -->
+          <button
+            @click="isLogoutModalOpen = true"
+            type="button"
+            class="h-7 w-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer active:scale-90"
+            title="Keluar / Logout"
+          >
+            <LogOut class="w-4 h-4" />
+          </button>
+        </div>
+      </header>
+
       <!-- Guest Top Navigation Bar (Floating Island Capsule) -->
       <header 
         v-else 
-        class="sticky top-3.5 z-40 w-full px-3 sm:px-6 pointer-events-none transition-all duration-300 mb-3.5"
+        class="sticky top-2 sm:top-3.5 z-40 w-full px-2 sm:px-6 pointer-events-none transition-all duration-300 mb-2 sm:mb-3.5"
       >
-        <div class="max-w-6xl mx-auto rounded-2xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl backdrop-saturate-150 border border-white/80 dark:border-white/10 ring-1 ring-slate-900/5 dark:ring-white/5 shadow-[inset_0_1.5px_0_0_rgba(255,255,255,1),inset_0_0_20px_0_rgba(255,255,255,0.35),0_6px_24px_-4px_rgba(15,23,42,0.07)] dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12),inset_0_0_20px_0_rgba(255,255,255,0.02),0_6px_24px_-4px_rgba(0,0,0,0.35)] px-4 sm:px-6 py-2 sm:py-2.5 flex items-center justify-between gap-3 pointer-events-auto transition-all">
+        <div class="max-w-6xl mx-auto rounded-2xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl backdrop-saturate-150 border border-white/80 dark:border-white/10 ring-1 ring-slate-900/5 dark:ring-white/5 shadow-[inset_0_1.5px_0_0_rgba(255,255,255,1),inset_0_0_20px_0_rgba(255,255,255,0.35),0_6px_24px_-4px_rgba(15,23,42,0.07)] dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12),inset_0_0_20px_0_rgba(255,255,255,0.02),0_6px_24px_-4px_rgba(0,0,0,0.35)] px-3 sm:px-6 py-2 sm:py-2.5 flex items-center justify-between gap-2 sm:gap-3 pointer-events-auto transition-all">
           <!-- Logo & Branding -->
-          <div class="flex items-center gap-2.5 shrink-0">
-            <img src="/logo-icon.webp" alt="G-Connect Logo" class="w-7 h-7 sm:w-7.5 sm:h-7.5 object-contain shrink-0" />
-            <h1 class="text-base sm:text-lg font-extrabold text-foreground tracking-tight">G-CONNECT</h1>
+          <div class="flex items-center gap-2 sm:gap-2.5 shrink-0">
+            <img src="/logo-icon.webp" alt="G-Connect Logo" class="w-6 h-6 sm:w-7.5 sm:h-7.5 object-contain shrink-0" />
+            <h1 class="text-sm sm:text-lg font-extrabold text-foreground tracking-tight">G-CONNECT</h1>
           </div>
 
           <!-- Center Slot for Node Switcher in Public Mode -->
@@ -85,12 +176,12 @@ const toggleTheme = () => {
           </div>
 
           <!-- Right Side: Theme Toggle & Login Button -->
-          <div class="flex items-center gap-2.5 sm:gap-3.5 shrink-0">
+          <div class="flex items-center gap-2 sm:gap-3.5 shrink-0">
             <!-- Custom Pill Theme Toggle with Moving Clouds & Streaming Stars -->
             <button 
               type="button"
               @click="toggleTheme" 
-              class="relative inline-flex h-8 w-16 items-center rounded-full p-0.5 transition-colors duration-500 focus:outline-none cursor-pointer select-none border overflow-hidden active:scale-95 shadow-sm"
+              class="relative inline-flex h-7 sm:h-8 w-13 sm:w-16 items-center rounded-full p-0.5 transition-colors duration-500 focus:outline-none cursor-pointer select-none border overflow-hidden active:scale-95 shadow-sm"
               :class="isDarkMode 
                 ? 'bg-[#1e2338] border-indigo-500/30 hover:border-indigo-400/50 shadow-inner' 
                 : 'bg-[#fed7aa] border-amber-300 hover:border-amber-400 shadow-inner'"
@@ -130,14 +221,14 @@ const toggleTheme = () => {
 
               <!-- Sliding Knob with Elastic Spring Animation -->
               <span 
-                class="relative z-10 flex h-7 w-7 items-center justify-center rounded-full shadow-md transition-transform duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] transform"
+                class="relative z-10 flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-full shadow-md transition-transform duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] transform"
                 :class="isDarkMode 
-                  ? 'translate-x-8 bg-slate-900 border border-slate-700 shadow-indigo-950/50' 
+                  ? 'translate-x-6 sm:translate-x-8 bg-slate-900 border border-slate-700 shadow-indigo-950/50' 
                   : 'translate-x-0 bg-gradient-to-tr from-amber-400 to-yellow-300 border border-amber-200'"
               >
                 <!-- Sun Icon (Smooth Crossfade & Rotation) -->
                 <svg 
-                  class="absolute h-4.5 w-4.5 text-amber-600 transition-all duration-500 ease-in-out drop-shadow-[0_0_4px_rgba(245,158,11,0.6)]" 
+                  class="absolute h-3.5 w-3.5 sm:h-4.5 sm:w-4.5 text-amber-600 transition-all duration-500 ease-in-out drop-shadow-[0_0_4px_rgba(245,158,11,0.6)]" 
                   :class="isDarkMode ? 'opacity-0 rotate-90 scale-50 pointer-events-none' : 'opacity-100 rotate-0 scale-100'"
                   viewBox="0 0 24 24" 
                   fill="none" 
@@ -152,7 +243,7 @@ const toggleTheme = () => {
 
                 <!-- Moon Icon (Smooth Crossfade & Rotation) -->
                 <svg 
-                  class="absolute h-4 w-4 text-indigo-200 transition-all duration-500 ease-in-out drop-shadow-[0_0_4px_rgba(199,210,254,0.6)]" 
+                  class="absolute h-3 w-3 sm:h-4 sm:w-4 text-indigo-200 transition-all duration-500 ease-in-out drop-shadow-[0_0_4px_rgba(199,210,254,0.6)]" 
                   :class="isDarkMode ? 'opacity-100 rotate-0 scale-100' : 'opacity-0 -rotate-90 scale-50 pointer-events-none'"
                   viewBox="0 0 24 24" 
                   fill="currentColor" 
@@ -165,7 +256,7 @@ const toggleTheme = () => {
             <!-- Login Button (Inverted: Light Background, Dark Outline, Dark Text) -->
             <Button 
               @click="router.push('/login')" 
-              class="h-8 px-4 rounded-xl font-bold gap-2 bg-white dark:bg-card border border-slate-300/90 dark:border-slate-600 text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-400 shadow-xs cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all text-xs sm:text-sm"
+              class="h-7.5 sm:h-8 px-3 sm:px-4 rounded-xl font-bold gap-1.5 sm:gap-2 bg-white dark:bg-card border border-slate-300/90 dark:border-slate-600 text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-400 shadow-xs cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all text-xs sm:text-sm"
             >
               <LogIn class="w-3.5 h-3.5 text-slate-700 dark:text-slate-200" />
               <span>Masuk</span>
@@ -174,23 +265,136 @@ const toggleTheme = () => {
         </div>
       </header>
 
-      <!-- Main Content Container with dynamic left padding matching Sidebar state (at unzoomed 1.0x scale) -->
+      <!-- Main Content Container with dynamic left padding matching Sidebar state on desktop, and pl-0 on mobile -->
       <div 
         :class="[
-          'flex-1 flex flex-col min-w-0 transition-[padding-left] duration-300 ease-in-out',
-          authStore.isAuthenticated() ? (isCollapsed ? 'pl-[68px]' : 'pl-64') : 'pl-0'
+          'flex-1 flex flex-col min-w-0 transition-[padding-left] duration-300 ease-in-out pl-0',
+          authStore.isAuthenticated() ? (isCollapsed ? 'md:pl-[68px]' : 'md:pl-64') : ''
         ]"
       >
         <main 
           :class="[
             'flex-1 bg-transparent',
-            !props.noPadding ? 'p-3 sm:p-5 overflow-y-auto' : 'overflow-hidden flex flex-col h-screen w-full'
+            !props.noPadding ? 'p-3 sm:p-5 pb-24 md:pb-5 overflow-y-auto' : 'overflow-hidden flex flex-col h-screen w-full pb-20 md:pb-0',
+            props.compactZoom ? 'compact-zoom-desktop' : ''
           ]"
-          :style="props.compactZoom ? 'zoom: 0.75;' : ''"
         >
           <slot />
         </main>
       </div>
+
+      <!-- Mobile Bottom Navigation Bar for Authenticated Users (<md) -->
+      <nav 
+        v-if="authStore.isAuthenticated()"
+        class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border-t border-border/80 shadow-[0_-4px_24px_rgba(0,0,0,0.08)] px-2 pt-1.5 pb-[max(0.6rem,env(safe-area-inset-bottom))] flex items-center justify-around select-none"
+      >
+        <router-link
+          v-for="item in navItems"
+          :key="item.path"
+          :to="item.path"
+          :class="[
+            'flex flex-col items-center justify-center min-w-[56px] py-1 px-1.5 rounded-xl transition-all duration-200 active:scale-90 group',
+            isActive(item.path)
+              ? 'text-primary font-bold'
+              : 'text-muted-foreground hover:text-foreground font-medium'
+          ]"
+        >
+          <div 
+            :class="[
+              'w-8 h-7 rounded-lg flex items-center justify-center transition-all duration-200',
+              isActive(item.path) ? 'bg-primary/15 scale-105' : 'group-hover:bg-slate-100 dark:group-hover:bg-slate-800'
+            ]"
+          >
+            <component :is="item.icon" class="w-4.5 h-4.5" />
+          </div>
+          <span class="text-[10px] tracking-tight mt-0.5 leading-tight">
+            {{ item.name }}
+          </span>
+        </router-link>
+      </nav>
+
+      <!-- Logout Confirmation Dialog for Mobile Header Trigger -->
+      <Dialog :open="isLogoutModalOpen" @update:open="isLogoutModalOpen = $event">
+        <DialogContent class="sm:max-w-[420px] p-6 rounded-2xl border border-border/80 shadow-2xl bg-white dark:bg-card">
+          <div class="flex flex-col items-center pt-2">
+            <!-- Large Centered Logout Icon with Soft Glow Ring -->
+            <div class="w-16 h-16 sm:w-18 sm:h-18 rounded-2xl bg-rose-500/10 dark:bg-rose-500/20 border border-rose-500/20 flex items-center justify-center text-rose-600 dark:text-rose-400 mb-4 shadow-inner">
+              <LogOut class="w-8 h-8 sm:w-9 sm:h-9" />
+            </div>
+
+            <DialogHeader class="text-center sm:text-center space-y-1.5 w-full">
+              <DialogTitle class="text-lg sm:text-xl font-extrabold text-foreground tracking-tight text-center">
+                {{ authStore.isRemembered ? 'Pilihan Keluar Sesi' : 'Konfirmasi Logout' }}
+              </DialogTitle>
+              <DialogDescription class="text-xs sm:text-sm text-muted-foreground text-center leading-relaxed font-medium">
+                <template v-if="authStore.isRemembered">
+                  Akun Anda saat ini tersimpan di peramban ini. Silakan tentukan metode keluar sesi:
+                </template>
+                <template v-else>
+                  Apakah Anda yakin ingin keluar dari sesi sistem monitoring <strong class="text-foreground font-bold">G-CONNECT</strong>?
+                </template>
+              </DialogDescription>
+            </DialogHeader>
+
+            <!-- Remembered Session Action Choices -->
+            <div v-if="authStore.isRemembered" class="w-full space-y-2.5 mt-6">
+              <!-- Choice 1: Soft Logout (Keep Remembered) -->
+              <button
+                @click="handleSoftLogout"
+                class="w-full p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/5 hover:bg-emerald-500/10 dark:bg-emerald-500/10 dark:hover:bg-emerald-500/15 text-left transition-all cursor-pointer group flex items-center gap-3 active:scale-[0.99]"
+              >
+                <div class="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+                  <BookmarkCheck class="w-4 h-4" />
+                </div>
+                <p class="text-xs sm:text-sm font-bold text-foreground group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                  Logout Saja (Tetap Ingat Saya)
+                </p>
+              </button>
+
+              <!-- Choice 2: Full Logout (Wipe All) -->
+              <button
+                @click="handleFullLogout"
+                class="w-full p-3 rounded-xl border border-rose-500/30 bg-rose-500/5 hover:bg-rose-500/10 dark:bg-rose-500/10 dark:hover:bg-rose-500/15 text-left transition-all cursor-pointer group flex items-center gap-3 active:scale-[0.99]"
+              >
+                <div class="w-8 h-8 rounded-lg bg-rose-500/20 flex items-center justify-center text-rose-600 dark:text-rose-400 shrink-0">
+                  <Trash2 class="w-4 h-4" />
+                </div>
+                <p class="text-xs sm:text-sm font-bold text-rose-600 dark:text-rose-400">
+                  Logout & Hapus Kredensial
+                </p>
+              </button>
+
+              <Button 
+                variant="ghost" 
+                size="sm"
+                class="w-full h-8 text-xs font-semibold text-muted-foreground hover:text-foreground cursor-pointer mt-1"
+                @click="isLogoutModalOpen = false"
+              >
+                Batal
+              </Button>
+            </div>
+
+            <!-- Normal Standard Logout Actions -->
+            <div v-else class="grid grid-cols-2 gap-3 w-full mt-6">
+              <Button 
+                variant="outline" 
+                class="h-10 rounded-xl font-bold border-border/80 hover:bg-slate-100 dark:hover:bg-slate-800 text-foreground cursor-pointer text-xs sm:text-sm transition-all"
+                @click="isLogoutModalOpen = false"
+              >
+                Batal
+              </Button>
+              <Button 
+                variant="destructive" 
+                class="h-10 rounded-xl font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-sm cursor-pointer text-xs sm:text-sm gap-1.5 transition-all"
+                @click="handleFullLogout"
+              >
+                <LogOut class="w-4 h-4" />
+                <span>Logout</span>
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   </div>
 </template>
@@ -355,5 +559,11 @@ const toggleTheme = () => {
 
 .animate-cloud-stream-3 {
   animation: cloudStream3 3.8s linear infinite 0.8s;
+}
+
+@media (min-width: 1024px) {
+  .compact-zoom-desktop {
+    zoom: 0.75;
+  }
 }
 </style>

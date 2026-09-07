@@ -90,7 +90,7 @@ def hitung_metrik_daya(
         elif p_net < 0:
             # Arus negatif: Daya solar kurang/mati, aki aktif menyuplai beban
             status_aliran = "defisit"
-            status_label = "Suplai Cadangan Aki"
+            status_label = "Suplai dari Baterai"
             battery_status_text = "Tenaga Baterai (Solar Mati)"
             is_charging = False
             is_standby = False

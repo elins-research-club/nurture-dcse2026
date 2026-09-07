@@ -328,7 +328,7 @@ onUnmounted(() => {
       </div>
 
       <!-- Floating Node Locations Sidebar -->
-      <aside class="absolute top-5 left-5 max-h-[calc(100vh-40px)] md:max-h-[75vh] w-80 sm:w-[340px] z-10 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-border/80 dark:border-slate-800 flex flex-col overflow-hidden transition-all duration-300">
+      <aside class="absolute top-3 left-3 right-3 sm:right-auto sm:top-5 sm:left-5 max-h-[45vh] md:max-h-[75vh] w-auto sm:w-[340px] z-10 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-border/80 dark:border-slate-800 flex flex-col overflow-hidden transition-all duration-300">
         <!-- Header -->
         <div class="p-4 border-b border-slate-100 dark:border-slate-800">
           <div class="flex items-center justify-between">
@@ -388,7 +388,7 @@ onUnmounted(() => {
         </div>
 
         <!-- Node List -->
-        <div class="flex-1 overflow-y-auto p-3 space-y-2.5 max-h-[calc(75vh-160px)]">
+        <div class="flex-1 overflow-y-auto p-3 space-y-2.5 max-h-[calc(45vh-130px)] md:max-h-[calc(75vh-160px)]">
           <div v-if="filteredNodes.length === 0" class="py-8 text-center text-xs text-muted-foreground">
             Tidak ada node ditemukan.
           </div>

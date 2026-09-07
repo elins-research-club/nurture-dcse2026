@@ -1560,7 +1560,7 @@ onUnmounted(() => {
                   <!-- Dropdown Menu Popover (Enlarged) -->
                   <div
                     v-if="isCategoryDropdownOpen"
-                    class="absolute left-0 top-full mt-2 w-80 sm:w-[350px] z-50 rounded-2xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200/90 dark:border-slate-800 shadow-2xl p-2 sm:p-2.5 flex flex-col gap-1.5 animate-in fade-in zoom-in-95 duration-150 select-none"
+                    class="absolute left-0 top-full mt-2 w-[calc(100vw-2.5rem)] max-w-[350px] sm:w-[350px] z-50 rounded-2xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200/90 dark:border-slate-800 shadow-2xl p-2 sm:p-2.5 flex flex-col gap-1.5 animate-in fade-in zoom-in-95 duration-150 select-none"
                   >
                     <div class="px-3.5 py-1.5 text-xs font-black text-muted-foreground uppercase tracking-wider">
                       Pilih Kategori

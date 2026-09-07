@@ -56,7 +56,7 @@ const isActive = (path: string) => {
 
 <template>
   <aside :class="[
-    'border-r border-border/80 bg-white dark:bg-card flex flex-col h-screen fixed left-0 top-0 shadow-none z-40 transition-[width] duration-300 ease-in-out overflow-hidden select-none',
+    'hidden md:flex border-r border-border/80 bg-white dark:bg-card flex-col h-screen fixed left-0 top-0 shadow-none z-40 transition-[width] duration-300 ease-in-out overflow-hidden select-none',
     collapsed ? 'w-[68px]' : 'w-64'
   ]">
     <div 

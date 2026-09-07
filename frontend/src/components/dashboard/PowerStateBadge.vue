@@ -64,12 +64,12 @@ const parsedLabel = computed(() => {
 </script>
 
 <template>
-  <!-- KOTAK STATUS JUMBO TRANSPARAN TANPA BG -->
+  <!-- KOTAK STATUS 3D RESPONSIVE: HORIZONTAL PILL ON MOBILE, JUMBO VERTICAL ON DESKTOP -->
   <div 
-    class="flex flex-col items-center justify-center text-center gap-1.5 select-none relative py-2 px-0.5 min-h-[140px]"
+    class="flex flex-row sm:flex-col items-center justify-center text-left sm:text-center gap-3 sm:gap-1.5 select-none relative py-2.5 sm:py-2 px-3 sm:px-0.5 min-h-[60px] sm:min-h-[140px] rounded-2xl bg-slate-50/80 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 sm:bg-transparent sm:dark:bg-transparent sm:border-0"
   >
-    <!-- STATE 1: SURPLUS (3D Sun - Jumbo Floating Levitation) -->
-    <div v-if="normalizedStatus === 'surplus'" class="relative flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 shrink-0 z-10">
+    <!-- STATE 1: SURPLUS (3D Sun - Floating Levitation) -->
+    <div v-if="normalizedStatus === 'surplus'" class="relative flex items-center justify-center w-10 h-10 sm:w-16 sm:h-16 shrink-0 z-10">
       <img 
         src="/sun-dynamic-color.svg" 
         alt="Solar Aktif" 
@@ -77,8 +77,8 @@ const parsedLabel = computed(() => {
       />
     </div>
 
-    <!-- STATE 2: DEFISIT (3D Battery - Jumbo Heartbeat Pulse) -->
-    <div v-else-if="normalizedStatus === 'defisit'" class="relative flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 shrink-0 z-10">
+    <!-- STATE 2: DEFISIT (3D Battery - Heartbeat Pulse) -->
+    <div v-else-if="normalizedStatus === 'defisit'" class="relative flex items-center justify-center w-10 h-10 sm:w-16 sm:h-16 shrink-0 z-10">
       <img 
         src="/battery-dynamic-color.svg" 
         alt="Tenaga Baterai" 
@@ -86,8 +86,8 @@ const parsedLabel = computed(() => {
       />
     </div>
 
-    <!-- STATE 3: STANDBY (3D Shield Check - Jumbo Calm Breathing) -->
-    <div v-else-if="normalizedStatus === 'standby'" class="relative flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 shrink-0 z-10">
+    <!-- STATE 3: STANDBY (3D Shield Check - Calm Breathing) -->
+    <div v-else-if="normalizedStatus === 'standby'" class="relative flex items-center justify-center w-10 h-10 sm:w-16 sm:h-16 shrink-0 z-10">
       <img 
         src="/sheild-dynamic-color.svg" 
         alt="Daya Seimbang" 
@@ -95,8 +95,8 @@ const parsedLabel = computed(() => {
       />
     </div>
 
-    <!-- STATE 4: OFFLINE (3D Wi-Fi - Jumbo Grayscale) -->
-    <div v-else class="relative flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 shrink-0 z-10">
+    <!-- STATE 4: OFFLINE (3D Wi-Fi - Grayscale) -->
+    <div v-else class="relative flex items-center justify-center w-10 h-10 sm:w-16 sm:h-16 shrink-0 z-10">
       <img 
         src="/wifi-dynamic-color.svg" 
         alt="Sensor Offline" 
@@ -104,8 +104,8 @@ const parsedLabel = computed(() => {
       />
     </div>
 
-    <!-- Typography Underneath Icon -->
-    <div class="relative z-10 flex flex-col items-center">
+    <!-- Typography Beside/Underneath Icon -->
+    <div class="relative z-10 flex flex-col items-start sm:items-center">
       <span class="text-xs sm:text-sm font-extrabold text-foreground tracking-tight leading-tight">
         {{ parsedLabel.title }}
       </span>
