@@ -22,7 +22,7 @@ import {
   TrendingDown, Minus, Info, Activity, AlertTriangle,
   ChevronDown, Fan, Lightbulb, Droplets, Download,
   Sun, ShieldCheck, Beaker, Zap,
-  Battery, BatteryCharging, ArrowDownRight, Cpu
+  Battery, BatteryCharging, ArrowDownRight
 } from 'lucide-vue-next'
 import L from 'leaflet'
 
@@ -2143,10 +2143,6 @@ onUnmounted(() => {
                       </span>
                       <span class="text-xs font-extrabold text-slate-500 dark:text-slate-400">V</span>
                     </div>
-                    <p class="text-[11px] text-muted-foreground flex items-center gap-1">
-                      <Cpu class="w-3 h-3 text-slate-400" />
-                      ESP32 &amp; Sensor Aktif
-                    </p>
                   </div>
 
                   <!-- Sub: Arus & Daya Beban -->
