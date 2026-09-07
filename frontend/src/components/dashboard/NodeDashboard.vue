@@ -2020,8 +2020,8 @@ onUnmounted(() => {
               <!-- Portlet Header -->
               <div class="flex items-center justify-between pb-2 border-b border-border/40">
                 <div class="flex items-center gap-2.5">
-                  <div class="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 shadow-2xs">
-                    <Zap class="w-4.5 h-4.5 stroke-[2.5]" />
+                  <div class="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 text-foreground flex items-center justify-center shrink-0 shadow-2xs border border-slate-200/80 dark:border-slate-700/80">
+                    <Zap class="w-4.5 h-4.5 stroke-[2.5] text-foreground" />
                   </div>
                   <div>
                     <div class="flex items-center gap-2">
