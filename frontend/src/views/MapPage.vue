@@ -56,12 +56,10 @@ const makeIcon = (node: any, online: boolean, isEditing: boolean, isSelected: bo
   return L.divIcon({
     html: `
       <div style="position:relative;width:36px;height:46px;display:flex;align-items:center;justify-content:center;cursor:${isEditing ? (isTarget ? 'grab' : 'pointer') : 'pointer'};">
-        <!-- Permanent label text when in edit mode (transparent background, text only) -->
-        ${isEditing ? `
-          <div style="position:absolute;bottom:46px;left:50%;transform:translateX(-50%);white-space:nowrap;background:transparent;color:#ffffff;font-size:11px;font-weight:800;text-shadow:0 1px 4px rgba(0,0,0,0.95), 0 0 3px rgba(0,0,0,0.95);pointer-events:none;display:flex;align-items:center;z-index:25;">
-            <span>${name}</span>
-          </div>
-        ` : ''}
+        <!-- Permanent label text (always visible, transparent background, text only) -->
+        <div style="position:absolute;bottom:${isTarget ? '44px' : '42px'};left:50%;transform:translateX(-50%);white-space:nowrap;background:transparent;color:#ffffff;font-family:system-ui,-apple-system,sans-serif;font-size:11px;font-weight:800;letter-spacing:0.02em;text-shadow:0 1px 4px rgba(0,0,0,0.95), 0 0 4px rgba(0,0,0,0.9), 0 0 2px rgba(0,0,0,1);pointer-events:none;display:flex;align-items:center;z-index:25;">
+          <span>${name}</span>
+        </div>
 
         <!-- Pulse halo for target or online -->
         ${isTarget ? `
