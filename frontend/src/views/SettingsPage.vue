@@ -1778,13 +1778,13 @@ const updatePassword = async () => {
                   </div>
                 </div>
 
-                <!-- Webdev ERC -->
+                <!-- Webdev ERC UGM -->
                 <div class="flex items-center gap-4 p-4 rounded-xl border bg-card/50 hover:bg-muted/40 transition-colors">
                   <div class="w-14 h-14 rounded-xl bg-muted/30 p-2 flex items-center justify-center shrink-0">
-                    <img src="/logo-webdev.webp" alt="Webdev ERC" class="w-full h-full object-contain dark:invert" />
+                    <img src="/logo-webdev.webp" alt="Webdev ERC UGM" class="w-full h-full object-contain dark:invert" />
                   </div>
                   <div class="flex items-center gap-2">
-                    <h4 class="font-semibold text-sm">Webdev ERC</h4>
+                    <h4 class="font-semibold text-sm">Webdev ERC UGM</h4>
                     <div class="relative flex items-center group">
                       <button 
                         type="button" 
@@ -1792,7 +1792,7 @@ const updatePassword = async () => {
                         title="Divisi riset dan pengembangan aplikasi web mahasiswa di Elins Research Club"
                       >
                         <HelpCircle class="w-4 h-4" />
-                        <span class="sr-only">Informasi Webdev ERC</span>
+                        <span class="sr-only">Informasi Webdev ERC UGM</span>
                       </button>
                       <!-- Tooltip on hover -->
                       <div class="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 flex flex-col items-center opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-50">
