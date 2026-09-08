@@ -57,7 +57,7 @@ const isActive = (path: string) => {
 <template>
   <aside :class="[
     'hidden md:flex border-r border-border/80 bg-white dark:bg-card flex-col h-screen fixed left-0 top-0 shadow-none z-40 transition-[width] duration-300 ease-in-out overflow-hidden select-none',
-    collapsed ? 'w-[68px]' : 'w-64'
+    collapsed ? 'w-[68px]' : 'w-52'
   ]">
     <div 
       class="h-20 flex items-center border-b border-border/60 relative whitespace-nowrap overflow-hidden px-3.5"
@@ -85,13 +85,13 @@ const isActive = (path: string) => {
     </div>
 
     <!-- Navigation links -->
-    <nav class="flex-1 px-3 py-6 space-y-1.5 overflow-y-auto overflow-x-hidden">
+    <nav class="flex-1 px-2.5 py-6 space-y-1.5 overflow-y-auto overflow-x-hidden">
       <button
         v-for="item in navItems"
         :key="item.path"
         @click="navigate(item.path)"
         :class="[
-          'w-full flex items-center h-11 px-3 rounded-xl font-medium transition-colors duration-150 relative group cursor-pointer text-left overflow-hidden',
+          'w-full flex items-center h-11 px-2.5 rounded-xl font-medium transition-colors duration-150 relative group cursor-pointer text-left overflow-hidden',
           isActive(item.path)
             ? 'bg-primary/10 text-primary font-semibold'
             : 'text-muted-foreground hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-foreground'
@@ -106,7 +106,7 @@ const isActive = (path: string) => {
           <component :is="item.icon" class="w-5 h-5" />
         </div>
         <span 
-          class="whitespace-nowrap transition-opacity duration-200 ease-in-out text-sm ml-3 overflow-hidden"
+          class="whitespace-nowrap transition-opacity duration-200 ease-in-out text-sm ml-2.5 overflow-hidden"
           :class="collapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'"
         >
           {{ item.name }}
@@ -115,17 +115,17 @@ const isActive = (path: string) => {
     </nav>
 
     <!-- Logout section -->
-    <div class="p-3 border-t border-border/60">
+    <div class="p-2.5 border-t border-border/60">
       <button
         @click="isLogoutModalOpen = true"
-        class="w-full flex items-center h-11 px-3 rounded-xl font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors duration-150 group cursor-pointer overflow-hidden"
+        class="w-full flex items-center h-11 px-2.5 rounded-xl font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors duration-150 group cursor-pointer overflow-hidden"
         :title="collapsed ? 'Logout' : undefined"
       >
         <div class="w-5 h-5 flex items-center justify-center shrink-0">
           <LogOut class="w-5 h-5" />
         </div>
         <span 
-          class="whitespace-nowrap transition-opacity duration-200 ease-in-out text-sm ml-3 overflow-hidden"
+          class="whitespace-nowrap transition-opacity duration-200 ease-in-out text-sm ml-2.5 overflow-hidden"
           :class="collapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'"
         >
           Logout
