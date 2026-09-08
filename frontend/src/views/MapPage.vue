@@ -52,15 +52,14 @@ const makeIcon = (node: any, online: boolean, isEditing: boolean, isSelected: bo
   const name = node?.name || node?.node_id || 'Node'
   const isTarget = isEditing && isSelected
   const pinColor = isTarget ? '#16a34a' : (online ? '#10b981' : '#ef4444')
-  const strokeColor = '#ffffff'
 
   return L.divIcon({
     html: `
       <div style="position:relative;width:36px;height:46px;display:flex;align-items:center;justify-content:center;cursor:${isEditing ? (isTarget ? 'grab' : 'pointer') : 'pointer'};">
-        <!-- Permanent label text when in edit mode (transparent background) -->
+        <!-- Permanent label text when in edit mode (transparent background, text only) -->
         ${isEditing ? `
-          <div style="position:absolute;bottom:46px;left:50%;transform:translateX(-50%);white-space:nowrap;background:transparent;color:#ffffff;font-size:11px;font-weight:800;text-shadow:0 1px 4px rgba(0,0,0,0.95), 0 0 3px rgba(0,0,0,0.95);pointer-events:none;display:flex;align-items:center;gap:3px;z-index:25;">
-            <span>${isTarget ? '📍 ' + name : name}</span>
+          <div style="position:absolute;bottom:46px;left:50%;transform:translateX(-50%);white-space:nowrap;background:transparent;color:#ffffff;font-size:11px;font-weight:800;text-shadow:0 1px 4px rgba(0,0,0,0.95), 0 0 3px rgba(0,0,0,0.95);pointer-events:none;display:flex;align-items:center;z-index:25;">
+            <span>${name}</span>
           </div>
         ` : ''}
 
@@ -71,9 +70,9 @@ const makeIcon = (node: any, online: boolean, isEditing: boolean, isSelected: bo
           <span style="position:absolute;top:8px;left:5px;width:24px;height:24px;border-radius:50%;background:rgba(16,185,129,0.4);animation:ping 2s cubic-bezier(0,0,0.2,1) infinite;pointer-events:none;"></span>
         ` : '')}
 
-        <!-- SVG Pin Icon (clean white stroke, no yellow outline) -->
-        <svg width="${isTarget ? 30 : 26}" height="${isTarget ? 38 : 34}" viewBox="0 0 24 32" fill="none" xmlns="http://www.w3.org/2000/svg" style="position:relative;z-index:10;filter:drop-shadow(0 3px 6px rgba(0,0,0,0.35));pointer-events:none;">
-          <path d="M12 0C5.373 0 0 5.373 0 12c0 9 12 20 12 20s12-11 12-20C24 5.373 18.627 0 12 0z" fill="${pinColor}" stroke="${strokeColor}" stroke-width="${isTarget ? 1.5 : 1}"/>
+        <!-- SVG Pin Icon (pure green with shadow, no outline) -->
+        <svg width="${isTarget ? 30 : 26}" height="${isTarget ? 38 : 34}" viewBox="0 0 24 32" fill="none" xmlns="http://www.w3.org/2000/svg" style="position:relative;z-index:10;filter:drop-shadow(0 4px 6px rgba(0,0,0,0.45));pointer-events:none;">
+          <path d="M12 0C5.373 0 0 5.373 0 12c0 9 12 20 12 20s12-11 12-20C24 5.373 18.627 0 12 0z" fill="${pinColor}"/>
           <circle cx="12" cy="12" r="${isTarget ? 5 : 4.5}" fill="white"/>
         </svg>
 
