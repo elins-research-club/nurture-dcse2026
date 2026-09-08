@@ -930,10 +930,15 @@ const updatePassword = async () => {
                 <div class="space-y-1 flex-1">
                   <span class="font-semibold text-foreground text-xs block">Ketahui ID Grup via Bot Pembantu</span>
                   <p class="text-muted-foreground text-[12px] leading-relaxed">
-                    Undang bot pembantu <span class="font-mono font-bold text-[#0088cc] dark:text-[#38bdf8] bg-sky-50 dark:bg-sky-950/40 px-1.5 py-0.5 rounded border border-sky-300 dark:border-sky-700">@RawDataBot</span> ke grup tersebut sebentar. Bot akan membalas dengan data JSON. Cari baris <code class="font-mono text-foreground font-semibold bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-300 dark:border-slate-600">"id": -100xxxxxxxxxx</code>.
+                    Undang bot pembantu 
+                    <a href="https://t.me/getidsbot" target="_blank" rel="noopener noreferrer" class="font-mono font-bold text-[#0088cc] dark:text-[#38bdf8] bg-sky-50 dark:bg-sky-950/40 px-1.5 py-0.5 rounded border border-sky-300 dark:border-sky-700 hover:underline inline-flex items-center gap-1">
+                      <span>@getidsbot</span>
+                      <ExternalLink class="w-3 h-3 inline" />
+                    </a> 
+                    ke grup tersebut sebentar. Bot akan membalas dengan ID grup Anda (format: <code class="font-mono text-foreground font-semibold bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-300 dark:border-slate-600">-100xxxxxxxxxx</code>).
                   </p>
                   <p class="text-[11px] text-muted-foreground italic">
-                    *Catatan: Setelah ID dicatat lengkap dengan tanda minusnya (<code class="font-mono font-bold">-</code>), bot @RawDataBot dapat langsung dikeluarkan dari grup.
+                    *Catatan: Setelah ID dicatat lengkap dengan tanda minusnya (<code class="font-mono font-bold">-</code>), bot @getidsbot dapat langsung dikeluarkan dari grup.
                   </p>
                 </div>
               </div>
