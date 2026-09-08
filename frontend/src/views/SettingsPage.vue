@@ -996,15 +996,14 @@ const updatePassword = async () => {
                   <div class="space-y-1">
                     <Label class="text-base font-medium">Preferensi Tema</Label>
                     <p class="text-xs text-muted-foreground">
-                      <span v-if="colorMode === 'auto'" class="inline-flex items-center gap-1.5 text-primary font-medium">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                        Mengikuti tema laptop secara otomatis (Saat ini: {{ isDarkMode ? 'Mode Gelap' : 'Mode Terang' }}).
+                      <span v-if="colorMode === 'auto'" class="text-primary font-medium">
+                        Otomatis sistem (saat ini: {{ isDarkMode ? 'Gelap' : 'Terang' }})
                       </span>
                       <span v-else-if="colorMode === 'dark'">
-                        Mode Gelap aktif secara manual.
+                        Mode Gelap
                       </span>
                       <span v-else>
-                        Mode Terang aktif secara manual.
+                        Mode Terang
                       </span>
                     </p>
                   </div>
