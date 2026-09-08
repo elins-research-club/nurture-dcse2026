@@ -141,17 +141,17 @@ const visiblePages = computed(() => {
       <!-- SECTION 2: RIWAYAT LOG AKTIVITAS & PERINGATAN SISTEM -->
       <Card class="border border-border/80 bg-white dark:bg-card shadow-xs rounded-2xl">
         <!-- Card Header with Filter Pills, Actions & Count -->
-        <CardHeader class="p-5 border-b border-border/60 flex flex-col 2xl:flex-row 2xl:items-center justify-between gap-4 space-y-0">
+        <CardHeader class="p-5 border-b border-border/60 flex flex-col xl:flex-row xl:items-center justify-between gap-4 space-y-0">
           <div class="flex items-center gap-2.5">
-            <ScrollText class="w-5 h-5 text-primary" />
+            <ScrollText class="w-5 h-5 text-primary shrink-0" />
             <CardTitle class="text-base sm:text-lg font-bold text-foreground">Riwayat Log Aktivitas Sistem</CardTitle>
             
-            <span class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+            <span class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shrink-0">
               {{ totalCount }} Total
             </span>
           </div>
 
-          <div class="flex items-center gap-2.5 flex-wrap">
+          <div class="flex items-center justify-end gap-2.5 flex-wrap w-full xl:w-auto ml-auto">
             <!-- Filter Pills -->
             <div class="flex items-center bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl border border-border/80 text-sm gap-1 shadow-2xs">
               <button
@@ -249,7 +249,7 @@ const visiblePages = computed(() => {
               title="Buka Wizard Ekspor Telemetri (CSV)"
             >
               <ExcelIcon />
-              <span>Export Telemetri (CSV)</span>
+              <span>Export (CSV)</span>
             </Button>
 
             <!-- Laporan Agronomi PDF Button (Rose) -->
@@ -261,7 +261,7 @@ const visiblePages = computed(() => {
               title="Pratinjau & Cetak Laporan Resmi PDF"
             >
               <PdfIcon />
-              <span>Laporan Agronomi (PDF)</span>
+              <span>Laporan (PDF)</span>
             </Button>
           </div>
         </CardHeader>
