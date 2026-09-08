@@ -1175,7 +1175,7 @@ const updatePassword = async () => {
                   >
                     <div class="flex items-center gap-3">
                       <div class="w-12 h-12 rounded-full overflow-hidden border-2 border-[#2AABEE]/40 bg-gradient-to-b from-sky-100 to-sky-200 dark:from-sky-950 dark:to-slate-900 flex items-center justify-center shrink-0 shadow-sm shadow-[#2AABEE]/30">
-                        <img src="/mister-noka.png" alt="Mister Noka" class="w-full h-full object-cover object-top scale-110" />
+                        <img src="/mister-noka.png" alt="Mister Noka" class="w-full h-full object-cover object-center" />
                       </div>
                       <div>
                         <div class="flex items-center gap-2 flex-wrap">
