@@ -52,14 +52,14 @@ const makeIcon = (node: any, online: boolean, isEditing: boolean, isSelected: bo
   const name = node?.name || node?.node_id || 'Node'
   const isTarget = isEditing && isSelected
   const pinColor = isTarget ? '#16a34a' : (online ? '#10b981' : '#ef4444')
-  const strokeColor = isTarget ? '#f59e0b' : '#ffffff'
+  const strokeColor = '#ffffff'
 
   return L.divIcon({
     html: `
       <div style="position:relative;width:36px;height:46px;display:flex;align-items:center;justify-content:center;cursor:${isEditing ? (isTarget ? 'grab' : 'pointer') : 'pointer'};">
-        <!-- Permanent label badge when in edit mode -->
+        <!-- Permanent label text when in edit mode (transparent background) -->
         ${isEditing ? `
-          <div style="position:absolute;bottom:46px;left:50%;transform:translateX(-50%);white-space:nowrap;background:${isTarget ? '#0f172a' : 'rgba(15,23,42,0.88)'};color:white;font-size:11px;font-weight:800;padding:2px 8px;border-radius:12px;box-shadow:0 3px 8px rgba(0,0,0,0.35);border:${isTarget ? '2px solid #22c55e' : '1px solid rgba(255,255,255,0.25)'};pointer-events:none;display:flex;align-items:center;gap:4px;z-index:25;">
+          <div style="position:absolute;bottom:46px;left:50%;transform:translateX(-50%);white-space:nowrap;background:transparent;color:#ffffff;font-size:11px;font-weight:800;text-shadow:0 1px 4px rgba(0,0,0,0.95), 0 0 3px rgba(0,0,0,0.95);pointer-events:none;display:flex;align-items:center;gap:3px;z-index:25;">
             <span>${isTarget ? '📍 ' + name : name}</span>
           </div>
         ` : ''}
@@ -71,14 +71,14 @@ const makeIcon = (node: any, online: boolean, isEditing: boolean, isSelected: bo
           <span style="position:absolute;top:8px;left:5px;width:24px;height:24px;border-radius:50%;background:rgba(16,185,129,0.4);animation:ping 2s cubic-bezier(0,0,0.2,1) infinite;pointer-events:none;"></span>
         ` : '')}
 
-        <!-- SVG Pin Icon -->
+        <!-- SVG Pin Icon (clean white stroke, no yellow outline) -->
         <svg width="${isTarget ? 30 : 26}" height="${isTarget ? 38 : 34}" viewBox="0 0 24 32" fill="none" xmlns="http://www.w3.org/2000/svg" style="position:relative;z-index:10;filter:drop-shadow(0 3px 6px rgba(0,0,0,0.35));pointer-events:none;">
-          <path d="M12 0C5.373 0 0 5.373 0 12c0 9 12 20 12 20s12-11 12-20C24 5.373 18.627 0 12 0z" fill="${pinColor}" stroke="${strokeColor}" stroke-width="${isTarget ? 2 : 1}"/>
+          <path d="M12 0C5.373 0 0 5.373 0 12c0 9 12 20 12 20s12-11 12-20C24 5.373 18.627 0 12 0z" fill="${pinColor}" stroke="${strokeColor}" stroke-width="${isTarget ? 1.5 : 1}"/>
           <circle cx="12" cy="12" r="${isTarget ? 5 : 4.5}" fill="white"/>
         </svg>
 
-        <!-- Live coordinate preview badge when dragging (updated via DOM) -->
-        <div id="coord-tip-${node?.node_id}" style="position:absolute;top:44px;left:50%;transform:translateX(-50%);white-space:nowrap;background:rgba(15,23,42,0.95);color:#4ade80;font-family:monospace;font-size:10px;font-weight:700;padding:2px 6px;border-radius:6px;box-shadow:0 2px 6px rgba(0,0,0,0.4);border:1px solid rgba(74,222,128,0.4);pointer-events:none;display:none;z-index:30;">
+        <!-- Live coordinate preview text when dragging (transparent background) -->
+        <div id="coord-tip-${node?.node_id}" style="position:absolute;top:44px;left:50%;transform:translateX(-50%);white-space:nowrap;background:transparent;color:#4ade80;font-family:monospace;font-size:11px;font-weight:800;text-shadow:0 1px 4px rgba(0,0,0,0.95), 0 0 3px rgba(0,0,0,0.95);pointer-events:none;display:none;z-index:30;">
         </div>
       </div>
     `,
