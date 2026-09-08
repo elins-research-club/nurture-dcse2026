@@ -278,7 +278,7 @@ const handleFullLogout = () => {
       <div 
         :class="[
           'flex-1 flex flex-col min-w-0 transition-[padding-left] duration-300 ease-in-out pl-0',
-          authStore.isAuthenticated() ? (isCollapsed ? 'md:pl-[68px]' : 'md:pl-52') : ''
+          authStore.isAuthenticated() ? (isCollapsed ? 'md:pl-[68px]' : 'md:pl-[230px]') : ''
         ]"
       >
         <main 
