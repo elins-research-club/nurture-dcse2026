@@ -43,16 +43,6 @@ const editLat = ref('')
 const editLng = ref('')
 const isSavingCoords = ref(false)
 const isDraggingMarker = ref(false)
-const saveToast = ref<string | null>(null)
-let toastTimer: any = null
-
-const showToast = (msg: string) => {
-  saveToast.value = msg
-  if (toastTimer) clearTimeout(toastTimer)
-  toastTimer = setTimeout(() => {
-    saveToast.value = null
-  }, 4000)
-}
 
 const isNodeOnline = (node: any) => {
   return telemetryStore.isNodeOnline(node.node_id, node.last_seen)
@@ -160,18 +150,15 @@ const saveNodePosition = async (node: any, lat: number, lng: number) => {
   try {
     const updatePayload: any = { latitude: lat, longitude: lng }
     await updateNodeMutation.mutateAsync({ id: node.node_id, data: updatePayload })
-    showToast(`✓ Posisi ${node.name} berhasil disimpan (${lat.toFixed(5)}, ${lng.toFixed(5)})`)
 
     // Background reverse geocoding to update place name without blocking
     reverseGeocode(lat, lng).then((placeName) => {
       if (placeName && placeName !== node.location) {
         updateNodeMutation.mutate({ id: node.node_id, data: { location: placeName } })
-        showToast(`✓ Lokasi ${node.name}: ${placeName}`)
       }
     }).catch(() => {})
   } catch (err: any) {
     console.error('Failed to update node coordinates:', err)
-    showToast(`Gagal menyimpan koordinat: ${err?.message || 'Error'}`)
   } finally {
     isSavingCoords.value = false
   }
@@ -332,7 +319,6 @@ watch(editMode, (on) => {
         setupMarkerDragEvents(n, m)
       }
     })
-    showToast('Mode Edit: Geser pin atau klik di peta untuk memindahkan posisi')
   } else {
     editingNode.value = null
     nodes.value.forEach((n: any) => {
@@ -417,10 +403,7 @@ watch([editLat, editLng], ([newLat, newLng]) => {
 const saveCoords = async (node: any) => {
   const lat = parseFloat(editLat.value)
   const lng = parseFloat(editLng.value)
-  if (isNaN(lat) || isNaN(lng)) {
-    showToast('Masukkan koordinat valid terlebih dahulu')
-    return
-  }
+  if (isNaN(lat) || isNaN(lng)) return
 
   await saveNodePosition(node, lat, lng)
   editingNode.value = null
@@ -539,23 +522,6 @@ onUnmounted(() => {
       <!-- Map -->
       <div ref="mapContainer" data-lenis-prevent class="absolute inset-0 z-0 w-full h-full" />
 
-      <!-- Floating Toast Notification -->
-      <transition
-        enter-active-class="transition duration-300 ease-out"
-        enter-from-class="transform -translate-y-4 opacity-0"
-        enter-to-class="transform translate-y-0 opacity-100"
-        leave-active-class="transition duration-200 ease-in"
-        leave-from-class="transform translate-y-0 opacity-100"
-        leave-to-class="transform -translate-y-4 opacity-0"
-      >
-        <div 
-          v-if="saveToast" 
-          class="absolute top-5 left-1/2 -translate-x-1/2 z-30 bg-slate-900/95 text-emerald-400 font-bold text-xs px-4 py-2 rounded-xl shadow-2xl border border-emerald-500/40 backdrop-blur-md flex items-center gap-2 pointer-events-none"
-        >
-          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-          <span>{{ saveToast }}</span>
-        </div>
-      </transition>
 
       <!-- Edit Mode Top Hint Banner -->
       <div 
