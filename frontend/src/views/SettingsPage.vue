@@ -1397,10 +1397,10 @@ const updatePassword = async () => {
                               v-show="expandedChannels[`${node.id}_${channelGroup.id || idx}`]" 
                               class="p-4 space-y-3 bg-white dark:bg-card"
                             >
-                              <div 
+                                <div 
                                 v-for="sensor in channelGroup.sensors" 
                                 :key="sensor.id" 
-                                class="p-3 rounded-xl transition-all duration-200 grid grid-cols-1 sm:grid-cols-12 gap-3 sm:gap-3.5 items-end"
+                                class="p-3 rounded-xl transition-all duration-200 grid grid-cols-1 sm:grid-cols-12 gap-3 sm:gap-3.5 items-start"
                                 :class="isSensorDirty(sensor) 
                                   ? 'bg-amber-500/[0.07] dark:bg-amber-400/[0.06] ring-1 ring-amber-500/35 dark:ring-amber-400/30 shadow-xs' 
                                   : 'border border-border/30 hover:border-border/70 hover:bg-slate-50/40 dark:hover:bg-slate-900/20'"
@@ -1411,15 +1411,8 @@ const updatePassword = async () => {
                                     <span class="text-[10px] font-mono font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700 shrink-0">
                                       {{ sensor.thingspeak_field }}
                                     </span>
-                                    <Label class="text-[10px] text-muted-foreground uppercase font-bold tracking-wider shrink-0">Nama</Label>
+                                    <Label class="text-[10px] text-muted-foreground uppercase font-bold tracking-wider shrink-0">Nama Parameter</Label>
                                     <span v-if="isFieldDirty(sensor, 'name')" class="text-[9px] font-semibold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/50 px-1.5 py-0.2 rounded border border-amber-300/80 dark:border-amber-700/60 shrink-0">Diedit</span>
-                                    <span 
-                                      :title="getTargetWidget(sensor).description"
-                                      class="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded border border-border/70 bg-slate-100 dark:bg-slate-800 text-foreground shrink-0 cursor-help flex items-center gap-1"
-                                    >
-                                      <span>{{ getTargetWidget(sensor).icon }}</span>
-                                      <span class="hidden xl:inline text-[9px]">{{ getTargetWidget(sensor).widgetName }}</span>
-                                    </span>
                                   </div>
                                   <Input 
                                     type="text" 
@@ -1430,6 +1423,17 @@ const updatePassword = async () => {
                                       ? 'border-amber-500 bg-amber-50/60 dark:bg-amber-950/30 text-amber-950 dark:text-amber-100 ring-1 ring-amber-500/30' 
                                       : 'bg-slate-50/50 dark:bg-slate-900/50'"
                                   />
+                                  <!-- Target Widget Badge (ditempatkan di bawah kolom nama) -->
+                                  <div class="flex items-center pt-0.5">
+                                    <span 
+                                      :title="getTargetWidget(sensor).description"
+                                      class="inline-flex items-center gap-1.5 text-[9.5px] font-bold px-2 py-0.5 rounded-md border border-border/70 bg-slate-100/90 dark:bg-slate-800/90 text-foreground cursor-help hover:bg-slate-200/80 dark:hover:bg-slate-700/80 transition-colors max-w-full"
+                                    >
+                                      <span class="text-xs">{{ getTargetWidget(sensor).icon }}</span>
+                                      <span class="text-muted-foreground font-medium">Target:</span>
+                                      <span class="truncate">{{ getTargetWidget(sensor).widgetName }}</span>
+                                    </span>
+                                  </div>
                                 </div>
 
                                 <!-- Satuan (col-span-2) -->
