@@ -549,8 +549,8 @@ const additionalSensors = computed(() => {
 // Klasifikasi terhadap standar terbit datang dari backend (soil_health).
 // Lihat CLAUDE.md, bagian "Soil health interpretation".
 
-const GRADIEN_NETRAL = 'bg-gradient-to-br from-slate-400 via-slate-500 to-slate-600'
-const GRADIEN_OPTIMAL = 'bg-gradient-to-br from-[#00b200] via-[#008a00] to-[#006400]'
+const GRADIEN_NETRAL = 'bg-gradient-to-br from-slate-600 via-slate-700 to-slate-800'
+const GRADIEN_OPTIMAL = 'bg-gradient-to-br from-emerald-700 via-emerald-800 to-teal-950'
 
 type WarnaKartu = { gradient: string; shadow: string }
 
@@ -562,7 +562,7 @@ const kartuAmbang = (
   const min = metric?.min_threshold ?? null
   const max = metric?.max_threshold ?? null
   const v = getLiveVal(metric)
-  const netral = { gradient: GRADIEN_NETRAL, shadow: 'shadow-slate-500/20' }
+  const netral = { gradient: GRADIEN_NETRAL, shadow: 'shadow-slate-900/20' }
   const normalRangeText = min != null && max != null 
     ? `${min}–${max}` 
     : (min != null ? `≥${min}` : (max != null ? `≤${max}` : ''))
@@ -584,18 +584,18 @@ const kartuAmbang = (
   return { text: label.optimal, ...warna.optimal, isAlert: false, isLow: false, isHigh: false, min, max, normalRangeText, unset: false }
 }
 
-const W_OPTIMAL: WarnaKartu = { gradient: GRADIEN_OPTIMAL, shadow: 'shadow-[#00b200]/20' }
-const W_DINGIN: WarnaKartu = { gradient: 'bg-gradient-to-br from-cyan-500 via-sky-500 to-blue-600', shadow: 'shadow-sky-500/25' }
-const W_PANAS: WarnaKartu = { gradient: 'bg-gradient-to-br from-rose-500 via-red-600 to-rose-700 animate-pulse', shadow: 'shadow-rose-500/30' }
-const W_KERING: WarnaKartu = { gradient: 'bg-gradient-to-br from-amber-400 via-amber-500 to-orange-500', shadow: 'shadow-amber-500/25' }
+const W_OPTIMAL: WarnaKartu = { gradient: GRADIEN_OPTIMAL, shadow: 'shadow-emerald-950/20' }
+const W_DINGIN: WarnaKartu = { gradient: 'bg-gradient-to-br from-slate-700 via-sky-800 to-blue-950', shadow: 'shadow-blue-950/20' }
+const W_PANAS: WarnaKartu = { gradient: 'bg-gradient-to-br from-rose-700 via-rose-800 to-stone-900', shadow: 'shadow-rose-950/20' }
+const W_KERING: WarnaKartu = { gradient: 'bg-gradient-to-br from-amber-700 via-amber-800 to-stone-900', shadow: 'shadow-amber-950/20' }
 
 const phCardState = computed(() => kartuAmbang(
   phMetric.value,
   { rendah: 'Asam', optimal: 'Normal', tinggi: 'Basa' },
   {
-    rendah: { gradient: 'bg-gradient-to-br from-orange-500 via-amber-600 to-rose-600', shadow: 'shadow-orange-500/25' },
+    rendah: { gradient: 'bg-gradient-to-br from-amber-700 via-orange-800 to-stone-900', shadow: 'shadow-amber-950/25' },
     optimal: W_OPTIMAL,
-    tinggi: { gradient: 'bg-gradient-to-br from-indigo-500 via-purple-500 to-violet-600', shadow: 'shadow-purple-500/25' },
+    tinggi: { gradient: 'bg-gradient-to-br from-indigo-800 via-purple-900 to-slate-950', shadow: 'shadow-purple-950/25' },
   }
 ))
 const phStatus = computed(() => phCardState.value)
@@ -612,7 +612,7 @@ const ecCardState = computed(() => kartuAmbang(
   { rendah: 'Rendah', optimal: 'Normal', tinggi: 'Pekat' },
   {
     rendah: W_KERING,
-    optimal: { gradient: 'bg-gradient-to-br from-lime-500 via-emerald-500 to-teal-600', shadow: 'shadow-lime-500/20' },
+    optimal: { gradient: 'bg-gradient-to-br from-teal-700 via-emerald-800 to-slate-900', shadow: 'shadow-teal-950/20' },
     tinggi: W_PANAS,
   }
 ))
@@ -641,8 +641,8 @@ const humidityCardState = computed(() => kartuAmbang(
   { rendah: 'Kering', optimal: 'Dalam ambang', tinggi: 'Tinggi' },
   {
     rendah: W_KERING,
-    optimal: { gradient: 'bg-gradient-to-br from-sky-400 via-cyan-500 to-blue-600', shadow: 'shadow-sky-500/20' },
-    tinggi: { gradient: 'bg-gradient-to-br from-blue-600 via-indigo-600 to-slate-800', shadow: 'shadow-indigo-500/25' },
+    optimal: { gradient: 'bg-gradient-to-br from-sky-700 via-blue-800 to-slate-900', shadow: 'shadow-sky-950/20' },
+    tinggi: { gradient: 'bg-gradient-to-br from-blue-800 via-indigo-900 to-slate-950', shadow: 'shadow-indigo-950/25' },
   }
 ))
 const humidityStatus = computed(() => humidityCardState.value)
