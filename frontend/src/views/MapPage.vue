@@ -41,25 +41,86 @@ const editMode = ref(false)
 const editingNode = ref<string | null>(null)
 const editLat = ref('')
 const editLng = ref('')
+const isSavingCoords = ref(false)
+const isDraggingMarker = ref(false)
+const saveToast = ref<string | null>(null)
+let toastTimer: any = null
+
+const showToast = (msg: string) => {
+  saveToast.value = msg
+  if (toastTimer) clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => {
+    saveToast.value = null
+  }, 4000)
+}
 
 const isNodeOnline = (node: any) => {
   return telemetryStore.isNodeOnline(node.node_id, node.last_seen)
 }
 
-const makeIcon = (online: boolean) =>
-  L.divIcon({
-    html: `<div style="position:relative;width:28px;height:36px;display:flex;align-items:center;justify-content:center;">
-      ${online ? '<span style="position:absolute;top:5px;left:4px;width:20px;height:20px;border-radius:50%;background:rgba(16,185,129,0.45);animation:ping 2s cubic-bezier(0,0,0.2,1) infinite;"></span>' : ''}
-      <svg width="24" height="32" viewBox="0 0 24 32" fill="none" xmlns="http://www.w3.org/2000/svg" style="position:relative;z-index:10;filter:drop-shadow(0 3px 6px rgba(0,0,0,0.28));">
-        <path d="M12 0C5.373 0 0 5.373 0 12c0 9 12 20 12 20s12-11 12-20C24 5.373 18.627 0 12 0z" fill="${online ? '#10b981' : '#ef4444'}"/>
-        <circle cx="12" cy="12" r="4.5" fill="white"/>
-      </svg>
-    </div>`,
+const makeIcon = (node: any, online: boolean, isEditing: boolean, isSelected: boolean) => {
+  const name = node?.name || node?.node_id || 'Node'
+  const isTarget = isEditing && isSelected
+  const pinColor = isTarget ? '#16a34a' : (online ? '#10b981' : '#ef4444')
+  const strokeColor = isTarget ? '#f59e0b' : '#ffffff'
+
+  return L.divIcon({
+    html: `
+      <div style="position:relative;width:36px;height:46px;display:flex;align-items:center;justify-content:center;cursor:${isEditing ? (isTarget ? 'grab' : 'pointer') : 'pointer'};">
+        <!-- Permanent label badge when in edit mode -->
+        ${isEditing ? `
+          <div style="position:absolute;bottom:46px;left:50%;transform:translateX(-50%);white-space:nowrap;background:${isTarget ? '#0f172a' : 'rgba(15,23,42,0.88)'};color:white;font-size:11px;font-weight:800;padding:2px 8px;border-radius:12px;box-shadow:0 3px 8px rgba(0,0,0,0.35);border:${isTarget ? '2px solid #22c55e' : '1px solid rgba(255,255,255,0.25)'};pointer-events:none;display:flex;align-items:center;gap:4px;z-index:25;">
+            <span>${isTarget ? '📍 ' + name : name}</span>
+          </div>
+        ` : ''}
+
+        <!-- Pulse halo for target or online -->
+        ${isTarget ? `
+          <span style="position:absolute;top:4px;left:0;width:36px;height:36px;border-radius:50%;background:rgba(34,197,94,0.4);animation:ping 1.5s cubic-bezier(0,0,0.2,1) infinite;pointer-events:none;"></span>
+        ` : (online ? `
+          <span style="position:absolute;top:8px;left:5px;width:24px;height:24px;border-radius:50%;background:rgba(16,185,129,0.4);animation:ping 2s cubic-bezier(0,0,0.2,1) infinite;pointer-events:none;"></span>
+        ` : '')}
+
+        <!-- SVG Pin Icon -->
+        <svg width="${isTarget ? 30 : 26}" height="${isTarget ? 38 : 34}" viewBox="0 0 24 32" fill="none" xmlns="http://www.w3.org/2000/svg" style="position:relative;z-index:10;filter:drop-shadow(0 3px 6px rgba(0,0,0,0.35));pointer-events:none;">
+          <path d="M12 0C5.373 0 0 5.373 0 12c0 9 12 20 12 20s12-11 12-20C24 5.373 18.627 0 12 0z" fill="${pinColor}" stroke="${strokeColor}" stroke-width="${isTarget ? 2 : 1}"/>
+          <circle cx="12" cy="12" r="${isTarget ? 5 : 4.5}" fill="white"/>
+        </svg>
+
+        <!-- Live coordinate preview badge when dragging (updated via DOM) -->
+        <div id="coord-tip-${node?.node_id}" style="position:absolute;top:44px;left:50%;transform:translateX(-50%);white-space:nowrap;background:rgba(15,23,42,0.95);color:#4ade80;font-family:monospace;font-size:10px;font-weight:700;padding:2px 6px;border-radius:6px;box-shadow:0 2px 6px rgba(0,0,0,0.4);border:1px solid rgba(74,222,128,0.4);pointer-events:none;display:none;z-index:30;">
+        </div>
+      </div>
+    `,
     className: '',
-    iconSize: [28, 36],
-    iconAnchor: [14, 36],
-    popupAnchor: [0, -36],
+    iconSize: [36, 46],
+    iconAnchor: [18, 44],
+    popupAnchor: [0, -44],
   })
+}
+
+const setMarkerIconSafely = (node: any, marker: L.Marker, icon: L.DivIcon) => {
+  marker.setIcon(icon)
+  if (editMode.value) {
+    if (marker.dragging) {
+      marker.dragging.disable()
+      ;(marker.dragging as any)._draggable = null
+      marker.dragging.enable()
+    }
+    setupMarkerDragEvents(node, marker)
+  }
+}
+
+const updateAllMarkerIcons = () => {
+  if (isDraggingMarker.value) return
+  nodes.value.forEach((node: any) => {
+    const marker = markers[node.node_id]
+    if (!marker) return
+    const online = isNodeOnline(node)
+    const isSelected = editingNode.value === node.node_id
+    setMarkerIconSafely(node, marker, makeIcon(node, online, editMode.value, isSelected))
+  })
+}
 
 const getSensorValue = (feed: any, nameQuery: string, sensors: any[]) => {
   const sensor = sensors.find(s => s.name.toLowerCase().includes(nameQuery.toLowerCase()))
@@ -106,9 +167,89 @@ const buildPopupHtml = (node: any, online: boolean, feed: any, sensors: any[]) =
 
 const nodeSensorsMap = ref<Record<string, any[]>>({})
 
+const saveNodePosition = async (node: any, lat: number, lng: number) => {
+  isSavingCoords.value = true
+  try {
+    const updatePayload: any = { latitude: lat, longitude: lng }
+    await updateNodeMutation.mutateAsync({ id: node.node_id, data: updatePayload })
+    showToast(`✓ Posisi ${node.name} berhasil disimpan (${lat.toFixed(5)}, ${lng.toFixed(5)})`)
+
+    // Background reverse geocoding to update place name without blocking
+    reverseGeocode(lat, lng).then((placeName) => {
+      if (placeName && placeName !== node.location) {
+        updateNodeMutation.mutate({ id: node.node_id, data: { location: placeName } })
+        showToast(`✓ Lokasi ${node.name}: ${placeName}`)
+      }
+    }).catch(() => {})
+  } catch (err: any) {
+    console.error('Failed to update node coordinates:', err)
+    showToast(`Gagal menyimpan koordinat: ${err?.message || 'Error'}`)
+  } finally {
+    isSavingCoords.value = false
+  }
+}
+
+const setupMarkerDragEvents = (node: any, marker: L.Marker) => {
+  marker.off('dragstart')
+  marker.off('drag')
+  marker.off('dragend')
+
+  marker.on('dragstart', () => {
+    isDraggingMarker.value = true
+    editingNode.value = node.node_id
+    activeNodeId.value = node.node_id
+    map?.closePopup()
+
+    const tip = document.getElementById(`coord-tip-${node.node_id}`)
+    if (tip) {
+      tip.style.display = 'block'
+      const pos = marker.getLatLng()
+      tip.innerText = `${pos.lat.toFixed(6)}, ${pos.lng.toFixed(6)}`
+    }
+  })
+
+  marker.on('drag', (e: any) => {
+    const pos = e.latlng || marker.getLatLng()
+    const latStr = pos.lat.toFixed(6)
+    const lngStr = pos.lng.toFixed(6)
+
+    // Synchronize inputs live as the user moves the pin!
+    editLat.value = latStr
+    editLng.value = lngStr
+
+    const tip = document.getElementById(`coord-tip-${node.node_id}`)
+    if (tip) {
+      tip.style.display = 'block'
+      tip.innerText = `${latStr}, ${lngStr}`
+    }
+  })
+
+  marker.on('dragend', async () => {
+    const tip = document.getElementById(`coord-tip-${node.node_id}`)
+    if (tip) tip.style.display = 'none'
+
+    const pos = marker.getLatLng()
+    const lat = Number(pos.lat.toFixed(6))
+    const lng = Number(pos.lng.toFixed(6))
+
+    editLat.value = String(lat)
+    editLng.value = String(lng)
+
+    try {
+      await saveNodePosition(node, lat, lng)
+    } finally {
+      isDraggingMarker.value = false
+      updateAllMarkerIcons()
+    }
+  })
+}
+
 const addOrUpdateMarker = async (node: any) => {
   if (node.latitude == null || node.longitude == null) return
+  if (isDraggingMarker.value && editingNode.value === node.node_id) return
+
   const online = isNodeOnline(node)
+  const isSelected = editingNode.value === node.node_id
   const latLng: [number, number] = [node.latitude, node.longitude]
   
   const cachedFeed = telemetryStore.telemetryHistory[node.node_id]?.[0] ?? null
@@ -117,12 +258,12 @@ const addOrUpdateMarker = async (node: any) => {
 
   if (markers[node.node_id]) {
     markers[node.node_id].setLatLng(latLng)
-    markers[node.node_id].setIcon(makeIcon(online))
-    if (!markers[node.node_id].getPopup()) {
-      markers[node.node_id].bindPopup(initialHtml, { maxWidth: 280 })
-    }
+    setMarkerIconSafely(node, markers[node.node_id], makeIcon(node, online, editMode.value, isSelected))
   } else {
-    const marker = L.marker(latLng, { icon: makeIcon(online), draggable: false })
+    const marker = L.marker(latLng, { 
+      icon: makeIcon(node, online, editMode.value, isSelected), 
+      draggable: editMode.value 
+    })
     marker.bindPopup(initialHtml, { maxWidth: 280 })
 
     const updatePopup = async () => {
@@ -134,12 +275,25 @@ const addOrUpdateMarker = async (node: any) => {
       nodeSensorsMap.value[node.node_id] = sensors
       const feed = history?.[0] ?? null
       const onlineNow = isNodeOnline(fullNode)
-      marker.setIcon(makeIcon(onlineNow))
+      setMarkerIconSafely(fullNode, marker, makeIcon(fullNode, onlineNow, editMode.value, editingNode.value === fullNode.node_id))
       marker.getPopup()?.setContent(buildPopupHtml(fullNode, onlineNow, feed, sensors))
     }
 
-    marker.on('click', updatePopup)
+    marker.on('click', (e: any) => {
+      if (editMode.value) {
+        // In edit mode, clicking a marker selects that node for editing!
+        startEditCoords(node)
+        L.DomEvent.stopPropagation(e)
+      } else {
+        updatePopup()
+      }
+    })
     marker.on('popupopen', updatePopup)
+
+    if (editMode.value) {
+      marker.dragging?.enable()
+      setupMarkerDragEvents(node, marker)
+    }
 
     marker.addTo(map!)
     markers[node.node_id] = marker
@@ -148,12 +302,14 @@ const addOrUpdateMarker = async (node: any) => {
 
 // React to global telemetry updates
 watch(() => telemetryStore.telemetryHistory, (historyMap) => {
+  if (editMode.value || isDraggingMarker.value) return
   Object.keys(historyMap).forEach((nodeId) => {
     const marker = markers[nodeId]
     const fullNode = nodes.value.find((n: any) => n.node_id === nodeId)
     if (marker && fullNode) {
       const onlineNow = isNodeOnline(fullNode)
-      marker.setIcon(makeIcon(onlineNow))
+      const isSelected = editingNode.value === fullNode.node_id
+      setMarkerIconSafely(fullNode, marker, makeIcon(fullNode, onlineNow, editMode.value, isSelected))
       if (marker.isPopupOpen()) {
         const sensors = nodeSensorsMap.value[nodeId] || []
         const feed = historyMap[nodeId]?.[0] ?? null
@@ -163,45 +319,51 @@ watch(() => telemetryStore.telemetryHistory, (historyMap) => {
   })
 }, { deep: true })
 
-const enableDrag = (node: any) => {
-  const marker = markers[node.node_id]
-  if (!marker) return
-  marker.dragging?.enable()
-  marker.off('dragend')
-  marker.on('dragend', async () => {
-    const pos = marker.getLatLng()
-    const lat = Number(pos.lat.toFixed(6))
-    const lng = Number(pos.lng.toFixed(6))
-
-    const autoPlaceName = await reverseGeocode(lat, lng)
-    const updatePayload: any = { latitude: lat, longitude: lng }
-    if (autoPlaceName) {
-      updatePayload.location = autoPlaceName
-    }
-    updateNodeMutation.mutate({ id: node.node_id, data: updatePayload })
-  })
-}
-
-const disableDrag = (nodeId: string) => {
-  const marker = markers[nodeId]
-  if (!marker) return
-  marker.dragging?.disable()
-  marker.off('dragend')
-}
-
 watch(editMode, (on) => {
-  nodes.value.filter((n: any) => n.latitude != null).forEach((n: any) => {
-    if (on) enableDrag(n)
-    else disableDrag(n.node_id)
-  })
-  if (!on) editingNode.value = null
+  map?.closePopup()
+  if (on) {
+    // If no node is currently selected, select the active node or first node
+    if (!editingNode.value) {
+      const target = nodes.value.find((n: any) => n.node_id === activeNodeId.value) || nodes.value[0]
+      if (target) {
+        editingNode.value = target.node_id
+        activeNodeId.value = target.node_id
+        editLat.value = target.latitude != null ? String(target.latitude) : ''
+        editLng.value = target.longitude != null ? String(target.longitude) : ''
+      }
+    }
+    nodes.value.forEach((n: any) => {
+      const m = markers[n.node_id]
+      if (m) {
+        const online = isNodeOnline(n)
+        const isSelected = editingNode.value === n.node_id
+        setMarkerIconSafely(n, m, makeIcon(n, online, true, isSelected))
+      }
+    })
+    showToast('Mode Edit: Geser pin atau klik di peta untuk memindahkan posisi')
+  } else {
+    editingNode.value = null
+    nodes.value.forEach((n: any) => {
+      const m = markers[n.node_id]
+      if (m) {
+        m.dragging?.disable()
+        m.off('dragstart')
+        m.off('drag')
+        m.off('dragend')
+        const online = isNodeOnline(n)
+        m.setIcon(makeIcon(n, online, false, false))
+      }
+    })
+  }
 })
 
 const flyToNode = (node: any) => {
   activeNodeId.value = node.node_id
   if (node.latitude == null || node.longitude == null) return
-  map?.flyTo([node.latitude, node.longitude], 19, { duration: 1.2 })
-  setTimeout(() => markers[node.node_id]?.openPopup(), 1300)
+  map?.flyTo([node.latitude, node.longitude], 19, { duration: 1.0 })
+  if (!editMode.value) {
+    setTimeout(() => markers[node.node_id]?.openPopup(), 1100)
+  }
 }
 
 const getRawSensorNum = (feed: any, nameQuery: string, sensors: any[]) => {
@@ -233,36 +395,42 @@ const getNodeMetrics = (nodeId: string) => {
 }
 
 const startEditCoords = (node: any) => {
+  if (isDraggingMarker.value) return
   editingNode.value = node.node_id
+  activeNodeId.value = node.node_id
   editLat.value = node.latitude != null ? String(node.latitude) : ''
   editLng.value = node.longitude != null ? String(node.longitude) : ''
+  updateAllMarkerIcons()
+
+  if (node.latitude != null && node.longitude != null && map) {
+    map.flyTo([node.latitude, node.longitude], Math.max(map.getZoom(), 18), { duration: 0.8 })
+  }
 }
+
+// Live update of marker when manually typing coordinates
+watch([editLat, editLng], ([newLat, newLng]) => {
+  if (!editingNode.value || isDraggingMarker.value) return
+  const lat = parseFloat(newLat)
+  const lng = parseFloat(newLng)
+  if (!isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+    const marker = markers[editingNode.value]
+    if (marker) {
+      marker.setLatLng([lat, lng])
+    }
+  }
+})
 
 const saveCoords = async (node: any) => {
   const lat = parseFloat(editLat.value)
   const lng = parseFloat(editLng.value)
-  if (isNaN(lat) || isNaN(lng)) return
-
-  const autoPlaceName = await reverseGeocode(lat, lng)
-  const updatePayload: any = { latitude: lat, longitude: lng }
-  if (autoPlaceName) {
-    updatePayload.location = autoPlaceName
+  if (isNaN(lat) || isNaN(lng)) {
+    showToast('Masukkan koordinat valid terlebih dahulu')
+    return
   }
 
-  updateNodeMutation.mutate(
-    { id: node.node_id, data: updatePayload },
-    {
-      onSuccess: () => {
-        editingNode.value = null
-        if (markers[node.node_id]) {
-          markers[node.node_id].setLatLng([lat, lng])
-        } else {
-          addOrUpdateMarker({ ...node, latitude: lat, longitude: lng, ...(autoPlaceName ? { location: autoPlaceName } : {}) })
-        }
-        map?.flyTo([lat, lng], 19, { duration: 1.0 })
-      },
-    }
-  )
+  await saveNodePosition(node, lat, lng)
+  editingNode.value = null
+  updateAllMarkerIcons()
 }
 
 onMounted(() => {
@@ -292,17 +460,72 @@ onMounted(() => {
   // Add scale control (metric only, wider)
   L.control.scale({ imperial: false, position: 'bottomleft', maxWidth: 250 }).addTo(map)
 
+  // Map click handler for placing or moving pin in edit mode
+  map.on('click', async (e: L.LeafletMouseEvent) => {
+    if (!editMode.value || isDraggingMarker.value) return
+
+    let targetNode: any = null
+    if (editingNode.value) {
+      targetNode = nodes.value.find((n: any) => n.node_id === editingNode.value)
+    } else if (activeNodeId.value) {
+      targetNode = nodes.value.find((n: any) => n.node_id === activeNodeId.value)
+    } else if (nodes.value.length === 1) {
+      targetNode = nodes.value[0]
+    }
+
+    if (targetNode) {
+      const lat = Number(e.latlng.lat.toFixed(6))
+      const lng = Number(e.latlng.lng.toFixed(6))
+
+      editingNode.value = targetNode.node_id
+      activeNodeId.value = targetNode.node_id
+      editLat.value = String(lat)
+      editLng.value = String(lng)
+
+      let marker = markers[targetNode.node_id]
+      if (marker) {
+        marker.setLatLng([lat, lng])
+      } else {
+        await addOrUpdateMarker({ ...targetNode, latitude: lat, longitude: lng })
+        marker = markers[targetNode.node_id]
+        if (marker) {
+          marker.dragging?.enable()
+          setupMarkerDragEvents(targetNode, marker)
+        }
+      }
+      updateAllMarkerIcons()
+      await saveNodePosition(targetNode, lat, lng)
+    }
+  })
+
+  // Fit map to nodes bounds if coordinates exist
+  const fitMapToNodes = () => {
+    const validNodes = nodes.value.filter((n: any) => n.latitude != null && n.longitude != null)
+    if (validNodes.length > 0 && map) {
+      const latLngs = validNodes.map((n: any) => [n.latitude, n.longitude] as [number, number])
+      if (latLngs.length === 1) {
+        map.setView(latLngs[0], 19)
+      } else {
+        const bounds = L.latLngBounds(latLngs)
+        map.fitBounds(bounds, { padding: [100, 100], maxZoom: 19 })
+      }
+    }
+  }
+
   nodes.value.forEach(async (n: any) => {
-    addOrUpdateMarker(n)
+    await addOrUpdateMarker(n)
     const sensors = await telemetryStore.fetchSensors(n.node_id)
     nodeSensorsMap.value[n.node_id] = sensors
     telemetryStore.fetchHistory(n.node_id)
   })
+
+  setTimeout(fitMapToNodes, 400)
 })
 
 watch(nodes, (list) => {
+  if (isDraggingMarker.value) return
   list.forEach(async (n: any) => {
-    addOrUpdateMarker(n)
+    await addOrUpdateMarker(n)
     if (!nodeSensorsMap.value[n.node_id]) {
       const sensors = await telemetryStore.fetchSensors(n.node_id)
       nodeSensorsMap.value[n.node_id] = sensors
@@ -321,6 +544,33 @@ onUnmounted(() => {
     <div class="relative overflow-hidden w-full h-screen">
       <!-- Map -->
       <div ref="mapContainer" data-lenis-prevent class="absolute inset-0 z-0 w-full h-full" />
+
+      <!-- Floating Toast Notification -->
+      <transition
+        enter-active-class="transition duration-300 ease-out"
+        enter-from-class="transform -translate-y-4 opacity-0"
+        enter-to-class="transform translate-y-0 opacity-100"
+        leave-active-class="transition duration-200 ease-in"
+        leave-from-class="transform translate-y-0 opacity-100"
+        leave-to-class="transform -translate-y-4 opacity-0"
+      >
+        <div 
+          v-if="saveToast" 
+          class="absolute top-5 left-1/2 -translate-x-1/2 z-30 bg-slate-900/95 text-emerald-400 font-bold text-xs px-4 py-2 rounded-xl shadow-2xl border border-emerald-500/40 backdrop-blur-md flex items-center gap-2 pointer-events-none"
+        >
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span>{{ saveToast }}</span>
+        </div>
+      </transition>
+
+      <!-- Edit Mode Top Hint Banner -->
+      <div 
+        v-if="editMode" 
+        class="absolute top-4 left-1/2 -translate-x-1/2 z-20 hidden md:flex items-center gap-2 bg-amber-500 text-slate-950 font-extrabold text-xs px-4 py-1.5 rounded-full shadow-lg border border-amber-300 pointer-events-none"
+      >
+        <span>📍 Mode Edit Pin Aktif</span>
+        <span class="opacity-80 font-semibold">• Geser pin di peta atau klik lokasi baru</span>
+      </div>
 
       <!-- Watermark -->
       <div class="absolute bottom-7 right-0 z-10 pointer-events-none opacity-50 bg-black/40 text-white px-4 py-1.5 rounded-l-lg backdrop-blur-sm border-y border-l border-white/10 font-medium text-[11px] tracking-wide">
@@ -476,27 +726,40 @@ onUnmounted(() => {
 
             <!-- Edit Coordinates Form or Coordinate Info -->
             <template v-if="editMode">
-              <div v-if="editingNode === node.node_id" class="mt-2 space-y-2 pl-1">
-                <div class="flex gap-1.5">
-                  <Input v-model="editLat" placeholder="Latitude" class="h-7 text-xs bg-white dark:bg-slate-800 font-mono" />
-                  <Input v-model="editLng" placeholder="Longitude" class="h-7 text-xs bg-white dark:bg-slate-800 font-mono" />
+              <div v-if="editingNode === node.node_id" class="mt-2 space-y-2 pl-1 bg-amber-500/5 dark:bg-amber-500/10 p-2.5 rounded-xl border border-amber-500/30">
+                <div class="flex items-center justify-between text-[11px] font-bold text-amber-700 dark:text-amber-400">
+                  <span class="flex items-center gap-1">📍 Geser Pin di Peta</span>
+                  <span v-if="isSavingCoords" class="text-[10px] font-medium animate-pulse text-primary">Menyimpan...</span>
                 </div>
                 <div class="flex gap-1.5">
-                  <Button size="sm" class="h-7 text-xs font-bold flex-1 bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer" @click="saveCoords(node)">
-                    <Save class="w-3 h-3 mr-1" />Simpan
+                  <Input v-model="editLat" placeholder="Latitude (-7.xxxxx)" class="h-7 text-xs bg-white dark:bg-slate-800 font-mono" />
+                  <Input v-model="editLng" placeholder="Longitude (110.xxxxx)" class="h-7 text-xs bg-white dark:bg-slate-800 font-mono" />
+                </div>
+                <div class="flex gap-1.5">
+                  <Button 
+                    size="sm" 
+                    :disabled="isSavingCoords" 
+                    class="h-7 text-xs font-bold flex-1 bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-xs" 
+                    @click="saveCoords(node)"
+                  >
+                    <Save class="w-3 h-3 mr-1" />
+                    <span>{{ isSavingCoords ? 'Menyimpan...' : 'Simpan Koordinat' }}</span>
                   </Button>
-                  <Button size="sm" variant="outline" class="h-7 w-7 p-0 cursor-pointer" @click="editingNode = null">
-                    <X class="w-3 h-3" />
+                  <Button size="sm" variant="outline" class="h-7 px-2 text-[10px] font-bold cursor-pointer" @click="editingNode = null; updateAllMarkerIcons()">
+                    Tutup
                   </Button>
                 </div>
+                <p class="text-[9px] text-muted-foreground leading-tight">
+                  Geser pin langsung di peta atau klik titik baru untuk memindahkan pin.
+                </p>
               </div>
               <div v-else class="mt-2 pl-1 flex items-center justify-between">
                 <span class="text-[10px] font-mono text-muted-foreground flex-1 truncate">
                   📍 {{ node.latitude != null ? `${node.latitude.toFixed(5)}, ${node.longitude.toFixed(5)}` : 'Belum ada pin' }}
                 </span>
-                <Button size="sm" variant="outline" class="h-6 px-2 text-[10px] font-bold gap-1 cursor-pointer border-border/80" @click="startEditCoords(node)">
+                <Button size="sm" variant="outline" class="h-6 px-2 text-[10px] font-bold gap-1 cursor-pointer border-border/80 hover:bg-primary/10 hover:text-primary" @click="startEditCoords(node)">
                   <Edit2 class="w-3 h-3" />
-                  <span>Ubah</span>
+                  <span>{{ node.latitude != null ? 'Pilih' : 'Pasang' }}</span>
                 </Button>
               </div>
             </template>
@@ -540,6 +803,16 @@ onUnmounted(() => {
   width: 100%;
   height: 100%;
   font-family: inherit;
+}
+
+:deep(.leaflet-marker-draggable) {
+  cursor: grab !important;
+}
+
+:deep(.leaflet-marker-draggable:active),
+:deep(.leaflet-dragging .leaflet-marker-draggable),
+:deep(.leaflet-marker-dragging) {
+  cursor: grabbing !important;
 }
 
 /* Modernize Zoom Control */
