@@ -1254,54 +1254,38 @@ const analyticsData = computed(() => {
     }
   }
 
-  // 5. Kategori Semua Sensor (Tingkat Kepatuhan Ambang Batas / Threshold Compliance)
+  // 5. Kategori Semua Sensor (Tingkat Kepatuhan Ambang Batas: Binary Normal vs Kritis)
   const evaluatedSensors = sensorStats.filter((s: any) => s.current != null)
   const totalEvaluated = evaluatedSensors.length
 
-  const criticalSensors = new Set(
-    activeAnomalies
-      .filter((a: any) => a.severity === 'critical')
-      .map((a: any) => a.sensor?.id || a.sensor?.name)
+  // Sensor yang berada di luar ambang batas (anomali)
+  const anomalousSensors = new Set(
+    activeAnomalies.map((a: any) => a.sensor?.id || a.sensor?.name)
   )
 
-  const warningSensors = new Set(
-    activeAnomalies
-      .filter((a: any) => a.severity === 'warning')
-      .map((a: any) => a.sensor?.id || a.sensor?.name)
-      .filter((id: string) => !criticalSensors.has(id))
-  )
-
-  const criticalCount = criticalSensors.size
-  const warningCount = warningSensors.size
-  const normalCount = Math.max(0, totalEvaluated - criticalCount - warningCount)
+  const kritisCount = anomalousSensors.size
+  const normalCount = Math.max(0, totalEvaluated - kritisCount)
 
   const normalPercent = totalEvaluated > 0 ? Math.round((normalCount / totalEvaluated) * 100) : 100
-  const warningPercent = totalEvaluated > 0 
-    ? (criticalCount > 0 ? Math.round((warningCount / totalEvaluated) * 100) : 100 - normalPercent) 
-    : 0
-  const criticalPercent = totalEvaluated > 0 
-    ? Math.max(0, 100 - normalPercent - warningPercent) 
-    : 0
+  const kritisPercent = totalEvaluated > 0 ? 100 - normalPercent : 0
 
   let complianceSegments: any[] = []
   if (totalEvaluated === 0) {
     complianceSegments = [
       { label: 'Belum Ada Data', percent: 100, color: 'bg-slate-400', textClass: 'text-slate-500' }
     ]
-  } else if (warningCount === 0 && criticalCount === 0) {
+  } else if (kritisCount === 0) {
     complianceSegments = [
-      { label: `Sesuai Target: 100% (${normalCount} Sensor)`, percent: 100, color: 'bg-emerald-500', textClass: 'text-emerald-600 dark:text-emerald-400' }
+      { label: `Normal: 100% (${normalCount})`, percent: 100, color: 'bg-emerald-500', textClass: 'text-emerald-600 dark:text-emerald-400' }
     ]
-  } else if (criticalCount === 0) {
+  } else if (normalCount === 0) {
     complianceSegments = [
-      { label: `Normal: ${normalPercent}% (${normalCount})`, percent: normalPercent, color: 'bg-emerald-500', textClass: 'text-emerald-600 dark:text-emerald-400' },
-      { label: `Di Luar Ambang: ${warningPercent}% (${warningCount})`, percent: warningPercent, color: 'bg-amber-500', textClass: 'text-amber-600 dark:text-amber-400' }
+      { label: `Kritis: 100% (${kritisCount})`, percent: 100, color: 'bg-rose-500', textClass: 'text-rose-600 dark:text-rose-400' }
     ]
   } else {
     complianceSegments = [
       { label: `Normal: ${normalPercent}% (${normalCount})`, percent: normalPercent, color: 'bg-emerald-500', textClass: 'text-emerald-600 dark:text-emerald-400' },
-      { label: `Perhatian: ${warningPercent}% (${warningCount})`, percent: warningPercent, color: 'bg-amber-500', textClass: 'text-amber-600 dark:text-amber-400' },
-      { label: `Kritis: ${criticalPercent}% (${criticalCount})`, percent: criticalPercent, color: 'bg-rose-500', textClass: 'text-rose-600 dark:text-rose-400' }
+      { label: `Kritis: ${kritisPercent}% (${kritisCount})`, percent: kritisPercent, color: 'bg-rose-500', textClass: 'text-rose-600 dark:text-rose-400' }
     ]
   }
 
@@ -1315,7 +1299,7 @@ const analyticsData = computed(() => {
   defaultInsightText = criticalAnomaly?.message || warningAnomaly?.message || (
     normalPercent === 100
       ? `Seluruh ${totalEvaluated} parameter telemetri beroperasi stabil dalam ambang batas normal pada rentang ${rangeLabel.value}.`
-      : `Sebanyak ${normalCount} dari ${totalEvaluated} parameter telemetri terpantau sesuai batas target pada rentang ${rangeLabel.value}.`
+      : `Sebanyak ${normalCount} dari ${totalEvaluated} parameter telemetri terpantau normal (${kritisCount} parameter kritis di luar batas) pada rentang ${rangeLabel.value}.`
   )
 
   return {
