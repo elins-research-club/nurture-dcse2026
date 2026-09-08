@@ -504,7 +504,7 @@ const handleLogin = () => {
             <img src="/logo-webdev.webp" alt="Webdev ERC" class="h-8 max-w-[38px] object-contain select-none brightness-0 invert group-hover:brightness-100 group-hover:invert-0 dark:group-hover:invert opacity-85 group-hover:opacity-100 group-hover:scale-105 transition-all duration-300 drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)] group-hover:drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]" title="Webdev ERC" />
           </div>
           <p class="text-[11px] font-semibold text-white/90 drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)]">
-            &copy; 2026 G-CONNECT &bull; Laboratorium ELINS DIKE UGM
+            &copy; 2026 G-CONNECT &bull; Laboratorium Riset Sistem Elektronika & Instrumentasi UGM
           </p>
         </div>
 

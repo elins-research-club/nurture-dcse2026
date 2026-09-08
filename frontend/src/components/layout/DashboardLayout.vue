@@ -15,7 +15,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog'
-import { useDark, useStorage } from '@vueuse/core'
+import { useDark, useColorMode, useStorage } from '@vueuse/core'
 
 const props = withDefaults(defineProps<{
   noPadding?: boolean
@@ -31,6 +31,15 @@ const route = useRoute()
 const isCollapsed = useStorage('gconnect_sidebar_collapsed', false)
 const authStore = useAuthStore()
 
+const colorMode = useColorMode({
+  storageKey: 'theme',
+  emitAuto: true,
+  modes: {
+    dark: 'dark',
+    light: 'light'
+  }
+})
+
 const isDarkMode = useDark({
   storageKey: 'theme',
   valueDark: 'dark',
@@ -38,7 +47,7 @@ const isDarkMode = useDark({
 })
 
 const toggleTheme = () => {
-  isDarkMode.value = !isDarkMode.value
+  colorMode.value = isDarkMode.value ? 'light' : 'dark'
 }
 
 const navItems = [
@@ -129,7 +138,7 @@ const handleFullLogout = () => {
             :class="isDarkMode 
               ? 'bg-[#1e2338] border-indigo-500/30' 
               : 'bg-[#fed7aa] border-amber-300'"
-            :title="isDarkMode ? 'Mode Terang' : 'Mode Gelap'"
+            :title="colorMode === 'auto' ? `Otomatis Sistem (${isDarkMode ? 'Gelap' : 'Terang'}) - Klik untuk ganti` : (isDarkMode ? 'Mode Terang' : 'Mode Gelap')"
           >
             <span 
               class="relative z-10 flex h-5.5 w-5.5 items-center justify-center rounded-full shadow-xs transition-transform duration-300 transform"
@@ -185,7 +194,7 @@ const handleFullLogout = () => {
               :class="isDarkMode 
                 ? 'bg-[#1e2338] border-indigo-500/30 hover:border-indigo-400/50 shadow-inner' 
                 : 'bg-[#fed7aa] border-amber-300 hover:border-amber-400 shadow-inner'"
-              :title="isDarkMode ? 'Beralih ke Mode Terang' : 'Beralih ke Mode Gelap'"
+              :title="colorMode === 'auto' ? `Otomatis Sistem (${isDarkMode ? 'Gelap' : 'Terang'}) - Klik untuk ganti` : (isDarkMode ? 'Beralih ke Mode Terang' : 'Beralih ke Mode Gelap')"
             >
               <!-- Night Sky: Golden Stars Streaming from Right (Moon side) to Left (Visible in Dark Mode) -->
               <div 

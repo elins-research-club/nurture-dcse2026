@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, nextTick, computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
-import { useDark } from '@vueuse/core'
+import { useDark, useColorMode } from '@vueuse/core'
 import { useTelemetryStore } from '@/stores/telemetry'
 import DashboardLayout from '@/components/layout/DashboardLayout.vue'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
-import { Sun, Moon, CheckCircle, XCircle, Loader2, ChevronDown, ChevronRight, Sprout, Bot, ExternalLink, Send, AlertCircle, HelpCircle, User, Users, Bell, BellOff, Check, RotateCcw, Save, Info, Zap } from 'lucide-vue-next'
+import { Sun, Moon, Laptop, CheckCircle, XCircle, Loader2, ChevronDown, ChevronRight, Sprout, Bot, ExternalLink, Send, AlertCircle, HelpCircle, User, Users, Bell, BellOff, Check, RotateCcw, Save, Info, Zap } from 'lucide-vue-next'
 import { getTargetWidget } from '@/lib/sensorTaxonomy'
 
 const tabList = [
@@ -88,6 +88,15 @@ watch(activeTab, (val) => {
   }
 })
 
+const colorMode = useColorMode({
+  storageKey: 'theme',
+  emitAuto: true,
+  modes: {
+    dark: 'dark',
+    light: 'light'
+  }
+})
+
 const isDarkMode = useDark({
   storageKey: 'theme',
   valueDark: 'dark',
@@ -106,9 +115,9 @@ const setThemeOptionRef = (key: string, el: any) => {
 }
 
 const themeSliderStyle = ref({
-  left: isDarkMode.value ? '104px' : '4px',
+  left: colorMode.value === 'dark' ? '100px' : (colorMode.value === 'auto' ? '196px' : '4px'),
   top: '4px',
-  width: '96px',
+  width: '92px',
   height: '32px'
 })
 
@@ -117,7 +126,7 @@ const isThemeAnimating = ref(false)
 
 const updateThemeSlider = (animateSquish = true) => {
   nextTick(() => {
-    const key = isDarkMode.value ? 'dark' : 'light'
+    const key = colorMode.value // 'light' | 'dark' | 'auto'
     const el = themeOptionRefs.value[key]
     if (el && el.offsetWidth > 0) {
       themeSliderStyle.value = {
@@ -127,16 +136,17 @@ const updateThemeSlider = (animateSquish = true) => {
         height: `${el.offsetHeight}px`
       }
     } else {
+      const leftMap: Record<string, string> = { light: '4px', dark: '100px', auto: '196px' }
       themeSliderStyle.value = {
-        left: isDarkMode.value ? '104px' : '4px',
+        left: leftMap[key] || '4px',
         top: '4px',
-        width: '96px',
+        width: '92px',
         height: '32px'
       }
     }
     
     if (animateSquish) {
-      themeBounceClass.value = isDarkMode.value ? 'tab-squish-right' : 'tab-squish-left'
+      themeBounceClass.value = key === 'dark' ? 'tab-squish-right' : (key === 'auto' ? 'tab-squish-right' : 'tab-squish-left')
       setTimeout(() => {
         themeBounceClass.value = ''
       }, 400)
@@ -144,14 +154,13 @@ const updateThemeSlider = (animateSquish = true) => {
   })
 }
 
-watch(isDarkMode, (newVal) => {
-  themeSliderStyle.value.left = newVal ? '104px' : '4px'
+watch(colorMode, () => {
   updateThemeSlider(true)
 })
 
-const toggleTheme = (dark: boolean) => {
-  if (isDarkMode.value === dark) return
-  isDarkMode.value = dark
+const selectTheme = (mode: 'light' | 'dark' | 'auto') => {
+  if (colorMode.value === mode) return
+  colorMode.value = mode
   isThemeAnimating.value = true
   updateThemeSlider(true)
   setTimeout(() => {
@@ -984,11 +993,23 @@ const updatePassword = async () => {
             <CardContent class="space-y-4">
               <div class="border border-muted-foreground/30 rounded-lg divide-y divide-muted-foreground/30 bg-card">
                 <div class="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div class="space-y-0.5">
+                  <div class="space-y-1">
                     <Label class="text-base font-medium">Preferensi Tema</Label>
+                    <p class="text-xs text-muted-foreground">
+                      <span v-if="colorMode === 'auto'" class="inline-flex items-center gap-1.5 text-primary font-medium">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                        Mengikuti tema laptop secara otomatis (Saat ini: {{ isDarkMode ? 'Mode Gelap' : 'Mode Terang' }}).
+                      </span>
+                      <span v-else-if="colorMode === 'dark'">
+                        Mode Gelap aktif secara manual.
+                      </span>
+                      <span v-else>
+                        Mode Terang aktif secara manual.
+                      </span>
+                    </p>
                   </div>
                     <div class="relative flex items-center gap-1 p-1 bg-muted/60 dark:bg-muted/40 rounded-xl border border-border/80 w-fit select-none shadow-sm overflow-hidden">
-                      <!-- Animated Sliding Background Pill Indicator with Wall Collision Physics (exact same as menu tab) -->
+                      <!-- Animated Sliding Background Pill Indicator with Wall Collision Physics -->
                       <div 
                         class="absolute bg-primary rounded-lg shadow-md pointer-events-none z-0"
                         :class="themeBounceClass"
@@ -1005,22 +1026,22 @@ const updatePassword = async () => {
                       <button 
                         type="button"
                         :ref="(el) => setThemeOptionRef('light', el)"
-                        @click="toggleTheme(false)" 
-                        class="relative z-10 w-24 h-8 rounded-lg flex items-center justify-center text-xs sm:text-sm transition-colors duration-200 cursor-pointer active:scale-95 group focus-visible:outline-none"
-                        :class="!isDarkMode ? 'text-primary-foreground font-semibold' : 'text-muted-foreground hover:text-foreground font-medium'"
+                        @click="selectTheme('light')" 
+                        class="relative z-10 w-22 sm:w-24 h-8 rounded-lg flex items-center justify-center text-xs sm:text-sm transition-colors duration-200 cursor-pointer active:scale-95 group focus-visible:outline-none"
+                        :class="colorMode === 'light' ? 'text-primary-foreground font-semibold' : 'text-muted-foreground hover:text-foreground font-medium'"
                         aria-label="Tema Terang"
                       >
                         <Sun 
                           class="w-4 h-4 mr-1.5 transition-all duration-350 ease-out" 
                           :class="[
-                            !isDarkMode 
+                            colorMode === 'light' 
                               ? (isThemeAnimating ? 'animate-sun-pop' : 'rotate-0 scale-100 opacity-100') 
                               : '-rotate-90 scale-75 opacity-60 group-hover:scale-90 group-hover:opacity-80 group-hover:-rotate-45'
                           ]" 
                         />
                         <span 
                           class="transition-all duration-200 inline-block"
-                          :class="!isDarkMode && isThemeAnimating ? 'animate-text-pop' : ''"
+                          :class="colorMode === 'light' && isThemeAnimating ? 'animate-text-pop' : ''"
                         >
                           Terang
                         </span>
@@ -1030,24 +1051,49 @@ const updatePassword = async () => {
                       <button 
                         type="button"
                         :ref="(el) => setThemeOptionRef('dark', el)"
-                        @click="toggleTheme(true)" 
-                        class="relative z-10 w-24 h-8 rounded-lg flex items-center justify-center text-xs sm:text-sm transition-colors duration-200 cursor-pointer active:scale-95 group focus-visible:outline-none"
-                        :class="isDarkMode ? 'text-primary-foreground font-semibold' : 'text-muted-foreground hover:text-foreground font-medium'"
+                        @click="selectTheme('dark')" 
+                        class="relative z-10 w-22 sm:w-24 h-8 rounded-lg flex items-center justify-center text-xs sm:text-sm transition-colors duration-200 cursor-pointer active:scale-95 group focus-visible:outline-none"
+                        :class="colorMode === 'dark' ? 'text-primary-foreground font-semibold' : 'text-muted-foreground hover:text-foreground font-medium'"
                         aria-label="Tema Gelap"
                       >
                         <Moon 
                           class="w-4 h-4 mr-1.5 transition-all duration-350 ease-out" 
                           :class="[
-                            isDarkMode 
+                            colorMode === 'dark' 
                               ? (isThemeAnimating ? 'animate-moon-rock' : 'rotate-0 scale-100 opacity-100') 
                               : 'rotate-45 scale-75 opacity-60 group-hover:scale-90 group-hover:opacity-80 group-hover:rotate-12'
                           ]" 
                         />
                         <span 
                           class="transition-all duration-200 inline-block"
-                          :class="isDarkMode && isThemeAnimating ? 'animate-text-pop' : ''"
+                          :class="colorMode === 'dark' && isThemeAnimating ? 'animate-text-pop' : ''"
                         >
                           Gelap
+                        </span>
+                      </button>
+
+                      <!-- Sistem Button -->
+                      <button 
+                        type="button"
+                        :ref="(el) => setThemeOptionRef('auto', el)"
+                        @click="selectTheme('auto')" 
+                        class="relative z-10 w-22 sm:w-24 h-8 rounded-lg flex items-center justify-center text-xs sm:text-sm transition-colors duration-200 cursor-pointer active:scale-95 group focus-visible:outline-none"
+                        :class="colorMode === 'auto' ? 'text-primary-foreground font-semibold' : 'text-muted-foreground hover:text-foreground font-medium'"
+                        aria-label="Tema Sistem (Otomatis Laptop)"
+                      >
+                        <Laptop 
+                          class="w-4 h-4 mr-1.5 transition-all duration-350 ease-out" 
+                          :class="[
+                            colorMode === 'auto' 
+                              ? 'rotate-0 scale-100 opacity-100' 
+                              : 'scale-75 opacity-60 group-hover:scale-90 group-hover:opacity-80'
+                          ]" 
+                        />
+                        <span 
+                          class="transition-all duration-200 inline-block"
+                          :class="colorMode === 'auto' && isThemeAnimating ? 'animate-text-pop' : ''"
+                        >
+                          Sistem
                         </span>
                       </button>
                     </div>
@@ -1293,7 +1339,6 @@ const updatePassword = async () => {
           <Card>
             <CardHeader>
               <CardTitle>Ambang Batas & Pemetaan Sensor</CardTitle>
-              <CardDescription>Sesuaikan nama sensor, satuan, serta ambang batas aman untuk setiap field ThingSpeak.</CardDescription>
               
               <!-- Inline Info Banner: Pemetaan Dashboard Otomatis -->
               <div class="mt-3 p-3.5 rounded-xl border border-sky-500/30 bg-sky-50/50 dark:bg-sky-950/25 flex items-start gap-3 text-xs leading-relaxed text-slate-700 dark:text-slate-300 shadow-2xs">
@@ -1697,7 +1742,7 @@ const updatePassword = async () => {
 
               <!-- Project info badge -->
               <div class="pt-4 border-t border-border/40 flex items-center justify-center text-xs text-muted-foreground text-center">
-                <span>&copy; 2026 G-CONNECT &bull; Laboratorium ELINS DIKE UGM</span>
+                <span>&copy; 2026 G-CONNECT &bull; Laboratorium Riset Sistem Elektronika & Instrumentasi UGM</span>
               </div>
             </CardContent>
           </Card>
