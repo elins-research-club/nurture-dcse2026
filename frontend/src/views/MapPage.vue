@@ -99,18 +99,6 @@ const makeIcon = (node: any, online: boolean, isEditing: boolean, isSelected: bo
   })
 }
 
-const setMarkerIconSafely = (node: any, marker: L.Marker, icon: L.DivIcon) => {
-  marker.setIcon(icon)
-  if (editMode.value) {
-    if (marker.dragging) {
-      marker.dragging.disable()
-      ;(marker.dragging as any)._draggable = null
-      marker.dragging.enable()
-    }
-    setupMarkerDragEvents(node, marker)
-  }
-}
-
 const updateAllMarkerIcons = () => {
   if (isDraggingMarker.value) return
   nodes.value.forEach((node: any) => {
@@ -118,7 +106,7 @@ const updateAllMarkerIcons = () => {
     if (!marker) return
     const online = isNodeOnline(node)
     const isSelected = editingNode.value === node.node_id
-    setMarkerIconSafely(node, marker, makeIcon(node, online, editMode.value, isSelected))
+    marker.setIcon(makeIcon(node, online, editMode.value, isSelected))
   })
 }
 
@@ -258,7 +246,7 @@ const addOrUpdateMarker = async (node: any) => {
 
   if (markers[node.node_id]) {
     markers[node.node_id].setLatLng(latLng)
-    setMarkerIconSafely(node, markers[node.node_id], makeIcon(node, online, editMode.value, isSelected))
+    markers[node.node_id].setIcon(makeIcon(node, online, editMode.value, isSelected))
   } else {
     const marker = L.marker(latLng, { 
       icon: makeIcon(node, online, editMode.value, isSelected), 
@@ -275,7 +263,7 @@ const addOrUpdateMarker = async (node: any) => {
       nodeSensorsMap.value[node.node_id] = sensors
       const feed = history?.[0] ?? null
       const onlineNow = isNodeOnline(fullNode)
-      setMarkerIconSafely(fullNode, marker, makeIcon(fullNode, onlineNow, editMode.value, editingNode.value === fullNode.node_id))
+      marker.setIcon(makeIcon(fullNode, onlineNow, editMode.value, editingNode.value === fullNode.node_id))
       marker.getPopup()?.setContent(buildPopupHtml(fullNode, onlineNow, feed, sensors))
     }
 
@@ -309,7 +297,7 @@ watch(() => telemetryStore.telemetryHistory, (historyMap) => {
     if (marker && fullNode) {
       const onlineNow = isNodeOnline(fullNode)
       const isSelected = editingNode.value === fullNode.node_id
-      setMarkerIconSafely(fullNode, marker, makeIcon(fullNode, onlineNow, editMode.value, isSelected))
+      marker.setIcon(makeIcon(fullNode, onlineNow, editMode.value, isSelected))
       if (marker.isPopupOpen()) {
         const sensors = nodeSensorsMap.value[nodeId] || []
         const feed = historyMap[nodeId]?.[0] ?? null
@@ -337,7 +325,11 @@ watch(editMode, (on) => {
       if (m) {
         const online = isNodeOnline(n)
         const isSelected = editingNode.value === n.node_id
-        setMarkerIconSafely(n, m, makeIcon(n, online, true, isSelected))
+        m.setIcon(makeIcon(n, online, true, isSelected))
+        if (!m.dragging?.enabled()) {
+          m.dragging?.enable()
+        }
+        setupMarkerDragEvents(n, m)
       }
     })
     showToast('Mode Edit: Geser pin atau klik di peta untuk memindahkan posisi')
@@ -346,7 +338,9 @@ watch(editMode, (on) => {
     nodes.value.forEach((n: any) => {
       const m = markers[n.node_id]
       if (m) {
-        m.dragging?.disable()
+        if (m.dragging?.enabled()) {
+          m.dragging?.disable()
+        }
         m.off('dragstart')
         m.off('drag')
         m.off('dragend')
@@ -523,7 +517,7 @@ onMounted(() => {
 })
 
 watch(nodes, (list) => {
-  if (isDraggingMarker.value) return
+  if (editMode.value || isDraggingMarker.value) return
   list.forEach(async (n: any) => {
     await addOrUpdateMarker(n)
     if (!nodeSensorsMap.value[n.node_id]) {

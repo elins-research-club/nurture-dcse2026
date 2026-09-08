@@ -185,8 +185,8 @@
   }
 
   /* Global Tactile Micro-Physics: instantaneous native press feedback */
-  button:not(:disabled):active,
-  [role="button"]:not([aria-disabled="true"]):active,
+  button:not(:disabled):not(.leaflet-marker-icon):active,
+  [role="button"]:not([aria-disabled="true"]):not(.leaflet-marker-icon):not(.leaflet-marker-draggable):active,
   .btn-interactive:active {
     transform: scale(0.98);
     transition: transform 80ms cubic-bezier(0.2, 0, 0, 1) !important;
@@ -194,8 +194,9 @@
 
   /* Exclude elements where active scaling is undesirable */
   .no-active-scale:active,
-  .leaflet-container :active {
-    transform: none !important;
+  .leaflet-control a:active,
+  .leaflet-control button:active {
+    transform: none;
   }
 }
 
