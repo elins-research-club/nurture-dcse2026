@@ -88,8 +88,8 @@ const semanticTheme = computed(() => {
 
   if (status === 'ideal') {
     return {
-      gradient: 'linear-gradient(135deg, #00B200 0%, #008A00 45%, #006400 100%)', // Ideal Green
-      shadowClass: 'shadow-md shadow-[#00b200]/20 hover:shadow-lg hover:shadow-[#00b200]/30'
+      gradient: 'linear-gradient(135deg, #059669 0%, #047857 45%, #065F46 100%)', // Organic Emerald Green
+      shadowClass: 'shadow-md shadow-emerald-600/20 hover:shadow-lg hover:shadow-emerald-600/30'
     }
   }
 

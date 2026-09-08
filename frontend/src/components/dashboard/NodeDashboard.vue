@@ -549,8 +549,8 @@ const additionalSensors = computed(() => {
 // Klasifikasi terhadap standar terbit datang dari backend (soil_health).
 // Lihat CLAUDE.md, bagian "Soil health interpretation".
 
-const GRADIEN_NETRAL = 'bg-gradient-to-br from-slate-400 via-slate-500 to-slate-600'
-const GRADIEN_OPTIMAL = 'bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-700'
+const GRADIEN_NETRAL = 'bg-gradient-to-br from-slate-500 via-slate-600 to-slate-700'
+const GRADIEN_OPTIMAL = 'bg-gradient-to-br from-[#059669] via-[#047857] to-[#065f46]'
 
 type WarnaKartu = { gradient: string; shadow: string }
 
@@ -562,7 +562,7 @@ const kartuAmbang = (
   const min = metric?.min_threshold ?? null
   const max = metric?.max_threshold ?? null
   const v = getLiveVal(metric)
-  const netral = { gradient: GRADIEN_NETRAL, shadow: 'shadow-slate-500/20' }
+  const netral = { gradient: GRADIEN_NETRAL, shadow: 'shadow-slate-600/20' }
   const normalRangeText = min != null && max != null 
     ? `${min}–${max}` 
     : (min != null ? `≥${min}` : (max != null ? `≤${max}` : ''))
@@ -584,18 +584,19 @@ const kartuAmbang = (
   return { text: label.optimal, ...warna.optimal, isAlert: false, isLow: false, isHigh: false, min, max, normalRangeText, unset: false }
 }
 
-const W_OPTIMAL: WarnaKartu = { gradient: GRADIEN_OPTIMAL, shadow: 'shadow-emerald-600/20' }
-const W_DINGIN: WarnaKartu = { gradient: 'bg-gradient-to-br from-sky-400 via-sky-500 to-blue-500', shadow: 'shadow-sky-500/20' }
-const W_PANAS: WarnaKartu = { gradient: 'bg-gradient-to-br from-rose-400 via-pink-500 to-rose-600', shadow: 'shadow-rose-500/25' }
-const W_KERING: WarnaKartu = { gradient: 'bg-gradient-to-br from-amber-400 via-amber-500 to-amber-600', shadow: 'shadow-amber-500/20' }
+const W_OPTIMAL: WarnaKartu = { gradient: GRADIEN_OPTIMAL, shadow: 'shadow-emerald-700/20' }
+const W_DINGIN: WarnaKartu = { gradient: 'bg-gradient-to-br from-[#0284c7] via-[#2563eb] to-[#1d4ed8]', shadow: 'shadow-blue-600/20' }
+const W_PANAS: WarnaKartu = { gradient: 'bg-gradient-to-br from-[#ef4444] via-[#dc2626] to-[#b91c1c]', shadow: 'shadow-red-600/20' }
+const W_KERING: WarnaKartu = { gradient: 'bg-gradient-to-br from-[#f59e0b] via-[#d97706] to-[#b45309]', shadow: 'shadow-amber-600/20' }
+const W_BASA: WarnaKartu = { gradient: 'bg-gradient-to-br from-[#6366f1] via-[#7c3aed] to-[#6d28d9]', shadow: 'shadow-purple-600/20' }
 
 const phCardState = computed(() => kartuAmbang(
   phMetric.value,
   { rendah: 'Asam', optimal: 'Normal', tinggi: 'Basa' },
   {
-    rendah: { gradient: 'bg-gradient-to-br from-amber-500 via-orange-500 to-rose-400', shadow: 'shadow-orange-500/20' },
+    rendah: W_KERING,
     optimal: W_OPTIMAL,
-    tinggi: { gradient: 'bg-gradient-to-br from-indigo-400 via-purple-500 to-violet-600', shadow: 'shadow-purple-500/20' },
+    tinggi: W_BASA,
   }
 ))
 const phStatus = computed(() => phCardState.value)
@@ -612,7 +613,7 @@ const ecCardState = computed(() => kartuAmbang(
   { rendah: 'Rendah', optimal: 'Normal', tinggi: 'Pekat' },
   {
     rendah: W_KERING,
-    optimal: { gradient: 'bg-gradient-to-br from-teal-400 via-emerald-500 to-teal-600', shadow: 'shadow-teal-500/20' },
+    optimal: W_OPTIMAL,
     tinggi: W_PANAS,
   }
 ))
@@ -641,8 +642,8 @@ const humidityCardState = computed(() => kartuAmbang(
   { rendah: 'Kering', optimal: 'Dalam ambang', tinggi: 'Tinggi' },
   {
     rendah: W_KERING,
-    optimal: { gradient: 'bg-gradient-to-br from-sky-400 via-sky-500 to-blue-500', shadow: 'shadow-sky-500/20' },
-    tinggi: { gradient: 'bg-gradient-to-br from-blue-500 via-indigo-500 to-slate-700', shadow: 'shadow-indigo-500/20' },
+    optimal: W_DINGIN,
+    tinggi: { gradient: 'bg-gradient-to-br from-[#1d4ed8] via-[#1e40af] to-[#1e3a8a]', shadow: 'shadow-blue-800/20' },
   }
 ))
 const humidityStatus = computed(() => humidityCardState.value)
@@ -1433,12 +1434,17 @@ onUnmounted(() => {
               <!-- 1. Suhu Dalam Panel (Enclosure) -->
               <div 
                 :class="[
-                  'relative overflow-hidden p-2.5 sm:p-3 rounded-2xl text-white shadow-xs border border-white/20 flex flex-col justify-between group hover:scale-[1.01] transition-transform h-full',
+                  'relative overflow-hidden p-2.5 sm:p-3 rounded-2xl text-white border-0 shadow-[inset_0_1px_1.5px_rgba(255,255,255,0.4),0_3px_12px_-2px_rgba(0,0,0,0.08)] flex flex-col justify-between group hover:scale-[1.01] transition-transform h-full',
                   enclosureTempCardState.gradient,
                   enclosureTempCardState.shadow
                 ]"
               >
-                <DotPattern :width="12" :height="12" :cx="6" :cy="6" :cr="1" class="text-white/20" />
+                <!-- Soft Glass Inner Glow / Lighting Reflection -->
+                <div 
+                  class="absolute inset-0 pointer-events-none opacity-20"
+                  style="background: radial-gradient(circle at 85% 15%, rgba(255, 255, 255, 0.4) 0%, transparent 60%);"
+                ></div>
+                <DotPattern :width="12" :height="12" :cx="1" :cy="1" :cr="1" class="text-white/20" />
                 <div class="relative z-10 flex flex-col justify-between h-full flex-1">
                   <span class="text-xs sm:text-sm font-bold text-white line-clamp-2 leading-snug block drop-shadow-sm" :title="enclosureTempMetric?.name || 'Suhu Dalam Panel'">
                     {{ enclosureTempMetric?.name || 'Suhu Dalam Panel' }}
@@ -1457,12 +1463,17 @@ onUnmounted(() => {
               <!-- 2. Suhu Luar / Ambient -->
               <div 
                 :class="[
-                  'relative overflow-hidden p-2.5 sm:p-3 rounded-2xl text-white shadow-xs border border-white/20 flex flex-col justify-between group hover:scale-[1.01] transition-transform h-full',
+                  'relative overflow-hidden p-2.5 sm:p-3 rounded-2xl text-white border-0 shadow-[inset_0_1px_1.5px_rgba(255,255,255,0.4),0_3px_12px_-2px_rgba(0,0,0,0.08)] flex flex-col justify-between group hover:scale-[1.01] transition-transform h-full',
                   airTempCardState.gradient,
                   airTempCardState.shadow
                 ]"
               >
-                <DotPattern :width="12" :height="12" :cx="6" :cy="6" :cr="1" class="text-white/20" />
+                <!-- Soft Glass Inner Glow / Lighting Reflection -->
+                <div 
+                  class="absolute inset-0 pointer-events-none opacity-20"
+                  style="background: radial-gradient(circle at 85% 15%, rgba(255, 255, 255, 0.4) 0%, transparent 60%);"
+                ></div>
+                <DotPattern :width="12" :height="12" :cx="1" :cy="1" :cr="1" class="text-white/20" />
                 <div class="relative z-10 flex flex-col justify-between h-full flex-1">
                   <span class="text-xs sm:text-sm font-bold text-white line-clamp-2 leading-snug block drop-shadow-sm" :title="airTempMetric?.name || 'Suhu Luar'">
                     {{ airTempMetric?.name || 'Suhu Luar' }}
@@ -1481,12 +1492,17 @@ onUnmounted(() => {
               <!-- 3. Kelembaban Udara -->
               <div 
                 :class="[
-                  'relative overflow-hidden p-2.5 sm:p-3 rounded-2xl text-white shadow-xs border border-white/20 flex flex-col justify-between group hover:scale-[1.01] transition-transform h-full',
+                  'relative overflow-hidden p-2.5 sm:p-3 rounded-2xl text-white border-0 shadow-[inset_0_1px_1.5px_rgba(255,255,255,0.4),0_3px_12px_-2px_rgba(0,0,0,0.08)] flex flex-col justify-between group hover:scale-[1.01] transition-transform h-full',
                   humidityCardState.gradient,
                   humidityCardState.shadow
                 ]"
               >
-                <DotPattern :width="12" :height="12" :cx="6" :cy="6" :cr="1" class="text-white/20" />
+                <!-- Soft Glass Inner Glow / Lighting Reflection -->
+                <div 
+                  class="absolute inset-0 pointer-events-none opacity-20"
+                  style="background: radial-gradient(circle at 85% 15%, rgba(255, 255, 255, 0.4) 0%, transparent 60%);"
+                ></div>
+                <DotPattern :width="12" :height="12" :cx="1" :cy="1" :cr="1" class="text-white/20" />
                 <div class="relative z-10 flex flex-col justify-between h-full flex-1">
                   <span class="text-xs sm:text-sm font-bold text-white line-clamp-2 leading-snug block drop-shadow-sm" :title="humidityMetric?.name || 'Kelembaban'">
                     {{ humidityMetric?.name || 'Kelembaban' }}
@@ -1883,12 +1899,17 @@ onUnmounted(() => {
                 <!-- pH Tanah Card (Dynamic 3-State: Asam: Oranye-Merah | Optimal: Emerald | Basa: Ungu/Indigo) -->
                 <div 
                   :class="[
-                    'relative overflow-hidden p-2 sm:p-2.5 lg:p-3 rounded-2xl text-white shadow-xs border border-white/20 flex flex-col justify-between min-h-[96px] sm:min-h-[102px] group hover:scale-[1.01] transition-transform',
+                    'relative overflow-hidden p-2 sm:p-2.5 lg:p-3 rounded-2xl text-white border-0 shadow-[inset_0_1px_1.5px_rgba(255,255,255,0.4),0_3px_12px_-2px_rgba(0,0,0,0.08)] flex flex-col justify-between min-h-[96px] sm:min-h-[102px] group hover:scale-[1.01] transition-transform',
                     phCardState.gradient,
                     phCardState.shadow
                   ]"
                 >
-                  <DotPattern :width="12" :height="12" :cx="6" :cy="6" :cr="1" class="text-white/20" />
+                  <!-- Soft Glass Inner Glow / Lighting Reflection -->
+                  <div 
+                    class="absolute inset-0 pointer-events-none opacity-20"
+                    style="background: radial-gradient(circle at 85% 15%, rgba(255, 255, 255, 0.4) 0%, transparent 60%);"
+                  ></div>
+                  <DotPattern :width="12" :height="12" :cx="1" :cy="1" :cr="1" class="text-white/20" />
                   <div class="flex items-start justify-between gap-1 sm:gap-1.5 relative z-10">
                     <span class="text-xs sm:text-sm font-bold text-white line-clamp-2 leading-snug flex-1 drop-shadow-sm">
                       {{ phMetric?.name || 'pH Tanah' }}
@@ -1896,7 +1917,7 @@ onUnmounted(() => {
                     <!-- Unified Status & Threshold Capsule -->
                     <div 
                       :class="[
-                        'bg-white/25 hover:bg-white/35 backdrop-blur-md text-white border border-white/40 shadow-2xs transition-all shrink-0 select-none text-center',
+                        'bg-white/20 hover:bg-white/25 backdrop-blur-md text-white border border-white/35 shadow-xs transition-all shrink-0 select-none text-center',
                         phCardState.isAlert 
                           ? 'px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-xl flex flex-col items-center gap-0.5' 
                           : 'px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full flex items-center'
@@ -1907,7 +1928,7 @@ onUnmounted(() => {
                         <span v-else-if="phCardState.isHigh" class="text-xs font-black">↑</span>
                         <span>{{ phStatus.text }}</span>
                       </span>
-                      <span v-if="phCardState.isAlert && phCardState.normalRangeText" class="text-[9.5px] sm:text-[10.5px] font-bold text-white/95 border-t border-white/30 pt-0.5 tracking-tight whitespace-nowrap drop-shadow-2xs">
+                      <span v-if="phCardState.isAlert && phCardState.normalRangeText" class="text-[9.5px] sm:text-[10.5px] font-bold text-white/95 border-t border-white/25 pt-0.5 tracking-tight whitespace-nowrap drop-shadow-2xs">
                         Normal: {{ phCardState.normalRangeText }}
                       </span>
                     </div>
@@ -1925,12 +1946,17 @@ onUnmounted(() => {
                 <!-- Suhu Tanah Card (Dynamic 3-State: Dingin: Biru Ice | Optimal: Oranye Hangat | Panas: Merah Rose Alert) -->
                 <div 
                   :class="[
-                    'relative overflow-hidden p-2 sm:p-2.5 lg:p-3 rounded-2xl text-white shadow-xs border border-white/20 flex flex-col justify-between min-h-[96px] sm:min-h-[102px] group hover:scale-[1.01] transition-transform',
+                    'relative overflow-hidden p-2 sm:p-2.5 lg:p-3 rounded-2xl text-white border-0 shadow-[inset_0_1px_1.5px_rgba(255,255,255,0.4),0_3px_12px_-2px_rgba(0,0,0,0.08)] flex flex-col justify-between min-h-[96px] sm:min-h-[102px] group hover:scale-[1.01] transition-transform',
                     soilTempCardState.gradient,
                     soilTempCardState.shadow
                   ]"
                 >
-                  <DotPattern :width="12" :height="12" :cx="6" :cy="6" :cr="1" class="text-white/20" />
+                  <!-- Soft Glass Inner Glow / Lighting Reflection -->
+                  <div 
+                    class="absolute inset-0 pointer-events-none opacity-20"
+                    style="background: radial-gradient(circle at 85% 15%, rgba(255, 255, 255, 0.4) 0%, transparent 60%);"
+                  ></div>
+                  <DotPattern :width="12" :height="12" :cx="1" :cy="1" :cr="1" class="text-white/20" />
                   <div class="flex items-start justify-between gap-1 sm:gap-1.5 relative z-10">
                     <span class="text-xs sm:text-sm font-bold text-white line-clamp-2 leading-snug flex-1 drop-shadow-sm">
                       {{ soilTempMetric?.name || 'Suhu Tanah' }}
@@ -1938,7 +1964,7 @@ onUnmounted(() => {
                     <!-- Unified Status & Threshold Capsule -->
                     <div 
                       :class="[
-                        'bg-white/25 hover:bg-white/35 backdrop-blur-md text-white border border-white/40 shadow-2xs transition-all shrink-0 select-none text-center',
+                        'bg-white/20 hover:bg-white/25 backdrop-blur-md text-white border border-white/35 shadow-xs transition-all shrink-0 select-none text-center',
                         soilTempCardState.isAlert 
                           ? 'px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-xl flex flex-col items-center gap-0.5' 
                           : 'px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full flex items-center'
@@ -1949,7 +1975,7 @@ onUnmounted(() => {
                         <span v-else-if="soilTempCardState.isHigh" class="text-xs font-black">↑</span>
                         <span>{{ soilTempStatus.text }}</span>
                       </span>
-                      <span v-if="soilTempCardState.isAlert && soilTempCardState.normalRangeText" class="text-[9.5px] sm:text-[10.5px] font-bold text-white/95 border-t border-white/30 pt-0.5 tracking-tight whitespace-nowrap drop-shadow-2xs">
+                      <span v-if="soilTempCardState.isAlert && soilTempCardState.normalRangeText" class="text-[9.5px] sm:text-[10.5px] font-bold text-white/95 border-t border-white/25 pt-0.5 tracking-tight whitespace-nowrap drop-shadow-2xs">
                         Normal: {{ soilTempCardState.normalRangeText }}°
                       </span>
                     </div>
@@ -1967,12 +1993,17 @@ onUnmounted(() => {
                 <!-- EC (Electrical Conductivity) Card (Dynamic 3-State: Rendah: Amber | Optimal: Lime/Emerald | Pekat: Merah Salin) -->
                 <div 
                   :class="[
-                    'relative overflow-hidden p-2 sm:p-2.5 lg:p-3 rounded-2xl text-white shadow-xs border border-white/20 flex flex-col justify-between min-h-[96px] sm:min-h-[102px] group hover:scale-[1.01] transition-transform',
+                    'relative overflow-hidden p-2 sm:p-2.5 lg:p-3 rounded-2xl text-white border-0 shadow-[inset_0_1px_1.5px_rgba(255,255,255,0.4),0_3px_12px_-2px_rgba(0,0,0,0.08)] flex flex-col justify-between min-h-[96px] sm:min-h-[102px] group hover:scale-[1.01] transition-transform',
                     ecCardState.gradient,
                     ecCardState.shadow
                   ]"
                 >
-                  <DotPattern :width="12" :height="12" :cx="6" :cy="6" :cr="1" class="text-white/20" />
+                  <!-- Soft Glass Inner Glow / Lighting Reflection -->
+                  <div 
+                    class="absolute inset-0 pointer-events-none opacity-20"
+                    style="background: radial-gradient(circle at 85% 15%, rgba(255, 255, 255, 0.4) 0%, transparent 60%);"
+                  ></div>
+                  <DotPattern :width="12" :height="12" :cx="1" :cy="1" :cr="1" class="text-white/20" />
                   <div class="flex items-start justify-between gap-1 sm:gap-1.5 relative z-10">
                     <span class="text-xs sm:text-sm font-bold text-white line-clamp-2 leading-snug flex-1 drop-shadow-sm">
                       {{ ecMetric?.name || 'EC Tanah' }}
@@ -1980,7 +2011,7 @@ onUnmounted(() => {
                     <!-- Unified Status & Threshold Capsule -->
                     <div 
                       :class="[
-                        'bg-white/25 hover:bg-white/35 backdrop-blur-md text-white border border-white/40 shadow-2xs transition-all shrink-0 select-none text-center',
+                        'bg-white/20 hover:bg-white/25 backdrop-blur-md text-white border border-white/35 shadow-xs transition-all shrink-0 select-none text-center',
                         ecCardState.isAlert 
                           ? 'px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-xl flex flex-col items-center gap-0.5' 
                           : 'px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full flex items-center'
@@ -1991,7 +2022,7 @@ onUnmounted(() => {
                         <span v-else-if="ecCardState.isHigh" class="text-xs font-black">↑</span>
                         <span>{{ ecStatus.text }}</span>
                       </span>
-                      <span v-if="ecCardState.isAlert && ecCardState.normalRangeText" class="text-[9.5px] sm:text-[10.5px] font-bold text-white/95 border-t border-white/30 pt-0.5 tracking-tight whitespace-nowrap drop-shadow-2xs">
+                      <span v-if="ecCardState.isAlert && ecCardState.normalRangeText" class="text-[9.5px] sm:text-[10.5px] font-bold text-white/95 border-t border-white/25 pt-0.5 tracking-tight whitespace-nowrap drop-shadow-2xs">
                         Normal: {{ ecCardState.normalRangeText }}
                       </span>
                     </div>
