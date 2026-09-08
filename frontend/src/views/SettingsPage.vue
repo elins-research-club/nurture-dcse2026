@@ -1235,8 +1235,7 @@ const updatePassword = async () => {
 
                   <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-3 border-t border-[#2AABEE]/20 relative z-10">
                     <p class="text-[11px] text-muted-foreground flex items-center gap-1.5">
-                      <span class="w-1.5 h-1.5 rounded-full bg-[#2AABEE]"></span>
-                      Uji koneksi sebelum menyimpan untuk memastikan bot dapat mengirimkan pesan.
+                      Uji koneksi sebelum menyimpan untuk memastikan bot dapat mengirimkan pesan
                     </p>
                     <div class="flex items-center gap-2 shrink-0 self-end sm:self-center">
                       <Button 
