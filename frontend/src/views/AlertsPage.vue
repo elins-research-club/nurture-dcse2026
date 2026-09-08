@@ -138,23 +138,23 @@ const visiblePages = computed(() => {
       <!-- SECTION 2: RIWAYAT LOG AKTIVITAS & PERINGATAN SISTEM -->
       <Card class="border border-border/80 bg-white dark:bg-card shadow-xs rounded-2xl">
         <!-- Card Header with Filter Pills, Actions & Count -->
-        <CardHeader class="p-5 border-b border-border/60 flex flex-col xl:flex-row xl:items-center justify-between gap-4 space-y-0">
-          <div class="flex items-center gap-2.5">
+        <CardHeader class="px-4 py-3 sm:px-5 sm:py-3.5 border-b border-border/60 flex flex-row items-center justify-between gap-3 space-y-0 overflow-x-auto">
+          <div class="flex items-center gap-2.5 shrink-0">
             <ScrollText class="w-5 h-5 text-primary shrink-0" />
-            <CardTitle class="text-base sm:text-lg font-bold text-foreground">Riwayat Log Aktivitas Sistem</CardTitle>
+            <CardTitle class="text-sm sm:text-base font-bold text-foreground whitespace-nowrap">Riwayat Log Aktivitas Sistem</CardTitle>
             
-            <span class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shrink-0">
+            <span class="text-xs font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shrink-0 whitespace-nowrap">
               {{ totalCount }} Total
             </span>
           </div>
 
-          <div class="flex items-center justify-end gap-2.5 flex-wrap w-full xl:w-auto ml-auto">
+          <div class="flex items-center justify-end gap-1.5 sm:gap-2 flex-nowrap shrink-0 ml-auto">
             <!-- Filter Pills -->
-            <div class="flex items-center bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl border border-border/80 text-sm gap-1 shadow-2xs">
+            <div class="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-border/80 text-xs gap-0.5 shadow-2xs shrink-0">
               <button
                 @click="selectedLevel = undefined"
                 :class="[
-                  'px-3 py-1 rounded-xl font-bold transition-all duration-200 cursor-pointer flex items-center gap-1.5 text-xs hover:-translate-y-0.5 active:scale-95 group',
+                  'px-2.5 py-1 rounded-lg font-bold transition-all duration-200 cursor-pointer flex items-center gap-1 text-xs hover:-translate-y-0.5 active:scale-95 group whitespace-nowrap',
                   selectedLevel === undefined 
                     ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border border-slate-300/90 dark:border-slate-700 shadow-xs' 
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
@@ -166,7 +166,7 @@ const visiblePages = computed(() => {
               <button
                 @click="selectedLevel = 'INFO'"
                 :class="[
-                  'px-3 py-1 rounded-xl font-bold transition-all duration-200 cursor-pointer flex items-center gap-1.5 text-xs hover:-translate-y-0.5 active:scale-95 group',
+                  'px-2.5 py-1 rounded-lg font-bold transition-all duration-200 cursor-pointer flex items-center gap-1 text-xs hover:-translate-y-0.5 active:scale-95 group whitespace-nowrap',
                   selectedLevel === 'INFO' 
                     ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 border border-slate-300/90 dark:border-slate-700 shadow-xs' 
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
@@ -179,7 +179,7 @@ const visiblePages = computed(() => {
               <button
                 @click="selectedLevel = 'WARNING'"
                 :class="[
-                  'px-3 py-1 rounded-xl font-bold transition-all duration-200 cursor-pointer flex items-center gap-1.5 text-xs hover:-translate-y-0.5 active:scale-95 group',
+                  'px-2.5 py-1 rounded-lg font-bold transition-all duration-200 cursor-pointer flex items-center gap-1 text-xs hover:-translate-y-0.5 active:scale-95 group whitespace-nowrap',
                   selectedLevel === 'WARNING' 
                     ? 'bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 border border-slate-300/90 dark:border-slate-700 shadow-xs' 
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
@@ -192,7 +192,7 @@ const visiblePages = computed(() => {
               <button
                 @click="selectedLevel = 'ERROR'"
                 :class="[
-                  'px-3 py-1 rounded-xl font-bold transition-all duration-200 cursor-pointer flex items-center gap-1.5 text-xs hover:-translate-y-0.5 active:scale-95 group',
+                  'px-2.5 py-1 rounded-lg font-bold transition-all duration-200 cursor-pointer flex items-center gap-1 text-xs hover:-translate-y-0.5 active:scale-95 group whitespace-nowrap',
                   selectedLevel === 'ERROR' 
                     ? 'bg-white dark:bg-slate-900 text-rose-600 dark:text-rose-400 border border-slate-300/90 dark:border-slate-700 shadow-xs' 
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
@@ -207,7 +207,7 @@ const visiblePages = computed(() => {
             <Button 
               variant="outline" 
               size="sm" 
-              class="h-9 px-3 rounded-xl text-xs font-semibold gap-1.5 shadow-none border-border/80 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer hover:scale-105 active:scale-95 transition-all duration-200 group"
+              class="h-8 px-2.5 rounded-xl text-xs font-semibold gap-1.5 shadow-none border-border/80 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer hover:scale-105 active:scale-95 transition-all duration-200 group shrink-0 whitespace-nowrap"
               @click="logsQuery.refetch()"
               :disabled="logsQuery.isFetching.value"
             >
@@ -215,14 +215,14 @@ const visiblePages = computed(() => {
               <span>Refresh</span>
             </Button>
 
-            <div class="h-5 w-px bg-border/80 hidden sm:block mx-0.5"></div>
+            <div class="h-5 w-px bg-border/80 hidden sm:block mx-0.5 shrink-0"></div>
 
             <!-- Stasiun Dropdown Selector -->
-            <div class="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800/90 border border-slate-200/90 dark:border-slate-700 px-2.5 py-1 rounded-xl shadow-2xs">
+            <div class="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800/90 border border-slate-200/90 dark:border-slate-700 px-2 py-1 rounded-xl shadow-2xs shrink-0">
               <span class="text-xs font-bold text-muted-foreground whitespace-nowrap">Stasiun:</span>
               <select 
                 v-model="selectedNodeId" 
-                class="bg-transparent text-xs font-extrabold text-foreground focus:outline-none cursor-pointer py-0.5 max-w-[170px] truncate"
+                class="bg-transparent text-xs font-extrabold text-foreground focus:outline-none cursor-pointer py-0.5 max-w-[125px] xl:max-w-[150px] truncate"
                 :disabled="!nodes.length"
               >
                 <option v-if="!nodes.length" value="">Memuat stasiun...</option>
@@ -242,7 +242,7 @@ const visiblePages = computed(() => {
               @click="isTelemetryExportOpen = true"
               :disabled="!selectedNode"
               variant="outline"
-              class="h-9 px-3.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 font-bold text-xs flex items-center justify-center gap-2 shadow-2xs border border-emerald-500/30 cursor-pointer hover:scale-[1.02] active:scale-95 transition-all"
+              class="h-8 px-2.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 font-bold text-xs flex items-center justify-center gap-1.5 shadow-2xs border border-emerald-500/30 cursor-pointer hover:scale-[1.02] active:scale-95 transition-all shrink-0 whitespace-nowrap"
               title="Buka Wizard Ekspor Telemetri (CSV)"
             >
               <ExcelIcon />
@@ -254,7 +254,7 @@ const visiblePages = computed(() => {
               @click="isAgronomyReportOpen = true"
               :disabled="!selectedNode"
               variant="outline"
-              class="h-9 px-3.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-700 dark:text-rose-300 font-bold text-xs flex items-center justify-center gap-2 shadow-2xs border border-rose-500/30 cursor-pointer hover:scale-[1.02] active:scale-95 transition-all"
+              class="h-8 px-2.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-700 dark:text-rose-300 font-bold text-xs flex items-center justify-center gap-1.5 shadow-2xs border border-rose-500/30 cursor-pointer hover:scale-[1.02] active:scale-95 transition-all shrink-0 whitespace-nowrap"
               title="Pratinjau & Cetak Laporan Resmi PDF"
             >
               <PdfIcon />
