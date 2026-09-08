@@ -1883,13 +1883,13 @@ onUnmounted(() => {
                 <!-- pH Tanah Card (Dynamic 3-State: Asam: Oranye-Merah | Optimal: Emerald | Basa: Ungu/Indigo) -->
                 <div 
                   :class="[
-                    'relative overflow-hidden p-2.5 sm:p-3 rounded-2xl text-white shadow-xs border border-white/20 flex flex-col justify-between min-h-[96px] sm:min-h-[102px] group hover:scale-[1.01] transition-transform',
+                    'relative overflow-hidden p-2 sm:p-2.5 lg:p-3 rounded-2xl text-white shadow-xs border border-white/20 flex flex-col justify-between min-h-[96px] sm:min-h-[102px] group hover:scale-[1.01] transition-transform',
                     phCardState.gradient,
                     phCardState.shadow
                   ]"
                 >
                   <DotPattern :width="12" :height="12" :cx="6" :cy="6" :cr="1" class="text-white/20" />
-                  <div class="flex items-start justify-between gap-1.5 relative z-10">
+                  <div class="flex items-start justify-between gap-1 sm:gap-1.5 relative z-10">
                     <span class="text-xs sm:text-sm font-bold text-white line-clamp-2 leading-snug flex-1 drop-shadow-sm">
                       {{ phMetric?.name || 'pH Tanah' }}
                     </span>
@@ -1898,8 +1898,8 @@ onUnmounted(() => {
                       :class="[
                         'bg-white/25 hover:bg-white/35 backdrop-blur-md text-white border border-white/40 shadow-2xs transition-all shrink-0 select-none text-center',
                         phCardState.isAlert 
-                          ? 'px-2 py-1 rounded-xl flex flex-col items-center gap-0.5' 
-                          : 'px-2.5 py-1 rounded-full flex items-center'
+                          ? 'px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-xl flex flex-col items-center gap-0.5' 
+                          : 'px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full flex items-center'
                       ]"
                     >
                       <span class="text-[11px] sm:text-xs font-black tracking-wide leading-tight drop-shadow-[0_1px_1px_rgba(0,0,0,0.2)] flex items-center gap-0.5 text-white">
@@ -1925,13 +1925,13 @@ onUnmounted(() => {
                 <!-- Suhu Tanah Card (Dynamic 3-State: Dingin: Biru Ice | Optimal: Oranye Hangat | Panas: Merah Rose Alert) -->
                 <div 
                   :class="[
-                    'relative overflow-hidden p-2.5 sm:p-3 rounded-2xl text-white shadow-xs border border-white/20 flex flex-col justify-between min-h-[96px] sm:min-h-[102px] group hover:scale-[1.01] transition-transform',
+                    'relative overflow-hidden p-2 sm:p-2.5 lg:p-3 rounded-2xl text-white shadow-xs border border-white/20 flex flex-col justify-between min-h-[96px] sm:min-h-[102px] group hover:scale-[1.01] transition-transform',
                     soilTempCardState.gradient,
                     soilTempCardState.shadow
                   ]"
                 >
                   <DotPattern :width="12" :height="12" :cx="6" :cy="6" :cr="1" class="text-white/20" />
-                  <div class="flex items-start justify-between gap-1.5 relative z-10">
+                  <div class="flex items-start justify-between gap-1 sm:gap-1.5 relative z-10">
                     <span class="text-xs sm:text-sm font-bold text-white line-clamp-2 leading-snug flex-1 drop-shadow-sm">
                       {{ soilTempMetric?.name || 'Suhu Tanah' }}
                     </span>
@@ -1940,8 +1940,8 @@ onUnmounted(() => {
                       :class="[
                         'bg-white/25 hover:bg-white/35 backdrop-blur-md text-white border border-white/40 shadow-2xs transition-all shrink-0 select-none text-center',
                         soilTempCardState.isAlert 
-                          ? 'px-2 py-1 rounded-xl flex flex-col items-center gap-0.5' 
-                          : 'px-2.5 py-1 rounded-full flex items-center'
+                          ? 'px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-xl flex flex-col items-center gap-0.5' 
+                          : 'px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full flex items-center'
                       ]"
                     >
                       <span class="text-[11px] sm:text-xs font-black tracking-wide leading-tight drop-shadow-[0_1px_1px_rgba(0,0,0,0.2)] flex items-center gap-0.5 text-white">
@@ -1967,23 +1967,23 @@ onUnmounted(() => {
                 <!-- EC (Electrical Conductivity) Card (Dynamic 3-State: Rendah: Amber | Optimal: Lime/Emerald | Pekat: Merah Salin) -->
                 <div 
                   :class="[
-                    'relative overflow-hidden p-2.5 sm:p-3 rounded-2xl text-white shadow-xs border border-white/20 flex flex-col justify-between min-h-[96px] sm:min-h-[102px] group hover:scale-[1.01] transition-transform',
+                    'relative overflow-hidden p-2 sm:p-2.5 lg:p-3 rounded-2xl text-white shadow-xs border border-white/20 flex flex-col justify-between min-h-[96px] sm:min-h-[102px] group hover:scale-[1.01] transition-transform',
                     ecCardState.gradient,
                     ecCardState.shadow
                   ]"
                 >
                   <DotPattern :width="12" :height="12" :cx="6" :cy="6" :cr="1" class="text-white/20" />
-                  <div class="flex items-start justify-between gap-1.5 relative z-10">
+                  <div class="flex items-start justify-between gap-1 sm:gap-1.5 relative z-10">
                     <span class="text-xs sm:text-sm font-bold text-white line-clamp-2 leading-snug flex-1 drop-shadow-sm">
-                      {{ ecMetric?.name || 'eC Tanah' }}
+                      {{ ecMetric?.name || 'EC Tanah' }}
                     </span>
                     <!-- Unified Status & Threshold Capsule -->
                     <div 
                       :class="[
                         'bg-white/25 hover:bg-white/35 backdrop-blur-md text-white border border-white/40 shadow-2xs transition-all shrink-0 select-none text-center',
                         ecCardState.isAlert 
-                          ? 'px-2 py-1 rounded-xl flex flex-col items-center gap-0.5' 
-                          : 'px-2.5 py-1 rounded-full flex items-center'
+                          ? 'px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-xl flex flex-col items-center gap-0.5' 
+                          : 'px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full flex items-center'
                       ]"
                     >
                       <span class="text-[11px] sm:text-xs font-black tracking-wide leading-tight drop-shadow-[0_1px_1px_rgba(0,0,0,0.2)] flex items-center gap-0.5 text-white">
