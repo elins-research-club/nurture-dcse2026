@@ -98,18 +98,32 @@ const updateAllMarkerIcons = () => {
   })
 }
 
-const getSensorValue = (feed: any, nameQuery: string, sensors: any[]) => {
-  const sensor = sensors.find(s => s.name.toLowerCase().includes(nameQuery.toLowerCase()))
+const matchSensor = (s: any, queryList: string[]) => {
+  const sName = (s.name || '').toLowerCase()
+  const sType = (s.sensor_type || s.type || '').toLowerCase()
+  return queryList.some(q => {
+    const target = q.toLowerCase()
+    if (target.length <= 2) {
+      const words = sName.split(/[\s_()-]+/)
+      return words.includes(target) || sType === target
+    }
+    return sName.includes(target) || sType.includes(target)
+  })
+}
+
+const getSensorValue = (feed: any, queries: string | string[], sensors: any[]) => {
+  const queryList = Array.isArray(queries) ? queries : [queries]
+  const sensor = sensors.find(s => matchSensor(s, queryList))
   if (!sensor || !feed) return '—'
   const key = `${sensor.channel_id}_${sensor.thingspeak_field}`
   const val = feed[key]
-  return val != null ? `${parseFloat(val).toFixed(1)} ${sensor.unit}` : '—'
+  return val != null && val !== '' ? `${parseFloat(val).toFixed(1)} ${sensor.unit || ''}`.trim() : '—'
 }
 
 const buildPopupHtml = (node: any, online: boolean, feed: any, sensors: any[]) => {
-  const n = getSensorValue(feed, 'Nitrogen', sensors)
-  const p = getSensorValue(feed, 'Phosphorus', sensors)
-  const k = getSensorValue(feed, 'Potassium', sensors)
+  const n = getSensorValue(feed, ['nitrogen', 'kandungan nitrogen'], sensors)
+  const p = getSensorValue(feed, ['fosfor', 'phosphor', 'phospor', 'phosphat', 'phosphate'], sensors)
+  const k = getSensorValue(feed, ['kalium', 'potassium'], sensors)
   const hasData = feed != null
 
   return `<div style="min-width:210px;font-family:system-ui,-apple-system,sans-serif;padding:6px 4px">
@@ -124,15 +138,15 @@ const buildPopupHtml = (node: any, online: boolean, feed: any, sensors: any[]) =
     <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:8px 10px;margin-bottom:12px">
       <table style="width:100%;font-size:13px;border-collapse:collapse">
         <tr style="border-bottom:1px solid #f1f5f9">
-          <td style="padding:4px 0;color:#64748b;font-weight:500">🌿 Nitrogen</td>
+          <td style="padding:4px 0;color:#64748b;font-weight:500">🌿 Nitrogen (N)</td>
           <td style="padding:4px 0;font-weight:700;text-align:right;color:#0f172a">${n}</td>
         </tr>
         <tr style="border-bottom:1px solid #f1f5f9">
-          <td style="padding:4px 0;color:#64748b;font-weight:500">🧪 Phosphorus</td>
+          <td style="padding:4px 0;color:#64748b;font-weight:500">🧪 Fosfor (P)</td>
           <td style="padding:4px 0;font-weight:700;text-align:right;color:#0f172a">${p}</td>
         </tr>
         <tr>
-          <td style="padding:4px 0;color:#64748b;font-weight:500">⚡ Potassium</td>
+          <td style="padding:4px 0;color:#64748b;font-weight:500">⚡ Kalium (K)</td>
           <td style="padding:4px 0;font-weight:700;text-align:right;color:#0f172a">${k}</td>
         </tr>
       </table>
@@ -344,8 +358,9 @@ const flyToNode = (node: any) => {
   }
 }
 
-const getRawSensorNum = (feed: any, nameQuery: string, sensors: any[]) => {
-  const sensor = sensors.find(s => s.name.toLowerCase().includes(nameQuery.toLowerCase()))
+const getRawSensorNum = (feed: any, queries: string | string[], sensors: any[]) => {
+  const queryList = Array.isArray(queries) ? queries : [queries]
+  const sensor = sensors.find(s => matchSensor(s, queryList))
   if (!sensor || !feed) return null
   const key = `${sensor.channel_id}_${sensor.thingspeak_field}`
   const val = feed[key]
@@ -356,19 +371,12 @@ const getNodeMetrics = (nodeId: string) => {
   const feed = telemetryStore.telemetryHistory[nodeId]?.[0]
   const sensors = nodeSensorsMap.value[nodeId] || []
   if (!feed) return null
-  const n = getRawSensorNum(feed, 'Nitrogen', sensors)
-  const p = getRawSensorNum(feed, 'Phosphorus', sensors)
-  const k = getRawSensorNum(feed, 'Potassium', sensors)
-  const tempLuar = getRawSensorNum(feed, 'Air Temp', sensors) 
-    || getRawSensorNum(feed, 'Suhu Udara', sensors)
-    || getRawSensorNum(feed, 'Suhu Lingkungan', sensors)
-    || getRawSensorNum(feed, 'Suhu Luar', sensors)
-  const tempDalam = getRawSensorNum(feed, 'Enclosure Temp', sensors)
-    || getRawSensorNum(feed, 'Suhu Kotak', sensors)
-    || getRawSensorNum(feed, 'Suhu Box', sensors)
-    || getRawSensorNum(feed, 'Suhu Panel', sensors)
-    || getRawSensorNum(feed, 'Temperature', sensors)
-    || getRawSensorNum(feed, 'Suhu', sensors)
+  const n = getRawSensorNum(feed, ['nitrogen', 'kandungan nitrogen'], sensors)
+  const p = getRawSensorNum(feed, ['fosfor', 'phosphor', 'phospor', 'phosphat', 'phosphate'], sensors)
+  const k = getRawSensorNum(feed, ['kalium', 'potassium'], sensors)
+  const tempLuar = getRawSensorNum(feed, ['air temp', 'suhu udara', 'suhu lingkungan', 'suhu luar', 'outdoor temp'], sensors)
+  const tempDalam = getRawSensorNum(feed, ['enclosure temp', 'suhu kotak', 'suhu box', 'suhu panel', 'indoor temp'], sensors)
+    || getRawSensorNum(feed, ['temperature', 'suhu'], sensors)
   return { n, p, k, tempLuar, tempDalam }
 }
 
@@ -650,13 +658,13 @@ onUnmounted(() => {
             >
               <!-- NPK Pill (Neutral) -->
               <div 
-                v-if="getNodeMetrics(node.node_id)?.n != null"
+                v-if="getNodeMetrics(node.node_id)?.n != null || getNodeMetrics(node.node_id)?.p != null || getNodeMetrics(node.node_id)?.k != null"
                 class="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700 flex items-center gap-1 shadow-2xs"
-                title="Nutrisi Tanah (Nitrogen / Phosphorus / Potassium)"
+                title="Nutrisi Tanah (Nitrogen / Fosfor / Kalium)"
               >
                 <span class="font-bold text-slate-900 dark:text-slate-100">NPK:</span>
                 <span class="font-bold text-slate-800 dark:text-slate-200 font-mono">
-                  {{ getNodeMetrics(node.node_id)?.n }}/{{ getNodeMetrics(node.node_id)?.p }}/{{ getNodeMetrics(node.node_id)?.k }}
+                  {{ getNodeMetrics(node.node_id)?.n ?? '—' }}/{{ getNodeMetrics(node.node_id)?.p ?? '—' }}/{{ getNodeMetrics(node.node_id)?.k ?? '—' }}
                 </span>
                 <span class="text-[9px] text-slate-600 dark:text-slate-400 font-medium">mg/kg</span>
               </div>
