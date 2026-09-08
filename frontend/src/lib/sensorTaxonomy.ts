@@ -71,18 +71,18 @@ export function getTargetWidget(sensor: any): TargetWidgetInfo {
     return {
       widgetName: 'Status Aktuator',
       badgeVariant: 'outline',
-      icon: '🎮',
-      description: 'Panel status saklar (Kipas, Lampu, Valve) di sidebar kiri.'
+      icon: '🌀',
+      description: 'Portlet Status Aktuator (Kipas, Lampu, Valve) di sidebar kiri dashboard.'
     }
   }
   if (['npk_n', 'npk_p', 'npk_k', 'nitrogen', 'phosphorus', 'potassium'].includes(type) ||
       name.includes('nitrogen') || name.includes('fosfor') || name.includes('phosphor') ||
       name.includes('kalium') || name.includes('potassium')) {
     return {
-      widgetName: 'Highlight NPK',
+      widgetName: 'Unsur Hara NPK',
       badgeVariant: 'default',
       icon: '🌿',
-      description: 'Kartu metrik utama Nitrogen, Fosfor, dan Kalium di baris atas.'
+      description: 'Kartu metrik utama Unsur Hara NPK (Nitrogen, Fosfor, dan Kalium) di baris atas dashboard.'
     }
   }
   if (['soil_ph', 'soil_ec', 'soil_temp', 'soil_moisture', 'avg_soil_moisture', 'probe_moist', 'soil_probe'].includes(type) ||
@@ -91,18 +91,18 @@ export function getTargetWidget(sensor: any): TargetWidgetInfo {
     return {
       widgetName: 'Kondisi Tanah',
       badgeVariant: 'secondary',
-      icon: '💧',
-      description: 'Wrapper kartu kondisi tanah (Kelembapan, pH, Suhu, EC).'
+      icon: '🌱',
+      description: 'Portlet Kondisi Tanah (Multi-probe kelembapan, pH, Suhu, dan EC) di dashboard.'
     }
   }
   if (['batt_volt', 'load_volt', 'batt_current', 'load_current', 'load_power', 'power'].includes(type) ||
       name.includes('baterai') || name.includes('daya') ||
       (name.includes('load') && (name.includes('tegangan') || name.includes('arus')))) {
     return {
-      widgetName: 'Daya & Baterai',
+      widgetName: 'Sistem Manajemen Daya',
       badgeVariant: 'outline',
       icon: '⚡',
-      description: 'Portlet sistem solar panel (Tegangan, Arus, Daya Beban).'
+      description: 'Portlet Sistem Manajemen Daya (Tegangan Baterai 12V, Arus, dan Beban Sistem INA226) di dashboard.'
     }
   }
   if (['box_temp', 'air_temp', 'air_humidity', 'humidity', 'temperature'].includes(type) ||
@@ -111,15 +111,15 @@ export function getTargetWidget(sensor: any): TargetWidgetInfo {
     return {
       widgetName: 'Kondisi IoT',
       badgeVariant: 'secondary',
-      icon: '🌡️',
-      description: 'Wrapper kartu kondisi IoT & Lingkungan (Suhu Box, Udara, Kelembaban).'
+      icon: '📡',
+      description: 'Portlet Kondisi IoT (Suhu Box Panel, Suhu Luar, dan Kelembaban Udara) di dashboard.'
     }
   }
   return {
     widgetName: 'Metrik Tambahan',
     badgeVariant: 'outline',
     icon: '📌',
-    description: 'Grid metrik tambahan/dinamis di bawah dashboard.'
+    description: 'Grid metrik tambahan/dinamis di bagian bawah dashboard.'
   }
 }
 

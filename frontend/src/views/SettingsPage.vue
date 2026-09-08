@@ -1411,7 +1411,7 @@ const updatePassword = async () => {
                                     <span class="text-[10px] font-mono font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700 shrink-0">
                                       {{ sensor.thingspeak_field }}
                                     </span>
-                                    <Label class="text-[10px] text-muted-foreground uppercase font-bold tracking-wider truncate">Nama Parameter</Label>
+                                    <Label class="text-[10px] text-muted-foreground uppercase font-bold tracking-wider shrink-0">Nama</Label>
                                     <span v-if="isFieldDirty(sensor, 'name')" class="text-[9px] font-semibold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/50 px-1.5 py-0.2 rounded border border-amber-300/80 dark:border-amber-700/60 shrink-0">Diedit</span>
                                     <span 
                                       :title="getTargetWidget(sensor).description"
