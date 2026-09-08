@@ -1254,24 +1254,74 @@ const analyticsData = computed(() => {
     }
   }
 
-  // 5. Kategori Semua Sensor
-  const distributionWidget = {
-    title: 'Sebaran Kanal Sensor Telemetri',
-    subtitle: `${sensorStats.length} Kanal Aktif`,
-    segments: [
-      { label: 'NPK: 33%', percent: 33, color: 'bg-emerald-500', textClass: 'text-emerald-600 dark:text-emerald-400' },
-      { label: 'Tanah: 45%', percent: 45, color: 'bg-amber-500', textClass: 'text-amber-600 dark:text-amber-400' },
-      { label: 'IoT: 22%', percent: 22, color: 'bg-blue-500', textClass: 'text-blue-600 dark:text-blue-400' }
+  // 5. Kategori Semua Sensor (Tingkat Kepatuhan Ambang Batas / Threshold Compliance)
+  const evaluatedSensors = sensorStats.filter((s: any) => s.current != null)
+  const totalEvaluated = evaluatedSensors.length
+
+  const criticalSensors = new Set(
+    activeAnomalies
+      .filter((a: any) => a.severity === 'critical')
+      .map((a: any) => a.sensor?.id || a.sensor?.name)
+  )
+
+  const warningSensors = new Set(
+    activeAnomalies
+      .filter((a: any) => a.severity === 'warning')
+      .map((a: any) => a.sensor?.id || a.sensor?.name)
+      .filter((id: string) => !criticalSensors.has(id))
+  )
+
+  const criticalCount = criticalSensors.size
+  const warningCount = warningSensors.size
+  const normalCount = Math.max(0, totalEvaluated - criticalCount - warningCount)
+
+  const normalPercent = totalEvaluated > 0 ? Math.round((normalCount / totalEvaluated) * 100) : 100
+  const warningPercent = totalEvaluated > 0 
+    ? (criticalCount > 0 ? Math.round((warningCount / totalEvaluated) * 100) : 100 - normalPercent) 
+    : 0
+  const criticalPercent = totalEvaluated > 0 
+    ? Math.max(0, 100 - normalPercent - warningPercent) 
+    : 0
+
+  let complianceSegments: any[] = []
+  if (totalEvaluated === 0) {
+    complianceSegments = [
+      { label: 'Belum Ada Data', percent: 100, color: 'bg-slate-400', textClass: 'text-slate-500' }
+    ]
+  } else if (warningCount === 0 && criticalCount === 0) {
+    complianceSegments = [
+      { label: `Sesuai Target: 100% (${normalCount} Sensor)`, percent: 100, color: 'bg-emerald-500', textClass: 'text-emerald-600 dark:text-emerald-400' }
+    ]
+  } else if (criticalCount === 0) {
+    complianceSegments = [
+      { label: `Normal: ${normalPercent}% (${normalCount})`, percent: normalPercent, color: 'bg-emerald-500', textClass: 'text-emerald-600 dark:text-emerald-400' },
+      { label: `Di Luar Ambang: ${warningPercent}% (${warningCount})`, percent: warningPercent, color: 'bg-amber-500', textClass: 'text-amber-600 dark:text-amber-400' }
+    ]
+  } else {
+    complianceSegments = [
+      { label: `Normal: ${normalPercent}% (${normalCount})`, percent: normalPercent, color: 'bg-emerald-500', textClass: 'text-emerald-600 dark:text-emerald-400' },
+      { label: `Perhatian: ${warningPercent}% (${warningCount})`, percent: warningPercent, color: 'bg-amber-500', textClass: 'text-amber-600 dark:text-amber-400' },
+      { label: `Kritis: ${criticalPercent}% (${criticalCount})`, percent: criticalPercent, color: 'bg-rose-500', textClass: 'text-rose-600 dark:text-rose-400' }
     ]
   }
 
-  defaultBadgeText = `${sensorStats.length} Kanal Aktif`
-  defaultInsightText = `Berhasil mengagregasi ${feeds.length} titik data telemetri untuk seluruh domain sensor pada rentang ${rangeLabel.value}.`
+  const distributionWidget = {
+    title: 'Tingkat Kepatuhan Ambang Batas',
+    subtitle: `${normalCount}/${totalEvaluated} Sesuai Target (${normalPercent}%)`,
+    segments: complianceSegments
+  }
+
+  defaultBadgeText = `${normalPercent}% Kepatuhan`
+  defaultInsightText = criticalAnomaly?.message || warningAnomaly?.message || (
+    normalPercent === 100
+      ? `Seluruh ${totalEvaluated} parameter telemetri beroperasi stabil dalam ambang batas normal pada rentang ${rangeLabel.value}.`
+      : `Sebanyak ${normalCount} dari ${totalEvaluated} parameter telemetri terpantau sesuai batas target pada rentang ${rangeLabel.value}.`
+  )
 
   return {
     hasData: true,
     dataPoints: feeds.length,
-    summaryTitle: 'Ikhtisar Seluruh Telemetri',
+    summaryTitle: 'Kepatuhan Seluruh Telemetri',
     badgeText: criticalAnomaly ? 'Peringatan Kritis' : (warningAnomaly ? (warningAnomaly.sensor.name + ' Perhatian') : defaultBadgeText),
     badgeColor: criticalAnomaly ? 'bg-rose-500/15 border-rose-500/30 text-rose-700 dark:text-rose-400' : (warningAnomaly ? 'bg-amber-500/15 border-amber-500/30 text-amber-700 dark:text-amber-400' : 'bg-primary/15 border-primary/30 text-primary'),
     boxClass: criticalAnomaly ? 'bg-rose-500/10 dark:bg-rose-950/30 border-rose-500/25 text-rose-900 dark:text-rose-300' : (warningAnomaly ? 'bg-amber-500/10 dark:bg-amber-950/30 border-amber-500/25 text-amber-900 dark:text-amber-300' : 'bg-sky-500/10 dark:bg-sky-950/30 border-sky-500/20 text-sky-900 dark:text-sky-300'),
