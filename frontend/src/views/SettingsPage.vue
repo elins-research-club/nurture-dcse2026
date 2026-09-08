@@ -1111,9 +1111,25 @@ const updatePassword = async () => {
               <div class="border border-muted-foreground/30 rounded-lg divide-y divide-muted-foreground/30 bg-card">
                 <!-- Offline Threshold -->
                 <div class="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div class="space-y-0.5">
+                  <div class="flex items-center gap-2">
                     <Label class="text-base font-medium">Batas Waktu Offline</Label>
-                    <p class="text-sm text-muted-foreground">Perangkat dianggap offline jika tidak mengirimkan data dalam rentang waktu ini.</p>
+                    <div class="relative flex items-center group">
+                      <button 
+                        type="button" 
+                        class="text-muted-foreground hover:text-foreground transition-colors cursor-help p-0.5 rounded-full hover:bg-muted/50 focus:outline-none"
+                        title="Perangkat dianggap offline jika tidak mengirimkan data dalam rentang waktu ini."
+                      >
+                        <HelpCircle class="w-4 h-4" />
+                        <span class="sr-only">Penjelasan Batas Waktu Offline</span>
+                      </button>
+                      <!-- Tooltip on hover -->
+                      <div class="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 flex flex-col items-center opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-50">
+                        <div class="w-max max-w-xs px-3 py-1.5 rounded-lg bg-slate-900 dark:bg-slate-800 text-slate-100 text-xs shadow-lg text-center leading-relaxed font-normal">
+                          Perangkat dianggap offline jika tidak mengirimkan data dalam rentang waktu ini.
+                        </div>
+                        <div class="w-2 h-2 -mt-1 rotate-45 bg-slate-900 dark:bg-slate-800"></div>
+                      </div>
+                    </div>
                   </div>
                   <div class="w-full sm:w-40 flex items-center gap-2">
                     <Input type="number" v-model="systemConfig.offline_threshold_mins" placeholder="15" min="1" />
