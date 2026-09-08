@@ -55,6 +55,8 @@ export type TargetWidgetInfo = {
   widgetName: string
   badgeVariant: 'default' | 'secondary' | 'outline' | 'destructive'
   icon: string
+  iconSrc?: string
+  isLucide?: boolean
   description: string
 }
 
@@ -72,6 +74,7 @@ export function getTargetWidget(sensor: any): TargetWidgetInfo {
       widgetName: 'Status Aktuator',
       badgeVariant: 'outline',
       icon: '🌀',
+      iconSrc: '/actuator-icon.svg',
       description: 'Portlet Status Aktuator (Kipas, Lampu, Valve) di sidebar kiri dashboard.'
     }
   }
@@ -82,6 +85,7 @@ export function getTargetWidget(sensor: any): TargetWidgetInfo {
       widgetName: 'Unsur Hara NPK',
       badgeVariant: 'default',
       icon: '🌿',
+      iconSrc: '/npk-icon.svg',
       description: 'Kartu metrik utama Unsur Hara NPK (Nitrogen, Fosfor, dan Kalium) di baris atas dashboard.'
     }
   }
@@ -92,6 +96,7 @@ export function getTargetWidget(sensor: any): TargetWidgetInfo {
       widgetName: 'Kondisi Tanah',
       badgeVariant: 'secondary',
       icon: '🌱',
+      iconSrc: '/soil-icon.svg',
       description: 'Portlet Kondisi Tanah (Multi-probe kelembapan, pH, Suhu, dan EC) di dashboard.'
     }
   }
@@ -102,6 +107,7 @@ export function getTargetWidget(sensor: any): TargetWidgetInfo {
       widgetName: 'Sistem Manajemen Daya',
       badgeVariant: 'outline',
       icon: '⚡',
+      isLucide: true,
       description: 'Portlet Sistem Manajemen Daya (Tegangan Baterai 12V, Arus, dan Beban Sistem INA226) di dashboard.'
     }
   }
@@ -112,6 +118,7 @@ export function getTargetWidget(sensor: any): TargetWidgetInfo {
       widgetName: 'Kondisi IoT',
       badgeVariant: 'secondary',
       icon: '📡',
+      iconSrc: '/iot-icon.svg',
       description: 'Portlet Kondisi IoT (Suhu Box Panel, Suhu Luar, dan Kelembaban Udara) di dashboard.'
     }
   }

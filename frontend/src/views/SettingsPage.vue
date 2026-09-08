@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
-import { Sun, Moon, CheckCircle, XCircle, Loader2, ChevronDown, ChevronRight, Sprout, Bot, ExternalLink, Send, AlertCircle, HelpCircle, User, Users, Bell, BellOff, Check, RotateCcw, Save, Info } from 'lucide-vue-next'
+import { Sun, Moon, CheckCircle, XCircle, Loader2, ChevronDown, ChevronRight, Sprout, Bot, ExternalLink, Send, AlertCircle, HelpCircle, User, Users, Bell, BellOff, Check, RotateCcw, Save, Info, Zap } from 'lucide-vue-next'
 import { getTargetWidget } from '@/lib/sensorTaxonomy'
 
 const tabList = [
@@ -1429,7 +1429,21 @@ const updatePassword = async () => {
                                       :title="getTargetWidget(sensor).description"
                                       class="inline-flex items-center gap-1.5 text-[9.5px] font-bold px-2 py-0.5 rounded-md border border-border/70 bg-slate-100/90 dark:bg-slate-800/90 text-foreground cursor-help hover:bg-slate-200/80 dark:hover:bg-slate-700/80 transition-colors max-w-full"
                                     >
-                                      <span class="text-xs">{{ getTargetWidget(sensor).icon }}</span>
+                                      <!-- Ikon SVG asli sama seperti di kartu Dashboard -->
+                                      <img 
+                                        v-if="getTargetWidget(sensor).iconSrc" 
+                                        :src="getTargetWidget(sensor).iconSrc" 
+                                        :alt="getTargetWidget(sensor).widgetName"
+                                        class="w-3.5 h-3.5 object-contain dark:invert shrink-0" 
+                                      />
+                                      <!-- Ikon Lucide Zap untuk Sistem Manajemen Daya -->
+                                      <Zap 
+                                        v-else-if="getTargetWidget(sensor).isLucide" 
+                                        class="w-3.5 h-3.5 text-foreground stroke-[2.2] shrink-0" 
+                                      />
+                                      <!-- Fallback icon -->
+                                      <span v-else class="text-xs">{{ getTargetWidget(sensor).icon }}</span>
+
                                       <span class="text-muted-foreground font-medium">Target:</span>
                                       <span class="truncate">{{ getTargetWidget(sensor).widgetName }}</span>
                                     </span>
