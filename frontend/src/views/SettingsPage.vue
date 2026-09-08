@@ -873,9 +873,9 @@ const updatePassword = async () => {
                     Telegram melarang bot memulai obrolan ke pengguna baru secara sepihak. Buka bot sistem kita lalu tekan tombol <b>START</b> satu kali di Telegram.
                   </p>
                   <div class="pt-0.5">
-                    <a :href="telegramBotInfo?.link || `https://t.me/${telegramBotInfo?.username || 'Raden_Mentimun_bot'}`" target="_blank" rel="noopener noreferrer">
+                    <a :href="telegramBotInfo?.link || `https://t.me/${telegramBotInfo?.username || 'elinsNOKA_bot'}`" target="_blank" rel="noopener noreferrer">
                       <Button size="sm" class="h-8 text-xs gap-1.5 bg-[#2AABEE] hover:bg-[#2297d4] text-white font-semibold shadow-xs cursor-pointer">
-                        <span>Buka @{{ telegramBotInfo?.username || 'Raden_Mentimun_bot' }} & Tekan Start</span>
+                        <span>Buka @{{ telegramBotInfo?.username || 'elinsNOKA_bot' }} & Tekan Start</span>
                         <ExternalLink class="w-3.5 h-3.5" />
                       </Button>
                     </a>
@@ -917,7 +917,17 @@ const updatePassword = async () => {
                 <div class="space-y-1 flex-1">
                   <span class="font-semibold text-foreground text-xs block">Masukkan Bot ke Grup Telegram</span>
                   <p class="text-muted-foreground text-[12px] leading-relaxed">
-                    Buka grup tim/lahan Anda di Telegram, undang (Add Member) bot <span class="font-mono font-bold text-foreground bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-300 dark:border-slate-600">@{{ telegramBotInfo?.username || 'Raden_Mentimun_bot' }}</span> ke dalam grup, dan pastikan bot memiliki izin kirim pesan.
+                    Buka grup tim/lahan Anda di Telegram, undang (Add Member) bot 
+                    <a 
+                      :href="telegramBotInfo?.link || `https://t.me/${telegramBotInfo?.username || 'elinsNOKA_bot'}`" 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      class="font-mono font-bold text-[#0088cc] dark:text-[#38bdf8] bg-sky-50 dark:bg-sky-950/40 px-1.5 py-0.5 rounded border border-sky-300 dark:border-sky-700 hover:underline inline-flex items-center gap-1"
+                    >
+                      <span>@{{ telegramBotInfo?.username || 'elinsNOKA_bot' }}</span>
+                      <ExternalLink class="w-3 h-3 inline" />
+                    </a> 
+                    ke dalam grup, dan pastikan bot memiliki izin kirim pesan.
                   </p>
                 </div>
               </div>
