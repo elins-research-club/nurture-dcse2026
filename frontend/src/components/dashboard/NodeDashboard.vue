@@ -16,7 +16,7 @@ import { getSensorCategory, filterSensorsByCategory } from '@/lib/sensorTaxonomy
 import { 
   Calendar, Clock, Check, Layers, MapPin, 
   Thermometer, Droplet, Sparkles, TrendingUp, 
-  TrendingDown, Minus, Info, Activity, AlertTriangle,
+  TrendingDown, Minus, Plus, LocateFixed, Info, Activity, AlertTriangle,
   ChevronDown, Fan, Lightbulb, Droplets, Download,
   Sun, ShieldCheck, Beaker, Zap,
   Battery, BatteryCharging, ArrowDownRight
@@ -682,15 +682,18 @@ const initMiniMap = (lat: number, lng: number) => {
   try {
     miniMap = L.map(miniMapContainer.value, { 
       zoomControl: false, 
-      dragging: false, 
+      dragging: true, 
       scrollWheelZoom: false, 
       attributionControl: false,
       zoomSnap: 1,
-      zoomDelta: 1
-    }).setView([lat, lng], 19)
+      zoomDelta: 1,
+      maxZoom: 22,
+      minZoom: 16
+    }).setView([lat, lng], 21)
 
     L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', { 
-      maxZoom: 20,
+      maxZoom: 22,
+      maxNativeZoom: 22,
       subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
       keepBuffer: 4
     }).addTo(miniMap)
@@ -707,6 +710,20 @@ const initMiniMap = (lat: number, lng: number) => {
     }, 150)
   } catch (err) {
     console.error('[NodeDashboard] Failed to initialize mini-map:', err)
+  }
+}
+
+const zoomInMiniMap = () => {
+  miniMap?.zoomIn()
+}
+
+const zoomOutMiniMap = () => {
+  miniMap?.zoomOut()
+}
+
+const resetMiniMap = () => {
+  if (nodeCoords.value && miniMap) {
+    miniMap.setView([nodeCoords.value.lat, nodeCoords.value.lng], 21)
   }
 }
 
@@ -1383,21 +1400,49 @@ onUnmounted(() => {
         </Card>
 
         <!-- CARD 2: Mini Map (1:1 Ratio Square Card) -->
-        <Card class="relative overflow-hidden w-full aspect-square flex flex-col group">
+        <Card class="relative overflow-hidden w-full aspect-square flex flex-col group shadow-xs">
           <div ref="miniMapContainer" data-lenis-prevent class="w-full h-full absolute inset-0 z-0" />
           
+          <!-- MiniMap Floating Controls (Zoom In, Zoom Out, Re-center) -->
+          <div v-if="miniMapReady" class="absolute top-2.5 left-2.5 z-10 flex flex-col gap-1">
+            <button 
+              type="button"
+              @click.stop="zoomInMiniMap"
+              class="w-7 h-7 rounded-lg bg-white/90 dark:bg-slate-900/90 backdrop-blur-md text-foreground border border-border/70 hover:bg-white dark:hover:bg-slate-900 flex items-center justify-center transition-all hover:scale-105 active:scale-95 shadow-xs cursor-pointer"
+              title="Perbesar Peta (+)"
+            >
+              <Plus class="w-3.5 h-3.5 text-foreground" />
+            </button>
+            <button 
+              type="button"
+              @click.stop="zoomOutMiniMap"
+              class="w-7 h-7 rounded-lg bg-white/90 dark:bg-slate-900/90 backdrop-blur-md text-foreground border border-border/70 hover:bg-white dark:hover:bg-slate-900 flex items-center justify-center transition-all hover:scale-105 active:scale-95 shadow-xs cursor-pointer"
+              title="Perkecil Peta (-)"
+            >
+              <Minus class="w-3.5 h-3.5 text-foreground" />
+            </button>
+            <button 
+              type="button"
+              @click.stop="resetMiniMap"
+              class="w-7 h-7 rounded-lg bg-white/90 dark:bg-slate-900/90 backdrop-blur-md text-foreground border border-border/70 hover:bg-white dark:hover:bg-slate-900 flex items-center justify-center transition-all hover:scale-105 active:scale-95 shadow-xs cursor-pointer"
+              title="Pusatkan ke Titik Node"
+            >
+              <LocateFixed class="w-3.5 h-3.5 text-primary" />
+            </button>
+          </div>
+
           <!-- Map Overlay Link to Full Map Page -->
           <div v-if="miniMapReady" class="absolute bottom-2.5 right-2.5 z-10">
             <a 
               href="/map" 
-              class="px-2.5 py-1 rounded-lg text-xs font-bold bg-white/90 backdrop-blur-md text-foreground border border-border/70 hover:bg-white flex items-center gap-1.5 transition-all hover:scale-105"
+              class="px-2.5 py-1 rounded-lg text-xs font-bold bg-white/90 dark:bg-slate-900/90 backdrop-blur-md text-foreground border border-border/70 hover:bg-white dark:hover:bg-slate-900 flex items-center gap-1.5 transition-all hover:scale-105 shadow-xs"
             >
               <MapPin class="w-3.5 h-3.5 text-primary" />
               <span>Buka Peta →</span>
             </a>
           </div>
 
-          <div v-if="!miniMapReady" class="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground gap-1 bg-slate-50 p-3 text-center z-10">
+          <div v-if="!miniMapReady" class="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground gap-1 bg-slate-50 dark:bg-slate-900/50 p-3 text-center z-10">
             <MapPin class="w-6 h-6 opacity-40 text-primary" />
             <p class="text-xs font-semibold opacity-70">Lokasi belum diset</p>
             <a href="/map" class="text-xs text-primary hover:underline font-bold mt-0.5">Atur di Maps →</a>
