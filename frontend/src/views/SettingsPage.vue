@@ -1702,9 +1702,25 @@ const updatePassword = async () => {
                   <div class="w-14 h-14 rounded-xl bg-muted/30 p-1 flex items-center justify-center shrink-0 overflow-hidden">
                     <img src="/Logo-UGM.png" alt="Universitas Gadjah Mada" class="w-full h-full object-contain scale-125 dark:brightness-0 dark:invert" />
                   </div>
-                  <div>
+                  <div class="flex items-center gap-2">
                     <h4 class="font-semibold text-sm">Universitas Gadjah Mada</h4>
-                    <p class="text-xs text-muted-foreground mt-0.5">Institusi pendidikan tinggi pengembang riset dan pengabdian kepada masyarakat</p>
+                    <div class="relative flex items-center group">
+                      <button 
+                        type="button" 
+                        class="text-muted-foreground hover:text-foreground transition-colors cursor-help p-0.5 rounded-full hover:bg-muted/50 focus:outline-none shrink-0"
+                        title="Institusi pendidikan tinggi pengembang riset dan pengabdian kepada masyarakat"
+                      >
+                        <HelpCircle class="w-4 h-4" />
+                        <span class="sr-only">Informasi Universitas Gadjah Mada</span>
+                      </button>
+                      <!-- Tooltip on hover -->
+                      <div class="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 flex flex-col items-center opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-50">
+                        <div class="w-max max-w-[260px] sm:max-w-xs px-3 py-1.5 rounded-lg bg-slate-900 dark:bg-slate-800 text-slate-100 text-xs shadow-lg text-center leading-relaxed font-normal">
+                          Institusi pendidikan tinggi pengembang riset dan pengabdian kepada masyarakat
+                        </div>
+                        <div class="w-2 h-2 -mt-1 rotate-45 bg-slate-900 dark:bg-slate-800"></div>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -1713,9 +1729,25 @@ const updatePassword = async () => {
                   <div class="w-14 h-14 rounded-xl bg-muted/30 p-2 flex items-center justify-center shrink-0">
                     <img src="/Logo-DIKE.png" alt="Departemen Ilmu Komputer dan Elektronika" class="w-full h-full object-contain dark:brightness-0 dark:invert" />
                   </div>
-                  <div>
+                  <div class="flex items-center gap-2">
                     <h4 class="font-semibold text-sm">Departemen Ilmu Komputer dan Elektronika</h4>
-                    <p class="text-xs text-muted-foreground mt-0.5">Departemen akademik di FMIPA UGM pengembang inovasi ilmu komputer dan elektronika instrumentasi</p>
+                    <div class="relative flex items-center group">
+                      <button 
+                        type="button" 
+                        class="text-muted-foreground hover:text-foreground transition-colors cursor-help p-0.5 rounded-full hover:bg-muted/50 focus:outline-none shrink-0"
+                        title="Departemen akademik di FMIPA UGM pengembang inovasi ilmu komputer dan elektronika instrumentasi"
+                      >
+                        <HelpCircle class="w-4 h-4" />
+                        <span class="sr-only">Informasi Departemen Ilmu Komputer dan Elektronika</span>
+                      </button>
+                      <!-- Tooltip on hover -->
+                      <div class="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 flex flex-col items-center opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-50">
+                        <div class="w-max max-w-[260px] sm:max-w-xs px-3 py-1.5 rounded-lg bg-slate-900 dark:bg-slate-800 text-slate-100 text-xs shadow-lg text-center leading-relaxed font-normal">
+                          Departemen akademik di FMIPA UGM pengembang inovasi ilmu komputer dan elektronika instrumentasi
+                        </div>
+                        <div class="w-2 h-2 -mt-1 rotate-45 bg-slate-900 dark:bg-slate-800"></div>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -1724,9 +1756,25 @@ const updatePassword = async () => {
                   <div class="w-14 h-14 rounded-xl bg-muted/30 p-2 flex items-center justify-center shrink-0">
                     <img src="/logo-icon.webp" alt="Laboratorium Elektronika dan Instrumentasi" class="w-full h-full object-contain" />
                   </div>
-                  <div>
+                  <div class="flex items-center gap-2">
                     <h4 class="font-semibold text-sm">Laboratorium Elektronika & Instrumentasi</h4>
-                    <p class="text-xs text-muted-foreground mt-0.5">Laboratorium riset elektronika, sistem kendali, instrumentasi, dan jaringan sensor IoT</p>
+                    <div class="relative flex items-center group">
+                      <button 
+                        type="button" 
+                        class="text-muted-foreground hover:text-foreground transition-colors cursor-help p-0.5 rounded-full hover:bg-muted/50 focus:outline-none shrink-0"
+                        title="Laboratorium riset elektronika, sistem kendali, instrumentasi, dan jaringan sensor IoT"
+                      >
+                        <HelpCircle class="w-4 h-4" />
+                        <span class="sr-only">Informasi Laboratorium Elektronika & Instrumentasi</span>
+                      </button>
+                      <!-- Tooltip on hover -->
+                      <div class="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 flex flex-col items-center opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-50">
+                        <div class="w-max max-w-[260px] sm:max-w-xs px-3 py-1.5 rounded-lg bg-slate-900 dark:bg-slate-800 text-slate-100 text-xs shadow-lg text-center leading-relaxed font-normal">
+                          Laboratorium riset elektronika, sistem kendali, instrumentasi, dan jaringan sensor IoT
+                        </div>
+                        <div class="w-2 h-2 -mt-1 rotate-45 bg-slate-900 dark:bg-slate-800"></div>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -1735,9 +1783,25 @@ const updatePassword = async () => {
                   <div class="w-14 h-14 rounded-xl bg-muted/30 p-2 flex items-center justify-center shrink-0">
                     <img src="/logo-webdev.webp" alt="Webdev ERC" class="w-full h-full object-contain dark:invert" />
                   </div>
-                  <div>
+                  <div class="flex items-center gap-2">
                     <h4 class="font-semibold text-sm">Webdev ERC</h4>
-                    <p class="text-xs text-muted-foreground mt-0.5">Divisi riset dan pengembangan aplikasi web mahasiswa di Elins Research Club</p>
+                    <div class="relative flex items-center group">
+                      <button 
+                        type="button" 
+                        class="text-muted-foreground hover:text-foreground transition-colors cursor-help p-0.5 rounded-full hover:bg-muted/50 focus:outline-none shrink-0"
+                        title="Divisi riset dan pengembangan aplikasi web mahasiswa di Elins Research Club"
+                      >
+                        <HelpCircle class="w-4 h-4" />
+                        <span class="sr-only">Informasi Webdev ERC</span>
+                      </button>
+                      <!-- Tooltip on hover -->
+                      <div class="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 flex flex-col items-center opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-50">
+                        <div class="w-max max-w-[260px] sm:max-w-xs px-3 py-1.5 rounded-lg bg-slate-900 dark:bg-slate-800 text-slate-100 text-xs shadow-lg text-center leading-relaxed font-normal">
+                          Divisi riset dan pengembangan aplikasi web mahasiswa di Elins Research Club
+                        </div>
+                        <div class="w-2 h-2 -mt-1 rotate-45 bg-slate-900 dark:bg-slate-800"></div>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -1746,9 +1810,25 @@ const updatePassword = async () => {
                   <div class="w-14 h-14 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0 text-emerald-600">
                     <Sprout class="w-7 h-7 text-emerald-600" />
                   </div>
-                  <div>
+                  <div class="flex items-center gap-2">
                     <h4 class="font-semibold text-sm">Gubug Milenial Margorejo</h4>
-                    <p class="text-xs text-muted-foreground mt-0.5">Mitra kelompok tani dan lokasi implementasi riset pertanian presisi berbasis IoT</p>
+                    <div class="relative flex items-center group">
+                      <button 
+                        type="button" 
+                        class="text-muted-foreground hover:text-foreground transition-colors cursor-help p-0.5 rounded-full hover:bg-muted/50 focus:outline-none shrink-0"
+                        title="Mitra kelompok tani dan lokasi implementasi riset pertanian presisi berbasis IoT"
+                      >
+                        <HelpCircle class="w-4 h-4" />
+                        <span class="sr-only">Informasi Gubug Milenial Margorejo</span>
+                      </button>
+                      <!-- Tooltip on hover -->
+                      <div class="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 flex flex-col items-center opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-50">
+                        <div class="w-max max-w-[260px] sm:max-w-xs px-3 py-1.5 rounded-lg bg-slate-900 dark:bg-slate-800 text-slate-100 text-xs shadow-lg text-center leading-relaxed font-normal">
+                          Mitra kelompok tani dan lokasi implementasi riset pertanian presisi berbasis IoT
+                        </div>
+                        <div class="w-2 h-2 -mt-1 rotate-45 bg-slate-900 dark:bg-slate-800"></div>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
