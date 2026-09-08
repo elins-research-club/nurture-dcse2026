@@ -51,7 +51,7 @@ const isNodeOnline = (node: any) => {
 const makeIcon = (node: any, online: boolean, isEditing: boolean, isSelected: boolean) => {
   const name = node?.name || node?.node_id || 'Node'
   const isTarget = isEditing && isSelected
-  const pinColor = isTarget ? '#16a34a' : (online ? '#10b981' : '#ef4444')
+  const pinColor = isTarget ? '#00e676' : (online ? '#22c55e' : '#ef4444')
 
   return L.divIcon({
     html: `
@@ -65,18 +65,18 @@ const makeIcon = (node: any, online: boolean, isEditing: boolean, isSelected: bo
 
         <!-- Pulse halo for target or online -->
         ${isTarget ? `
-          <span style="position:absolute;top:4px;left:0;width:36px;height:36px;border-radius:50%;background:rgba(34,197,94,0.4);animation:ping 1.5s cubic-bezier(0,0,0.2,1) infinite;pointer-events:none;"></span>
+          <span style="position:absolute;top:4px;left:0;width:36px;height:36px;border-radius:50%;background:rgba(0,230,118,0.45);animation:ping 1.5s cubic-bezier(0,0,0.2,1) infinite;pointer-events:none;"></span>
         ` : (online ? `
-          <span style="position:absolute;top:8px;left:5px;width:24px;height:24px;border-radius:50%;background:rgba(16,185,129,0.4);animation:ping 2s cubic-bezier(0,0,0.2,1) infinite;pointer-events:none;"></span>
+          <span style="position:absolute;top:8px;left:5px;width:24px;height:24px;border-radius:50%;background:rgba(34,197,94,0.4);animation:ping 2s cubic-bezier(0,0,0.2,1) infinite;pointer-events:none;"></span>
         ` : '')}
 
-        <!-- SVG Pin Icon (pure green with hollow hole and shadow, no outline) -->
-        <svg width="${isTarget ? 30 : 26}" height="${isTarget ? 38 : 34}" viewBox="0 0 24 32" fill="none" xmlns="http://www.w3.org/2000/svg" style="position:relative;z-index:10;filter:drop-shadow(0 4px 6px rgba(0,0,0,0.45));pointer-events:none;">
+        <!-- SVG Pin Icon (pure bright green with hollow hole and shadow, no outline) -->
+        <svg width="${isTarget ? 30 : 26}" height="${isTarget ? 38 : 34}" viewBox="0 0 24 32" fill="none" xmlns="http://www.w3.org/2000/svg" style="position:relative;z-index:10;filter:drop-shadow(0 4px 8px rgba(0,0,0,0.65));pointer-events:none;">
           <path fill-rule="evenodd" clip-rule="evenodd" d="M12 0C5.373 0 0 5.373 0 12c0 9 12 20 12 20s12-11 12-20C24 5.373 18.627 0 12 0zm0 7.5a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9z" fill="${pinColor}"/>
         </svg>
 
         <!-- Live coordinate preview text when dragging (transparent background) -->
-        <div id="coord-tip-${node?.node_id}" style="position:absolute;top:44px;left:50%;transform:translateX(-50%);white-space:nowrap;background:transparent;color:#4ade80;font-family:monospace;font-size:11px;font-weight:800;text-shadow:0 1px 4px rgba(0,0,0,0.95), 0 0 3px rgba(0,0,0,0.95);pointer-events:none;display:none;z-index:30;">
+        <div id="coord-tip-${node?.node_id}" style="position:absolute;top:44px;left:50%;transform:translateX(-50%);white-space:nowrap;background:transparent;color:#00e676;font-family:monospace;font-size:11px;font-weight:800;text-shadow:0 1px 4px rgba(0,0,0,0.95), 0 0 3px rgba(0,0,0,0.95);pointer-events:none;display:none;z-index:30;">
         </div>
       </div>
     `,
@@ -521,13 +521,13 @@ onUnmounted(() => {
       <div ref="mapContainer" data-lenis-prevent class="absolute inset-0 z-0 w-full h-full" />
 
 
-      <!-- Edit Mode Top Hint Banner -->
+      <!-- Edit Mode Top Hint Banner (Liquid Glass, no icon) -->
       <div 
         v-if="editMode" 
-        class="absolute top-4 left-1/2 -translate-x-1/2 z-20 hidden md:flex items-center gap-2 bg-amber-500 text-slate-950 font-extrabold text-xs px-4 py-1.5 rounded-full shadow-lg border border-amber-300 pointer-events-none"
+        class="absolute top-4 left-1/2 -translate-x-1/2 z-20 hidden md:flex items-center gap-2.5 bg-slate-900/65 dark:bg-black/70 backdrop-blur-xl border border-white/20 dark:border-white/15 text-white text-xs px-5 py-2 rounded-full shadow-2xl ring-1 ring-white/10 pointer-events-none"
       >
-        <span>📍 Mode Edit Pin Aktif</span>
-        <span class="opacity-80 font-semibold">• Geser pin di peta atau klik lokasi baru</span>
+        <span class="font-extrabold text-emerald-400">Mode Edit Pin Aktif</span>
+        <span class="text-white/80 font-medium">• Geser pin di peta atau klik lokasi baru</span>
       </div>
 
       <!-- Watermark -->
