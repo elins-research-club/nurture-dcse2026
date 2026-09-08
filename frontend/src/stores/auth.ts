@@ -81,8 +81,8 @@ export const useAuthStore = defineStore('auth', () => {
       localStorage.removeItem('gconnect_remembered_token')
       localStorage.removeItem('gconnect_saved_username')
     }
-    if (router && router.currentRoute.value.path !== '/login') {
-      router.push('/login')
+    if (router && router.currentRoute.value.path !== '/dashboard') {
+      router.push('/dashboard')
     }
   }
 
