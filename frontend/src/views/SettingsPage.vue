@@ -1174,8 +1174,8 @@ const updatePassword = async () => {
                     class="p-4 rounded-xl border border-[#2AABEE]/40 bg-white/90 dark:bg-slate-900/80 backdrop-blur-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs relative z-10"
                   >
                     <div class="flex items-center gap-3">
-                      <div class="w-11 h-11 rounded-full bg-gradient-to-br from-[#2AABEE] to-[#0088cc] text-white flex items-center justify-center shrink-0 shadow-sm shadow-[#2AABEE]/30">
-                        <Bot class="w-6 h-6" />
+                      <div class="w-12 h-12 rounded-full overflow-hidden border-2 border-[#2AABEE]/40 bg-gradient-to-b from-sky-100 to-sky-200 dark:from-sky-950 dark:to-slate-900 flex items-center justify-center shrink-0 shadow-sm shadow-[#2AABEE]/30">
+                        <img src="/mister-noka.png" alt="Mister Noka" class="w-full h-full object-cover object-top scale-110" />
                       </div>
                       <div>
                         <div class="flex items-center gap-2 flex-wrap">
