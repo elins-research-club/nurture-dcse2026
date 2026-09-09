@@ -180,41 +180,44 @@ const goToMapWithNode = (event: Event) => {
               </div>
 
               <!-- Live Sensor Metrics 3-Column Strip -->
-              <div class="grid grid-cols-3 gap-1 text-center divide-x divide-slate-200/60 dark:divide-slate-800/80">
+              <!-- grid-rows-subgrid: tiap kolom "mewarisi" 3 baris grid induk (label/nilai/satuan)
+                   sehingga tinggi tiap baris otomatis mengikuti sel tertinggi di baris itu --
+                   solusi pasti sejajar, tidak bergantung tebakan tinggi piksel label. -->
+              <div class="grid grid-cols-3 grid-rows-[auto_auto_auto] gap-1 text-center divide-x divide-slate-200/60 dark:divide-slate-800/80">
                 <!-- Metric 1: NPK -->
-                <div class="px-1">
-                  <div class="text-[10px] font-bold text-muted-foreground flex items-center justify-center gap-1">
+                <div class="px-1 grid row-span-3 grid-rows-subgrid">
+                  <div class="text-[10px] leading-tight font-bold text-muted-foreground flex items-center justify-center gap-1">
                     <span>🌿</span> NPK
                   </div>
-                  <div class="text-xs font-extrabold text-foreground mt-0.5 font-mono">
+                  <div class="text-xs font-extrabold text-foreground mt-0.5 font-mono self-start">
                     <template v-if="getNodeMetrics(node.node_id)?.n != null">
                       {{ getNodeMetrics(node.node_id)?.n }}/{{ getNodeMetrics(node.node_id)?.p }}/{{ getNodeMetrics(node.node_id)?.k }}
                     </template>
                     <template v-else>—</template>
                   </div>
-                  <div class="text-[9px] text-muted-foreground mt-0.5 font-medium">mg/kg</div>
+                  <div class="text-[9px] text-muted-foreground mt-0.5 font-medium self-start">mg/kg</div>
                 </div>
 
                 <!-- Metric 2: Suhu Lingkungan -->
-                <div class="px-1">
-                  <div class="text-[10px] font-bold text-muted-foreground flex items-center justify-center gap-1" title="Suhu Lingkungan (Udara Luar)">
+                <div class="px-1 grid row-span-3 grid-rows-subgrid">
+                  <div class="text-[10px] leading-tight font-bold text-muted-foreground flex items-center justify-center gap-1" title="Suhu Lingkungan (Udara Luar)">
                     <span>🌡️</span> Suhu Lingkungan
                   </div>
-                  <div class="text-xs font-extrabold text-foreground mt-0.5 font-mono">
+                  <div class="text-xs font-extrabold text-foreground mt-0.5 font-mono self-start">
                     {{ getNodeMetrics(node.node_id)?.tempLuar != null ? getNodeMetrics(node.node_id)?.tempLuar : '—' }}
                   </div>
-                  <div class="text-[9px] text-muted-foreground mt-0.5 font-medium">°C</div>
+                  <div class="text-[9px] text-muted-foreground mt-0.5 font-medium self-start">°C</div>
                 </div>
 
                 <!-- Metric 3: Suhu Dalam Panel -->
-                <div class="px-1">
-                  <div class="text-[10px] font-bold text-muted-foreground flex items-center justify-center gap-1" title="Suhu Dalam Panel (Box Kontrol)">
+                <div class="px-1 grid row-span-3 grid-rows-subgrid">
+                  <div class="text-[10px] leading-tight font-bold text-muted-foreground flex items-center justify-center gap-1" title="Suhu Dalam Panel (Box Kontrol)">
                     <span>🎛️</span> Suhu Dalam Panel
                   </div>
-                  <div class="text-xs font-extrabold text-foreground mt-0.5 font-mono">
+                  <div class="text-xs font-extrabold text-foreground mt-0.5 font-mono self-start">
                     {{ getNodeMetrics(node.node_id)?.tempDalam != null ? getNodeMetrics(node.node_id)?.tempDalam : '—' }}
                   </div>
-                  <div class="text-[9px] text-muted-foreground mt-0.5 font-medium">°C</div>
+                  <div class="text-[9px] text-muted-foreground mt-0.5 font-medium self-start">°C</div>
                 </div>
               </div>
             </div>

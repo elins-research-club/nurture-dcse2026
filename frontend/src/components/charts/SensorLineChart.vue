@@ -156,7 +156,10 @@ const formatXAxisTime = (ts: string) => {
     const dateStr = ts.endsWith('Z') ? ts : ts + 'Z'
     const d = new Date(dateStr)
     if (isNaN(d.getTime())) return ts
-    return `${d.toLocaleDateString([], { month: 'numeric', day: 'numeric' })} ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+    // 24 jam, tanpa AM/PM: "9/8 16:01" bukan "9/8 04:01 PM". Tiga karakter
+    // lebih pendek per label, dan itu yang menentukan berapa banyak label
+    // muat di sumbu X layar sempit.
+    return `${d.toLocaleDateString([], { month: 'numeric', day: 'numeric' })} ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}`
   } catch {
     return ts
   }
@@ -166,6 +169,14 @@ const option = computed(() => {
   const sensorsList = (props.sensors || []).filter(s => s.name !== 'Status aktuator')
   const feeds = props.data || []
   const dark = isDarkMode.value
+
+  // Sumbu Y ditarget 5 garis; sumbu X sengaja TIDAK disamakan jumlahnya lagi
+  // -- itu yang bikin label saling tumpuk di layar sempit. Label X dibiarkan
+  // ECharts pilih otomatis (interval: 'auto' + hideOverlap) supaya jumlahnya
+  // menyesuaikan lebar layar tapi tulisannya tetap jelas terbaca.
+  const Y_TARGET_LABEL = 5
+  const axisFontSize = 12
+  const legendFontSize = 13
 
   // Dynamic series generation from database sensor definitions with aesthetic gradient aura
   const series = sensorsList.map((sensor, index) => {
@@ -287,17 +298,17 @@ const option = computed(() => {
       type: 'scroll',
       top: 0,
       data: series.map(s => s.name),
-      textStyle: { 
-        color: dark ? '#94a3b8' : '#475569', 
-        fontSize: 16, 
+      textStyle: {
+        color: dark ? '#94a3b8' : '#475569',
+        fontSize: legendFontSize,
         fontWeight: 600,
-        fontFamily: "'Plus Jakarta Sans', sans-serif" 
+        fontFamily: "'Plus Jakarta Sans', sans-serif"
       },
       pageIconColor: '#10b981',
-      pageTextStyle: { 
-        color: dark ? '#94a3b8' : '#475569', 
-        fontSize: 15,
-        fontFamily: "'Plus Jakarta Sans', sans-serif" 
+      pageTextStyle: {
+        color: dark ? '#94a3b8' : '#475569',
+        fontSize: axisFontSize,
+        fontFamily: "'Plus Jakarta Sans', sans-serif"
       }
     },
     grid: {
@@ -316,27 +327,30 @@ const option = computed(() => {
           color: dark ? 'rgba(51, 65, 85, 0.6)' : 'rgba(203, 213, 225, 0.8)' 
         } 
       },
-      axisLabel: { 
-        color: dark ? '#94a3b8' : '#64748b', 
-        fontSize: 15, 
+      axisLabel: {
+        color: dark ? '#94a3b8' : '#64748b',
+        fontSize: axisFontSize,
         fontWeight: 600,
-        fontFamily: "'Plus Jakarta Sans', sans-serif" 
+        fontFamily: "'Plus Jakarta Sans', sans-serif",
+        interval: 'auto',
+        hideOverlap: true
       }
     },
     yAxis: {
       type: 'value',
       scale: true,
-      splitLine: { 
-        lineStyle: { 
-          color: dark ? 'rgba(30, 41, 59, 0.7)' : 'rgba(241, 245, 249, 0.95)', 
-          type: 'dashed' 
-        } 
+      splitNumber: Y_TARGET_LABEL - 1,
+      splitLine: {
+        lineStyle: {
+          color: dark ? 'rgba(30, 41, 59, 0.7)' : 'rgba(241, 245, 249, 0.95)',
+          type: 'dashed'
+        }
       },
-      axisLabel: { 
-        color: dark ? '#94a3b8' : '#64748b', 
-        fontSize: 15, 
+      axisLabel: {
+        color: dark ? '#94a3b8' : '#64748b',
+        fontSize: axisFontSize,
         fontWeight: 600,
-        fontFamily: "'Plus Jakarta Sans', sans-serif" 
+        fontFamily: "'Plus Jakarta Sans', sans-serif"
       }
     },
     dataZoom: [

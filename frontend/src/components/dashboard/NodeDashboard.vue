@@ -567,21 +567,26 @@ const kartuAmbang = (
     ? `${min}–${max}` 
     : (min != null ? `≥${min}` : (max != null ? `≤${max}` : ''))
 
+  // longText: dua status ini jauh lebih panjang dari label singkat lain
+  // (Normal/Asam/Basa/dst) dan dulu meluber keluar kartu di grid-cols-3 --
+  // pil "shrink-0" tidak dibatasi lebar sama sekali, jadi teksnya menimpa
+  // kartu tetangga. Dipakai di template untuk memakai font lebih kecil +
+  // boleh melipat dua baris, bukan dipaksa satu baris seperti label pendek.
   if (min == null && max == null) {
-    return { text: 'Ambang belum diatur', ...netral, isAlert: false, isLow: false, isHigh: false, min, max, normalRangeText, unset: true }
+    return { text: 'Ambang belum diatur', ...netral, isAlert: false, isLow: false, isHigh: false, min, max, normalRangeText, unset: true, longText: true }
   }
   if (v == null) {
-    return { text: 'Tidak ada pembacaan', ...netral, isAlert: false, isLow: false, isHigh: false, min, max, normalRangeText, unset: false }
+    return { text: 'Tidak ada pembacaan', ...netral, isAlert: false, isLow: false, isHigh: false, min, max, normalRangeText, unset: false, longText: true }
   }
 
   const num = Number(v)
   if (min != null && num < min) {
-    return { text: label.rendah, ...warna.rendah, isAlert: true, isLow: true, isHigh: false, min, max, normalRangeText, unset: false }
+    return { text: label.rendah, ...warna.rendah, isAlert: true, isLow: true, isHigh: false, min, max, normalRangeText, unset: false, longText: false }
   }
   if (max != null && num > max) {
-    return { text: label.tinggi, ...warna.tinggi, isAlert: true, isLow: false, isHigh: true, min, max, normalRangeText, unset: false }
+    return { text: label.tinggi, ...warna.tinggi, isAlert: true, isLow: false, isHigh: true, min, max, normalRangeText, unset: false, longText: false }
   }
-  return { text: label.optimal, ...warna.optimal, isAlert: false, isLow: false, isHigh: false, min, max, normalRangeText, unset: false }
+  return { text: label.optimal, ...warna.optimal, isAlert: false, isLow: false, isHigh: false, min, max, normalRangeText, unset: false, longText: false }
 }
 
 const W_OPTIMAL: WarnaKartu = { gradient: GRADIEN_OPTIMAL, shadow: 'shadow-emerald-700/20' }
@@ -1609,7 +1614,10 @@ onUnmounted(() => {
       <div class="lg:col-span-9 flex flex-col gap-3.5">
         
         <!-- ROW 1: 3 NPK Highlight Cards (Original Compact Rectangular Size!) -->
-        <div v-if="npkSensors.length > 0" class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <!-- Selalu 3 kolom, termasuk di HP (dulu grid-cols-1, jadi menumpuk
+             ke bawah dan makan tiga layar). compact mengecilkan tipografi
+             kartunya khusus di layar sempit supaya muat bertiga. -->
+        <div v-if="npkSensors.length > 0" class="grid grid-cols-3 gap-2 sm:gap-3">
           <SensorCard
             v-for="sensor in npkSensors"
             :key="sensor.id"
@@ -1618,6 +1626,7 @@ onUnmounted(() => {
             :unit="sensor.unit"
             type="npk"
             size="default"
+            compact
             :min-threshold="sensor.min_threshold"
             :max-threshold="sensor.max_threshold"
           />
@@ -1632,20 +1641,20 @@ onUnmounted(() => {
             <CardContent class="p-4 relative z-10 flex flex-col gap-2 flex-1">
               
               <!-- Chart Header: Category Pills + Time Range -->
-              <div class="flex flex-wrap items-center justify-between gap-3 pb-2.5 border-b border-border/40">
-                
+              <div class="flex flex-nowrap items-center justify-between gap-1.5 sm:gap-3 pb-2.5 border-b border-border/40">
+
                 <!-- Category Dropdown Selector -->
-                <div class="relative" ref="categoryDropdownRef">
+                <div class="relative min-w-0 shrink" ref="categoryDropdownRef">
                   <button
                     type="button"
                     @click.stop="isCategoryDropdownOpen = !isCategoryDropdownOpen"
-                    class="h-9.5 sm:h-10 px-3.5 sm:px-4 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200/80 dark:hover:bg-slate-700/80 border border-slate-200/90 dark:border-slate-700/90 text-foreground text-xs sm:text-sm md:text-base font-extrabold flex items-center gap-2.5 transition-all cursor-pointer shadow-2xs select-none active:scale-95"
+                    class="w-full h-9.5 sm:h-10 px-2.5 sm:px-4 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200/80 dark:hover:bg-slate-700/80 border border-slate-200/90 dark:border-slate-700/90 text-foreground text-xs sm:text-sm md:text-base font-extrabold flex items-center gap-1.5 sm:gap-2.5 transition-all cursor-pointer shadow-2xs select-none active:scale-95"
                     :title="`Kategori: ${currentCategoryMeta.fullLabel}`"
                   >
                     <!-- Soft Tinted Icon Container with Colored Icon Lines -->
                     <div :class="['w-6 h-6 sm:w-7 sm:h-7 rounded-lg flex items-center justify-center shrink-0 border shadow-2xs transition-colors', currentCategoryMeta.wrapperClass]">
-                      <div 
-                        v-if="!currentCategoryMeta.isLucide" 
+                      <div
+                        v-if="!currentCategoryMeta.isLucide"
                         :class="['w-3.5 h-3.5 sm:w-4 sm:h-4 transition-colors', currentCategoryMeta.iconColorClass]"
                         :style="{
                           mask: `url(${currentCategoryMeta.icon}) no-repeat center / contain`,
@@ -1656,12 +1665,12 @@ onUnmounted(() => {
                     </div>
 
                     <!-- Selected Category Label -->
-                    <span class="tracking-tight">{{ currentCategoryMeta.fullLabel }}</span>
+                    <span class="tracking-tight truncate min-w-0">{{ currentCategoryMeta.fullLabel }}</span>
 
                     <!-- Chevron -->
-                    <ChevronDown 
-                      class="w-4 h-4 text-muted-foreground transition-transform duration-200" 
-                      :class="isCategoryDropdownOpen ? 'rotate-180 text-foreground' : ''" 
+                    <ChevronDown
+                      class="w-4 h-4 shrink-0 ml-auto text-muted-foreground transition-transform duration-200"
+                      :class="isCategoryDropdownOpen ? 'rotate-180 text-foreground' : ''"
                     />
                   </button>
 
@@ -1710,25 +1719,25 @@ onUnmounted(() => {
                 </div>
 
                 <!-- Time Range Selector (Enlarged) -->
-                <div class="flex items-center gap-1 sm:gap-1.5 bg-slate-100 dark:bg-slate-800 p-1 sm:p-1.5 rounded-xl border border-slate-200/80 dark:border-slate-700/80 text-xs sm:text-sm">
+                <div class="flex items-center shrink-0 gap-0.5 sm:gap-1.5 bg-slate-100 dark:bg-slate-800 p-1 sm:p-1.5 rounded-xl border border-slate-200/80 dark:border-slate-700/80 text-xs sm:text-sm">
                   <button
                     @click="changeRange('1d')"
                     :class="[
-                      'px-3 sm:px-3.5 py-1.5 rounded-lg font-extrabold transition-all cursor-pointer flex items-center gap-2 text-xs sm:text-sm active:scale-95',
-                      selectedRange === '1d' 
-                        ? 'bg-white dark:bg-card text-foreground border border-border/80 shadow-xs' 
+                      'px-1.5 sm:px-3.5 py-1.5 rounded-lg font-extrabold transition-all cursor-pointer flex items-center gap-1 sm:gap-2 text-xs sm:text-sm active:scale-95',
+                      selectedRange === '1d'
+                        ? 'bg-white dark:bg-card text-foreground border border-border/80 shadow-xs'
                         : 'text-muted-foreground hover:text-foreground'
                     ]"
                   >
-                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
                     24J
                   </button>
                   <button
                     @click="changeRange('1w')"
                     :class="[
-                      'px-3 sm:px-3.5 py-1.5 rounded-lg font-extrabold transition-all cursor-pointer text-xs sm:text-sm active:scale-95',
-                      selectedRange === '1w' 
-                        ? 'bg-white dark:bg-card text-foreground border border-border/80 shadow-xs' 
+                      'px-1.5 sm:px-3.5 py-1.5 rounded-lg font-extrabold transition-all cursor-pointer text-xs sm:text-sm active:scale-95',
+                      selectedRange === '1w'
+                        ? 'bg-white dark:bg-card text-foreground border border-border/80 shadow-xs'
                         : 'text-muted-foreground hover:text-foreground'
                     ]"
                   >
@@ -1737,9 +1746,9 @@ onUnmounted(() => {
                   <button
                     @click="changeRange('1M')"
                     :class="[
-                      'px-3 sm:px-3.5 py-1.5 rounded-lg font-extrabold transition-all cursor-pointer text-xs sm:text-sm active:scale-95',
-                      selectedRange === '1M' 
-                        ? 'bg-white dark:bg-card text-foreground border border-border/80 shadow-xs' 
+                      'px-1.5 sm:px-3.5 py-1.5 rounded-lg font-extrabold transition-all cursor-pointer text-xs sm:text-sm active:scale-95',
+                      selectedRange === '1M'
+                        ? 'bg-white dark:bg-card text-foreground border border-border/80 shadow-xs'
                         : 'text-muted-foreground hover:text-foreground'
                     ]"
                   >
@@ -1748,9 +1757,9 @@ onUnmounted(() => {
                   <button
                     @click="selectedRange = 'custom'"
                     :class="[
-                      'px-2.5 sm:px-3 py-1.5 rounded-lg font-extrabold transition-all cursor-pointer text-xs sm:text-sm active:scale-95',
-                      selectedRange === 'custom' 
-                        ? 'bg-white dark:bg-card text-foreground border border-border/80 shadow-xs' 
+                      'px-1.5 sm:px-3 py-1.5 rounded-lg font-extrabold transition-all cursor-pointer text-xs sm:text-sm active:scale-95',
+                      selectedRange === 'custom'
+                        ? 'bg-white dark:bg-card text-foreground border border-border/80 shadow-xs'
                         : 'text-muted-foreground hover:text-foreground'
                     ]"
                     title="Rentang Kustom"
@@ -1852,8 +1861,11 @@ onUnmounted(() => {
                   :key="stat.id"
                   class="p-2.5 sm:p-3 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 flex items-center justify-between gap-2.5 hover:-translate-y-1 hover:shadow-md transition-all duration-300"
                 >
-                  <div class="space-y-1">
-                    <span class="text-sm sm:text-base font-extrabold text-foreground block truncate max-w-[130px] sm:max-w-[160px]">{{ stat.name }}</span>
+                  <!-- min-w-0 + flex-1 menggantikan max-w tetap: lebarnya ikut
+                       sisa ruang, jadi nama panjang tidak mendesak blok Min/Max
+                       di sebelahnya waktu layar menyempit. -->
+                  <div class="space-y-1 min-w-0 flex-1">
+                    <span class="text-sm sm:text-base font-extrabold text-foreground block truncate">{{ stat.name }}</span>
                     <div class="flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground font-medium">
                       <span>Rata-rata: <strong class="text-sm sm:text-base font-extrabold text-foreground">{{ stat.avg ?? '--' }}{{ stat.unit }}</strong></span>
                     </div>
@@ -1861,9 +1873,16 @@ onUnmounted(() => {
 
                   <!-- Min / Max & Trend Badge -->
                   <div class="flex items-center gap-2.5 text-right shrink-0">
-                    <div class="text-xs sm:text-sm text-muted-foreground leading-tight font-semibold">
-                      <div>Min: <span class="font-extrabold text-foreground">{{ stat.min != null ? (typeof stat.min === 'number' ? Number(stat.min.toFixed(1)) : stat.min) : '--' }}</span></div>
-                      <div>Max: <span class="font-extrabold text-foreground">{{ stat.max != null ? (typeof stat.max === 'number' ? Number(stat.max.toFixed(1)) : stat.max) : '--' }}</span></div>
+                    <!-- Grid 2 kolom, bukan dua baris teks yang masing-masing
+                         rata kanan: dengan cara lama label "Min:"/"Max:" mulai
+                         di x yang berbeda tergantung panjang angkanya, jadi
+                         kelihatan tidak sejajar. tabular-nums menyamakan lebar
+                         digit supaya angkanya benar-benar bertumpuk rapi. -->
+                    <div class="grid grid-cols-[auto_auto] gap-x-1.5 text-xs sm:text-sm text-muted-foreground leading-tight font-semibold">
+                      <span>Min:</span>
+                      <span class="font-extrabold text-foreground text-right tabular-nums">{{ stat.min != null ? (typeof stat.min === 'number' ? Number(stat.min.toFixed(1)) : stat.min) : '--' }}</span>
+                      <span>Max:</span>
+                      <span class="font-extrabold text-foreground text-right tabular-nums">{{ stat.max != null ? (typeof stat.max === 'number' ? Number(stat.max.toFixed(1)) : stat.max) : '--' }}</span>
                     </div>
                     <div 
                       :class="[
@@ -1999,10 +2018,15 @@ onUnmounted(() => {
                         'bg-white/20 hover:bg-white/25 backdrop-blur-md text-white border border-white/35 shadow-xs transition-all shrink-0 select-none text-center',
                         phCardState.isAlert 
                           ? 'px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-xl flex flex-col items-center gap-0.5' 
-                          : 'px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full flex items-center'
+                          : (phCardState.longText
+                              ? 'px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-lg flex items-center max-w-[58px] sm:max-w-[84px]'
+                              : 'px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full flex items-center')
                       ]"
                     >
-                      <span class="text-[11px] sm:text-xs font-black tracking-wide leading-tight drop-shadow-[0_1px_1px_rgba(0,0,0,0.2)] flex items-center gap-0.5 text-white">
+                      <span :class="[
+                        'font-black tracking-wide drop-shadow-[0_1px_1px_rgba(0,0,0,0.2)] flex items-center gap-0.5 text-white',
+                        phCardState.longText ? 'text-[7px] sm:text-[9px] leading-[1.1] whitespace-normal text-center' : 'text-[11px] sm:text-xs leading-tight'
+                      ]">
                         <span v-if="phCardState.isLow" class="text-xs font-black">↓</span>
                         <span v-else-if="phCardState.isHigh" class="text-xs font-black">↑</span>
                         <span>{{ phStatus.text }}</span>
@@ -2046,10 +2070,15 @@ onUnmounted(() => {
                         'bg-white/20 hover:bg-white/25 backdrop-blur-md text-white border border-white/35 shadow-xs transition-all shrink-0 select-none text-center',
                         soilTempCardState.isAlert 
                           ? 'px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-xl flex flex-col items-center gap-0.5' 
-                          : 'px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full flex items-center'
+                          : (soilTempCardState.longText
+                              ? 'px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-lg flex items-center max-w-[58px] sm:max-w-[84px]'
+                              : 'px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full flex items-center')
                       ]"
                     >
-                      <span class="text-[11px] sm:text-xs font-black tracking-wide leading-tight drop-shadow-[0_1px_1px_rgba(0,0,0,0.2)] flex items-center gap-0.5 text-white">
+                      <span :class="[
+                        'font-black tracking-wide drop-shadow-[0_1px_1px_rgba(0,0,0,0.2)] flex items-center gap-0.5 text-white',
+                        soilTempCardState.longText ? 'text-[7px] sm:text-[9px] leading-[1.1] whitespace-normal text-center' : 'text-[11px] sm:text-xs leading-tight'
+                      ]">
                         <span v-if="soilTempCardState.isLow" class="text-xs font-black">↓</span>
                         <span v-else-if="soilTempCardState.isHigh" class="text-xs font-black">↑</span>
                         <span>{{ soilTempStatus.text }}</span>
@@ -2093,10 +2122,15 @@ onUnmounted(() => {
                         'bg-white/20 hover:bg-white/25 backdrop-blur-md text-white border border-white/35 shadow-xs transition-all shrink-0 select-none text-center',
                         ecCardState.isAlert 
                           ? 'px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-xl flex flex-col items-center gap-0.5' 
-                          : 'px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full flex items-center'
+                          : (ecCardState.longText
+                              ? 'px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-lg flex items-center max-w-[58px] sm:max-w-[84px]'
+                              : 'px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full flex items-center')
                       ]"
                     >
-                      <span class="text-[11px] sm:text-xs font-black tracking-wide leading-tight drop-shadow-[0_1px_1px_rgba(0,0,0,0.2)] flex items-center gap-0.5 text-white">
+                      <span :class="[
+                        'font-black tracking-wide drop-shadow-[0_1px_1px_rgba(0,0,0,0.2)] flex items-center gap-0.5 text-white',
+                        ecCardState.longText ? 'text-[7px] sm:text-[9px] leading-[1.1] whitespace-normal text-center' : 'text-[11px] sm:text-xs leading-tight'
+                      ]">
                         <span v-if="ecCardState.isLow" class="text-xs font-black">↓</span>
                         <span v-else-if="ecCardState.isHigh" class="text-xs font-black">↑</span>
                         <span>{{ ecStatus.text }}</span>
@@ -2146,7 +2180,7 @@ onUnmounted(() => {
                 <div class="bg-slate-50/80 dark:bg-slate-900/50 rounded-2xl p-3 border border-slate-200/80 dark:border-slate-800 flex flex-col justify-between gap-2.5">
                   <div class="flex items-center justify-between">
                     <div class="flex items-center gap-1.5">
-                      <component :is="power?.is_charging ? BatteryCharging : Battery" class="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                      <component :is="power?.is_charging ? BatteryCharging : Battery" class="w-5.25 h-5.25 text-emerald-600 dark:text-emerald-400" />
                       <span class="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">Baterai 12V</span>
                     </div>
                   </div>
@@ -2200,7 +2234,7 @@ onUnmounted(() => {
                 <div class="bg-slate-50/80 dark:bg-slate-900/50 rounded-2xl p-3 border border-slate-200/80 dark:border-slate-800 flex flex-col justify-between gap-2.5">
                   <div class="flex items-center justify-between">
                     <div class="flex items-center gap-1.5">
-                      <Zap class="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                      <Zap class="w-5.25 h-5.25 text-amber-600 dark:text-amber-400" />
                       <span class="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">Load Sistem</span>
                     </div>
                   </div>

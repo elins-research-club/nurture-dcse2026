@@ -1378,7 +1378,7 @@ const updatePassword = async () => {
                   <p class="font-bold text-foreground">
                     Bagaimana Pemetaan Sensor ke Dashboard Bekerja?
                   </p>
-                  <p class="text-[12px] text-muted-foreground">
+                  <p class="text-[12px] text-muted-foreground text-justify">
                     Sistem secara cerdas menempatkan setiap field ke kartu Dashboard Bento Grid berdasarkan tipe semantik (<code class="font-mono font-semibold text-foreground">type</code>) dan nama parameter (misal: NPK di baris atas, Kelembapan/pH/Suhu/EC di kartu <i>Kondisi Tanah</i>, dan kelistrikan di portlet <i>Sistem Solar Panel</i>). Perhatikan badge target widget di samping nama field. Parameter baru yang belum memiliki kartu khusus otomatis akan tampil di section <b>Sensor &amp; Metrik Tambahan</b> di dashboard.
                   </p>
                 </div>
@@ -1392,22 +1392,22 @@ const updatePassword = async () => {
                   <div v-else v-for="node in nodesWithSensors" :key="node.id" class="space-y-2">
                     
                     <!-- Node Accordion Header -->
-                    <div 
-                      class="flex items-center gap-2 cursor-pointer hover:bg-accent/50 p-2.5 rounded-lg transition-colors border border-border/60 bg-slate-50/70 dark:bg-slate-900/40" 
+                    <div
+                      class="flex items-center flex-nowrap gap-2 cursor-pointer hover:bg-accent/50 p-2.5 rounded-lg transition-colors border border-border/60 bg-slate-50/70 dark:bg-slate-900/40"
                       @click="toggleNode(node.id)"
                     >
-                      <ChevronRight class="w-4 h-4 text-muted-foreground transition-transform duration-200" :class="{'rotate-90': expandedNodes[node.id]}" />
-                      <h5 class="font-bold flex items-center gap-2 text-sm text-foreground">
-                        <div class="w-2.5 h-2.5 rounded-full bg-primary"></div>
-                        <span>{{ node.name }}</span>
-                        <span 
-                          v-if="node.node_id" 
-                          class="text-[11px] font-mono font-semibold text-muted-foreground bg-white dark:bg-slate-800 px-2 py-0.5 rounded border border-border/70 shadow-2xs"
+                      <ChevronRight class="w-4 h-4 shrink-0 text-muted-foreground transition-transform duration-200" :class="{'rotate-90': expandedNodes[node.id]}" />
+                      <h5 class="font-bold flex items-center gap-2 text-sm text-foreground min-w-0 flex-1">
+                        <div class="w-2.5 h-2.5 rounded-full bg-primary shrink-0"></div>
+                        <span class="truncate">{{ node.name }}</span>
+                        <span
+                          v-if="node.node_id"
+                          class="text-[11px] font-mono font-semibold text-muted-foreground bg-white dark:bg-slate-800 px-2 py-0.5 rounded border border-border/70 shadow-2xs shrink-0"
                         >
                           {{ node.node_id }}
                         </span>
                       </h5>
-                      <span class="ml-auto text-xs font-semibold text-muted-foreground">{{ node.sensors?.length || 0 }} total sensor</span>
+                      <span class="ml-auto shrink-0 whitespace-nowrap text-xs font-semibold text-muted-foreground">{{ node.sensors?.length || 0 }} total sensor</span>
                     </div>
                     
                     <!-- Node Body: Channel Groups Accordion -->
@@ -1428,32 +1428,32 @@ const updatePassword = async () => {
                           class="border border-border/80 rounded-xl overflow-hidden bg-card shadow-none transition-all"
                         >
                           <!-- Channel Dropdown Header -->
-                          <div 
-                            class="flex items-center justify-between p-3 cursor-pointer bg-slate-50 dark:bg-slate-900/60 hover:bg-slate-100 dark:hover:bg-slate-800/80 transition-colors"
+                          <div
+                            class="flex items-center flex-nowrap justify-between gap-2 p-3 cursor-pointer bg-slate-50 dark:bg-slate-900/60 hover:bg-slate-100 dark:hover:bg-slate-800/80 transition-colors"
                             @click="toggleChannel(`${node.id}_${channelGroup.id || idx}`)"
                           >
-                            <div class="flex items-center gap-2.5">
-                              <ChevronRight 
-                                class="w-4 h-4 text-muted-foreground transition-transform duration-200" 
-                                :class="{'rotate-90': expandedChannels[`${node.id}_${channelGroup.id || idx}`]}" 
+                            <div class="flex items-center gap-2.5 min-w-0">
+                              <ChevronRight
+                                class="w-4 h-4 shrink-0 text-muted-foreground transition-transform duration-200"
+                                :class="{'rotate-90': expandedChannels[`${node.id}_${channelGroup.id || idx}`]}"
                               />
-                              <div class="flex flex-wrap items-center gap-2">
-                                <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-                                <span class="font-bold text-sm text-foreground">
+                              <div class="flex flex-wrap items-center gap-2 min-w-0">
+                                <span class="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+                                <span class="font-bold text-sm text-foreground truncate">
                                   {{ channelGroup.label }}
                                 </span>
-                                <span class="text-[11px] font-mono text-muted-foreground bg-white dark:bg-slate-800 px-2 py-0.5 rounded border border-border/70">
+                                <span class="text-[11px] font-mono text-muted-foreground bg-white dark:bg-slate-800 px-2 py-0.5 rounded border border-border/70 shrink-0">
                                   ID Kanal: {{ channelGroup.channel_id }}
                                 </span>
-                                <span 
-                                  v-if="channelGroup.sensors.some(s => isSensorDirty(s))" 
-                                  class="text-[10px] font-semibold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/40 px-2 py-0.5 rounded-full border border-amber-300 dark:border-amber-700 animate-pulse"
+                                <span
+                                  v-if="channelGroup.sensors.some(s => isSensorDirty(s))"
+                                  class="text-[10px] font-semibold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/40 px-2 py-0.5 rounded-full border border-amber-300 dark:border-amber-700 animate-pulse shrink-0"
                                 >
                                   Ada Perubahan
                                 </span>
                               </div>
                             </div>
-                            <span class="text-xs font-semibold text-muted-foreground bg-white dark:bg-slate-800 px-2.5 py-0.5 rounded-full border border-border/70">
+                            <span class="text-xs font-semibold text-muted-foreground bg-white dark:bg-slate-800 px-2.5 py-0.5 rounded-full border border-border/70 shrink-0 whitespace-nowrap">
                               {{ channelGroup.sensors.length }} sensor
                             </span>
                           </div>
