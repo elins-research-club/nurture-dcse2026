@@ -1997,7 +1997,7 @@ onUnmounted(() => {
                 <!-- pH Tanah Card (Dynamic 3-State: Asam: Oranye-Merah | Optimal: Emerald | Basa: Ungu/Indigo) -->
                 <div 
                   :class="[
-                    'relative overflow-hidden p-2 sm:p-2.5 lg:p-3 rounded-2xl text-white border-0 shadow-[inset_0_1px_1.5px_rgba(255,255,255,0.4),0_3px_12px_-2px_rgba(0,0,0,0.08)] flex flex-col justify-between min-h-[96px] sm:min-h-[102px] group hover:scale-[1.01] transition-transform',
+                    'relative overflow-hidden p-2 sm:p-2.5 lg:p-3 rounded-2xl text-white border-0 shadow-[inset_0_1px_1.5px_rgba(255,255,255,0.4),0_3px_12px_-2px_rgba(0,0,0,0.08)] flex flex-col justify-between min-w-0 min-h-[96px] sm:min-h-[102px] group hover:scale-[1.01] transition-transform',
                     phCardState.gradient,
                     phCardState.shadow
                   ]"
@@ -2008,14 +2008,17 @@ onUnmounted(() => {
                     style="background: radial-gradient(circle at 85% 15%, rgba(255, 255, 255, 0.4) 0%, transparent 60%);"
                   ></div>
                   <DotPattern :width="12" :height="12" :cx="1" :cy="1" :cr="1" class="text-white/20" />
-                  <div class="flex items-start justify-between gap-1 sm:gap-1.5 relative z-10">
-                    <span class="text-xs sm:text-sm font-bold text-white line-clamp-2 leading-snug flex-1 drop-shadow-sm">
+                  <!-- Di layar sempit kartunya cuma ~98px: nama sensor dan kapsul
+                       ambang tidak muat bersebelahan, jadi kapsulnya turun ke
+                       barisnya sendiri. Mulai sm kembali sebaris seperti biasa. -->
+                  <div class="flex flex-col items-start gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-1.5 relative z-10">
+                    <span class="text-xs sm:text-sm font-bold text-white line-clamp-2 leading-snug w-full min-w-0 sm:w-auto sm:flex-1 drop-shadow-sm">
                       {{ phMetric?.name || 'pH Tanah' }}
                     </span>
                     <!-- Unified Status & Threshold Capsule -->
                     <div 
                       :class="[
-                        'bg-white/20 hover:bg-white/25 backdrop-blur-md text-white border border-white/35 shadow-xs transition-all shrink-0 select-none text-center',
+                        'bg-white/20 hover:bg-white/25 backdrop-blur-md text-white border border-white/35 shadow-xs transition-all max-w-full sm:shrink-0 select-none text-center',
                         phCardState.isAlert 
                           ? 'px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-xl flex flex-col items-center gap-0.5' 
                           : (phCardState.longText
@@ -2031,7 +2034,7 @@ onUnmounted(() => {
                         <span v-else-if="phCardState.isHigh" class="text-xs font-black">↑</span>
                         <span>{{ phStatus.text }}</span>
                       </span>
-                      <span v-if="phCardState.isAlert && phCardState.normalRangeText" class="text-[9.5px] sm:text-[10.5px] font-bold text-white/95 border-t border-white/25 pt-0.5 tracking-tight whitespace-nowrap drop-shadow-2xs">
+                      <span v-if="phCardState.isAlert && phCardState.normalRangeText" class="text-[9.5px] sm:text-[10.5px] font-bold text-white/95 border-t border-white/25 pt-0.5 tracking-tight whitespace-normal sm:whitespace-nowrap drop-shadow-2xs">
                         Normal: {{ phCardState.normalRangeText }}
                       </span>
                     </div>
@@ -2049,7 +2052,7 @@ onUnmounted(() => {
                 <!-- Suhu Tanah Card (Dynamic 3-State: Dingin: Biru Ice | Optimal: Oranye Hangat | Panas: Merah Rose Alert) -->
                 <div 
                   :class="[
-                    'relative overflow-hidden p-2 sm:p-2.5 lg:p-3 rounded-2xl text-white border-0 shadow-[inset_0_1px_1.5px_rgba(255,255,255,0.4),0_3px_12px_-2px_rgba(0,0,0,0.08)] flex flex-col justify-between min-h-[96px] sm:min-h-[102px] group hover:scale-[1.01] transition-transform',
+                    'relative overflow-hidden p-2 sm:p-2.5 lg:p-3 rounded-2xl text-white border-0 shadow-[inset_0_1px_1.5px_rgba(255,255,255,0.4),0_3px_12px_-2px_rgba(0,0,0,0.08)] flex flex-col justify-between min-w-0 min-h-[96px] sm:min-h-[102px] group hover:scale-[1.01] transition-transform',
                     soilTempCardState.gradient,
                     soilTempCardState.shadow
                   ]"
@@ -2060,14 +2063,17 @@ onUnmounted(() => {
                     style="background: radial-gradient(circle at 85% 15%, rgba(255, 255, 255, 0.4) 0%, transparent 60%);"
                   ></div>
                   <DotPattern :width="12" :height="12" :cx="1" :cy="1" :cr="1" class="text-white/20" />
-                  <div class="flex items-start justify-between gap-1 sm:gap-1.5 relative z-10">
-                    <span class="text-xs sm:text-sm font-bold text-white line-clamp-2 leading-snug flex-1 drop-shadow-sm">
+                  <!-- Di layar sempit kartunya cuma ~98px: nama sensor dan kapsul
+                       ambang tidak muat bersebelahan, jadi kapsulnya turun ke
+                       barisnya sendiri. Mulai sm kembali sebaris seperti biasa. -->
+                  <div class="flex flex-col items-start gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-1.5 relative z-10">
+                    <span class="text-xs sm:text-sm font-bold text-white line-clamp-2 leading-snug w-full min-w-0 sm:w-auto sm:flex-1 drop-shadow-sm">
                       {{ soilTempMetric?.name || 'Suhu Tanah' }}
                     </span>
                     <!-- Unified Status & Threshold Capsule -->
                     <div 
                       :class="[
-                        'bg-white/20 hover:bg-white/25 backdrop-blur-md text-white border border-white/35 shadow-xs transition-all shrink-0 select-none text-center',
+                        'bg-white/20 hover:bg-white/25 backdrop-blur-md text-white border border-white/35 shadow-xs transition-all max-w-full sm:shrink-0 select-none text-center',
                         soilTempCardState.isAlert 
                           ? 'px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-xl flex flex-col items-center gap-0.5' 
                           : (soilTempCardState.longText
@@ -2083,7 +2089,7 @@ onUnmounted(() => {
                         <span v-else-if="soilTempCardState.isHigh" class="text-xs font-black">↑</span>
                         <span>{{ soilTempStatus.text }}</span>
                       </span>
-                      <span v-if="soilTempCardState.isAlert && soilTempCardState.normalRangeText" class="text-[9.5px] sm:text-[10.5px] font-bold text-white/95 border-t border-white/25 pt-0.5 tracking-tight whitespace-nowrap drop-shadow-2xs">
+                      <span v-if="soilTempCardState.isAlert && soilTempCardState.normalRangeText" class="text-[9.5px] sm:text-[10.5px] font-bold text-white/95 border-t border-white/25 pt-0.5 tracking-tight whitespace-normal sm:whitespace-nowrap drop-shadow-2xs">
                         Normal: {{ soilTempCardState.normalRangeText }}°
                       </span>
                     </div>
@@ -2101,7 +2107,7 @@ onUnmounted(() => {
                 <!-- EC (Electrical Conductivity) Card (Dynamic 3-State: Rendah: Amber | Optimal: Lime/Emerald | Pekat: Merah Salin) -->
                 <div 
                   :class="[
-                    'relative overflow-hidden p-2 sm:p-2.5 lg:p-3 rounded-2xl text-white border-0 shadow-[inset_0_1px_1.5px_rgba(255,255,255,0.4),0_3px_12px_-2px_rgba(0,0,0,0.08)] flex flex-col justify-between min-h-[96px] sm:min-h-[102px] group hover:scale-[1.01] transition-transform',
+                    'relative overflow-hidden p-2 sm:p-2.5 lg:p-3 rounded-2xl text-white border-0 shadow-[inset_0_1px_1.5px_rgba(255,255,255,0.4),0_3px_12px_-2px_rgba(0,0,0,0.08)] flex flex-col justify-between min-w-0 min-h-[96px] sm:min-h-[102px] group hover:scale-[1.01] transition-transform',
                     ecCardState.gradient,
                     ecCardState.shadow
                   ]"
@@ -2112,14 +2118,17 @@ onUnmounted(() => {
                     style="background: radial-gradient(circle at 85% 15%, rgba(255, 255, 255, 0.4) 0%, transparent 60%);"
                   ></div>
                   <DotPattern :width="12" :height="12" :cx="1" :cy="1" :cr="1" class="text-white/20" />
-                  <div class="flex items-start justify-between gap-1 sm:gap-1.5 relative z-10">
-                    <span class="text-xs sm:text-sm font-bold text-white line-clamp-2 leading-snug flex-1 drop-shadow-sm">
+                  <!-- Di layar sempit kartunya cuma ~98px: nama sensor dan kapsul
+                       ambang tidak muat bersebelahan, jadi kapsulnya turun ke
+                       barisnya sendiri. Mulai sm kembali sebaris seperti biasa. -->
+                  <div class="flex flex-col items-start gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-1.5 relative z-10">
+                    <span class="text-xs sm:text-sm font-bold text-white line-clamp-2 leading-snug w-full min-w-0 sm:w-auto sm:flex-1 drop-shadow-sm">
                       {{ ecMetric?.name || 'EC Tanah' }}
                     </span>
                     <!-- Unified Status & Threshold Capsule -->
                     <div 
                       :class="[
-                        'bg-white/20 hover:bg-white/25 backdrop-blur-md text-white border border-white/35 shadow-xs transition-all shrink-0 select-none text-center',
+                        'bg-white/20 hover:bg-white/25 backdrop-blur-md text-white border border-white/35 shadow-xs transition-all max-w-full sm:shrink-0 select-none text-center',
                         ecCardState.isAlert 
                           ? 'px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-xl flex flex-col items-center gap-0.5' 
                           : (ecCardState.longText
@@ -2135,7 +2144,7 @@ onUnmounted(() => {
                         <span v-else-if="ecCardState.isHigh" class="text-xs font-black">↑</span>
                         <span>{{ ecStatus.text }}</span>
                       </span>
-                      <span v-if="ecCardState.isAlert && ecCardState.normalRangeText" class="text-[9.5px] sm:text-[10.5px] font-bold text-white/95 border-t border-white/25 pt-0.5 tracking-tight whitespace-nowrap drop-shadow-2xs">
+                      <span v-if="ecCardState.isAlert && ecCardState.normalRangeText" class="text-[9.5px] sm:text-[10.5px] font-bold text-white/95 border-t border-white/25 pt-0.5 tracking-tight whitespace-normal sm:whitespace-nowrap drop-shadow-2xs">
                         Normal: {{ ecCardState.normalRangeText }}
                       </span>
                     </div>

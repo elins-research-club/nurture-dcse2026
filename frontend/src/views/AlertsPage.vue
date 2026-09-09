@@ -152,18 +152,18 @@ const visiblePages = computed(() => {
           </div>
 
           <!-- Sisi Kanan: Tombol Ekspor CSV & Laporan PDF -->
-          <div class="flex items-center gap-2 shrink-0 self-end sm:self-center">
+          <!-- Di layar sempit kedua tombol dibagi rata selebar kartu (flex-1);
+               mulai sm kembali menyusut mengikuti isinya di ujung kanan baris. -->
+          <div class="flex items-center gap-2 w-full self-stretch sm:w-auto sm:shrink-0 sm:self-center">
             <!-- Export Telemetri CSV Button (Green) -->
             <Button
               @click="isTelemetryExportOpen = true"
               :disabled="!selectedNode"
               variant="outline"
-              class="h-9 px-3.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 font-bold text-xs flex items-center justify-center gap-2 shadow-2xs border border-emerald-500/30 cursor-pointer hover:scale-[1.02] active:scale-95 transition-all"
+              class="h-9 px-3.5 flex-1 sm:flex-none rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 font-bold text-xs flex items-center justify-center gap-2 shadow-2xs border border-emerald-500/30 cursor-pointer hover:scale-[1.02] active:scale-95 transition-all"
               title="Buka Wizard Ekspor Telemetri (CSV)"
             >
               <ExcelIcon />
-              <!-- Di layar sempit cukup "CSV": label panjang bikin dua tombol
-                   ini memakan hampir seluruh lebar baris. Mulai sm kembali penuh. -->
               <span class="sm:hidden">CSV</span>
               <span class="hidden sm:inline">Export (CSV)</span>
             </Button>
@@ -173,7 +173,7 @@ const visiblePages = computed(() => {
               @click="isAgronomyReportOpen = true"
               :disabled="!selectedNode"
               variant="outline"
-              class="h-9 px-3.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-700 dark:text-rose-300 font-bold text-xs flex items-center justify-center gap-2 shadow-2xs border border-rose-500/30 cursor-pointer hover:scale-[1.02] active:scale-95 transition-all"
+              class="h-9 px-3.5 flex-1 sm:flex-none rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-700 dark:text-rose-300 font-bold text-xs flex items-center justify-center gap-2 shadow-2xs border border-rose-500/30 cursor-pointer hover:scale-[1.02] active:scale-95 transition-all"
               title="Pratinjau & Cetak Laporan Resmi PDF"
             >
               <PdfIcon />

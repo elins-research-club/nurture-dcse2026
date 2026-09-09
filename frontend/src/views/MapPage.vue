@@ -611,7 +611,10 @@ onUnmounted(() => {
         ref="sheetRef"
         :style="sheetTransformStyle"
         :class="[
-          'fixed inset-x-0 bottom-0 h-[72vh] rounded-t-3xl',
+          'fixed inset-x-0 bottom-0 h-[80vh] rounded-t-3xl',
+          /* Bottom nav (fixed bottom-0, ~65px + safe area) menutupi dasar sheet,
+             jadi isinya diberi bantalan supaya tombol footer tidak tenggelam. */
+          'pb-[calc(4.5rem+env(safe-area-inset-bottom))] sm:pb-0',
           'sm:absolute sm:inset-x-auto sm:bottom-auto sm:top-5 sm:left-5 sm:h-auto sm:max-h-[75vh] sm:w-[340px] sm:rounded-2xl',
           'z-20 sm:z-10 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl shadow-2xl border border-border/80 dark:border-slate-800 flex flex-col overflow-hidden',
           isDraggingSheet ? '' : 'transition-transform duration-300 ease-out'
@@ -684,7 +687,10 @@ onUnmounted(() => {
         </div>
 
         <!-- Node List -->
-        <div class="flex-1 overflow-y-auto p-3 space-y-2.5 max-h-[calc(45vh-130px)] md:max-h-[calc(75vh-160px)]">
+        <!-- Di bottom sheet mobile daftar dibiarkan mengisi sisa tinggi sheet
+             (flex-1 + min-h-0). Batas max-h lama (45vh-130px) bikin isinya cuma
+             ~158px dan menyisakan ruang kosong besar di bawah. -->
+        <div class="flex-1 min-h-0 overflow-y-auto p-3 space-y-2.5 sm:max-h-[calc(45vh-130px)] md:max-h-[calc(75vh-160px)]">
           <div v-if="filteredNodes.length === 0" class="py-8 text-center text-xs text-muted-foreground">
             Tidak ada node ditemukan.
           </div>
