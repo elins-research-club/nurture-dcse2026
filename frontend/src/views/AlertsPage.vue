@@ -186,11 +186,13 @@ const visiblePages = computed(() => {
         <!-- BARIS 2: Toolbar Filter Scope (Level Pills, Refresh & Pilihan Stasiun) -->
         <div class="px-4 py-2.5 sm:px-5 sm:py-3 bg-slate-50/75 dark:bg-slate-900/40 border-b border-border/50 flex flex-wrap items-center justify-between gap-2.5">
           <!-- Sisi Kiri Toolbar: Filter Pills Level (Semua, Info, Warning, Error) -->
-          <div class="flex items-center bg-white dark:bg-slate-800 p-1 rounded-xl border border-border/80 text-xs gap-1 shadow-2xs">
+          <!-- Di layar sempit grup ini mengisi selebar toolbar dan keempat pill
+               membagi ruangnya rata; dari sm ke atas kembali seukuran isinya. -->
+          <div class="flex items-center w-full sm:w-auto bg-white dark:bg-slate-800 p-1 rounded-xl border border-border/80 text-xs gap-1 shadow-2xs">
             <button
               @click="selectedLevel = undefined"
               :class="[
-                'px-3 py-1 rounded-lg font-bold transition-all duration-200 cursor-pointer flex items-center gap-1.5 text-xs hover:-translate-y-0.5 active:scale-95 group',
+                'px-2 sm:px-3 py-1 rounded-lg font-bold transition-all duration-200 cursor-pointer flex-1 sm:flex-none flex items-center justify-center gap-1.5 text-xs hover:-translate-y-0.5 active:scale-95 group',
                 selectedLevel === undefined 
                   ? 'bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-100 border border-slate-300/90 dark:border-slate-700 shadow-xs' 
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
@@ -202,7 +204,7 @@ const visiblePages = computed(() => {
             <button
               @click="selectedLevel = 'INFO'"
               :class="[
-                'px-3 py-1 rounded-lg font-bold transition-all duration-200 cursor-pointer flex items-center gap-1.5 text-xs hover:-translate-y-0.5 active:scale-95 group',
+                'px-2 sm:px-3 py-1 rounded-lg font-bold transition-all duration-200 cursor-pointer flex-1 sm:flex-none flex items-center justify-center gap-1.5 text-xs hover:-translate-y-0.5 active:scale-95 group',
                 selectedLevel === 'INFO' 
                   ? 'bg-blue-50 dark:bg-slate-900 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-900/50 shadow-xs' 
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
@@ -215,7 +217,7 @@ const visiblePages = computed(() => {
             <button
               @click="selectedLevel = 'WARNING'"
               :class="[
-                'px-3 py-1 rounded-lg font-bold transition-all duration-200 cursor-pointer flex items-center gap-1.5 text-xs hover:-translate-y-0.5 active:scale-95 group',
+                'px-2 sm:px-3 py-1 rounded-lg font-bold transition-all duration-200 cursor-pointer flex-1 sm:flex-none flex items-center justify-center gap-1.5 text-xs hover:-translate-y-0.5 active:scale-95 group',
                 selectedLevel === 'WARNING' 
                   ? 'bg-amber-50 dark:bg-slate-900 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-900/50 shadow-xs' 
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
@@ -228,7 +230,7 @@ const visiblePages = computed(() => {
             <button
               @click="selectedLevel = 'ERROR'"
               :class="[
-                'px-3 py-1 rounded-lg font-bold transition-all duration-200 cursor-pointer flex items-center gap-1.5 text-xs hover:-translate-y-0.5 active:scale-95 group',
+                'px-2 sm:px-3 py-1 rounded-lg font-bold transition-all duration-200 cursor-pointer flex-1 sm:flex-none flex items-center justify-center gap-1.5 text-xs hover:-translate-y-0.5 active:scale-95 group',
                 selectedLevel === 'ERROR' 
                   ? 'bg-rose-50 dark:bg-slate-900 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50 shadow-xs' 
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
@@ -240,12 +242,14 @@ const visiblePages = computed(() => {
           </div>
 
           <!-- Sisi Kanan Toolbar: Refresh & Stasiun Selector -->
-          <div class="flex items-center gap-2">
+          <!-- Di layar sempit baris ini ikut mengisi penuh: Refresh tetap
+               seukuran isinya, sisa ruangnya diambil pemilih Stasiun. -->
+          <div class="flex items-center gap-2 w-full sm:w-auto">
             <!-- Refresh Button -->
             <Button 
               variant="outline" 
               size="sm" 
-              class="h-8.5 px-3 rounded-xl text-xs font-semibold gap-1.5 bg-white dark:bg-card shadow-2xs border-border/80 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer hover:scale-105 active:scale-95 transition-all duration-200 group"
+              class="h-8.5 px-3 shrink-0 rounded-xl text-xs font-semibold gap-1.5 bg-white dark:bg-card shadow-2xs border-border/80 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer hover:scale-105 active:scale-95 transition-all duration-200 group"
               @click="logsQuery.refetch()"
               :disabled="logsQuery.isFetching.value"
             >
@@ -256,11 +260,11 @@ const visiblePages = computed(() => {
             <div class="h-5 w-px bg-border/80 hidden sm:block mx-0.5"></div>
 
             <!-- Stasiun Dropdown Selector -->
-            <div class="flex items-center gap-1.5 bg-white dark:bg-slate-800/90 border border-slate-200/90 dark:border-slate-700 px-2.5 py-1 rounded-xl shadow-2xs">
-              <span class="text-xs font-bold text-muted-foreground whitespace-nowrap">Stasiun:</span>
-              <select 
-                v-model="selectedNodeId" 
-                class="bg-transparent text-xs font-extrabold text-foreground focus:outline-none cursor-pointer py-0.5 max-w-[170px] truncate"
+            <div class="flex items-center gap-1.5 flex-1 sm:flex-none min-w-0 bg-white dark:bg-slate-800/90 border border-slate-200/90 dark:border-slate-700 px-2.5 py-1 rounded-xl shadow-2xs">
+              <span class="text-xs font-bold text-muted-foreground whitespace-nowrap shrink-0">Stasiun:</span>
+              <select
+                v-model="selectedNodeId"
+                class="bg-transparent text-xs font-extrabold text-foreground focus:outline-none cursor-pointer py-0.5 w-full min-w-0 sm:w-auto max-w-none sm:max-w-[170px] truncate"
                 :disabled="!nodes.length"
               >
                 <option v-if="!nodes.length" value="">Memuat stasiun...</option>
