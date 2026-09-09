@@ -14,7 +14,10 @@ import {
   Check, 
   Layers, 
   CornerDownLeft, 
-  ChevronDown
+  ChevronDown,
+  RefreshCw,
+  WifiOff,
+  AlertCircle
 } from 'lucide-vue-next'
 
 const router = useRouter()
@@ -162,14 +165,70 @@ onUnmounted(() => {
       <!-- Loading State Preloader -->
       <DashboardPreloader v-if="nodesQuery.isLoading.value || nodesQuery.isPending.value || (!nodes.length && !nodesQuery.isError.value)" />
       
-      <!-- Error State -->
-      <div v-else-if="nodesQuery.isError.value" class="py-12 text-center text-destructive">
-        Gagal memuat data. Silakan periksa koneksi jaringan.
+      <!-- Modern Error State Card -->
+      <div 
+        v-else-if="nodesQuery.isError.value" 
+        class="my-8 mx-auto max-w-lg w-full p-8 rounded-3xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-red-200/80 dark:border-red-900/40 shadow-xl shadow-red-500/5 flex flex-col items-center text-center animate-in fade-in-50 zoom-in-95 duration-300"
+      >
+        <!-- Animated Icon Container -->
+        <div class="relative mb-5">
+          <div class="w-16 h-16 rounded-2xl bg-red-50 dark:bg-red-950/50 border border-red-200/60 dark:border-red-800/50 flex items-center justify-center text-red-500 shadow-inner">
+            <WifiOff class="w-8 h-8" />
+          </div>
+          <div class="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center shadow-md">
+            <AlertCircle class="w-4 h-4" />
+          </div>
+        </div>
+
+        <h3 class="text-lg sm:text-xl font-bold text-foreground tracking-tight mb-2">
+          Gagal Menghubungkan ke Stasiun
+        </h3>
+        
+        <p class="text-sm text-muted-foreground leading-relaxed max-w-sm mb-6">
+          Tidak dapat menyinkronkan data dari server IoT. Periksa koneksi internet Anda atau pastikan layanan backend sedang aktif.
+        </p>
+
+        <!-- Action Button -->
+        <div class="flex items-center gap-3 w-full sm:w-auto">
+          <button
+            type="button"
+            @click="() => nodesQuery.refetch()"
+            :disabled="nodesQuery.isFetching.value"
+            class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-primary text-primary-foreground font-semibold text-sm shadow-md hover:bg-primary/90 active:scale-95 transition-all duration-200 disabled:opacity-50 cursor-pointer"
+          >
+            <RefreshCw class="w-4 h-4" :class="{ 'animate-spin': nodesQuery.isFetching.value }" />
+            <span>{{ nodesQuery.isFetching.value ? 'Mencoba Menghubungkan...' : 'Coba Lagi' }}</span>
+          </button>
+        </div>
+
+        <!-- Diagnostic Hint -->
+        <span class="mt-5 text-[11px] font-mono text-muted-foreground/70 bg-slate-100 dark:bg-slate-800/60 px-3 py-1 rounded-md border border-border/50">
+          Endpoint: /api/v1/nodes/
+        </span>
       </div>
       
-      <!-- No Data State -->
-      <div v-else-if="!nodes.length" class="py-12 text-center text-muted-foreground border border-dashed rounded-xl">
-        Tidak ada node ditemukan. Tambahkan node untuk memulai pemantauan.
+      <!-- Modern Empty State Card -->
+      <div 
+        v-else-if="!nodes.length" 
+        class="my-8 mx-auto max-w-lg w-full p-8 rounded-3xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-dashed border-border/90 shadow-sm flex flex-col items-center text-center animate-in fade-in-50 duration-300"
+      >
+        <div class="w-14 h-14 rounded-2xl bg-muted/60 flex items-center justify-center text-muted-foreground mb-4">
+          <Radio class="w-7 h-7" />
+        </div>
+        <h3 class="text-base sm:text-lg font-bold text-foreground mb-1.5">
+          Belum Ada Node IoT Terdaftar
+        </h3>
+        <p class="text-sm text-muted-foreground max-w-xs mb-5">
+          Sistem belum menemukan sensor node yang terpasang di jaringan pertanian.
+        </p>
+        <button
+          type="button"
+          @click="() => nodesQuery.refetch()"
+          class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-secondary text-secondary-foreground text-xs font-semibold hover:bg-secondary/80 transition-colors"
+        >
+          <RefreshCw class="w-3.5 h-3.5" />
+          Segarkan Data
+        </button>
       </div>
       
       <template v-else>
