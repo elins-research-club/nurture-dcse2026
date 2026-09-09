@@ -32,6 +32,26 @@ export interface SensorMetricSummary {
   status?: string | null;
 }
 
+export interface PowerMetrics {
+  tegangan_in?: number | null;
+  tegangan_out?: number | null;
+  arus_in?: number | null;
+  arus_out?: number | null;
+  daya_in?: number | null;
+  daya_out?: number | null;
+  net_power?: number | null;
+  status_aliran?: "surplus" | "standby" | "defisit" | "offline";
+  status_label?: string;
+  battery_status_text?: string;
+  battery_level_percent?: number | null;
+  is_charging?: boolean;
+  is_standby?: boolean;
+  i2c_0x40_active?: boolean;
+  i2c_0x41_active?: boolean;
+  satuan?: { tegangan: string; arus: string; daya: string };
+  catatan?: string;
+}
+
 export interface DashboardSummaryResponse {
   node_id: string;
   node_name?: string | null;
@@ -52,6 +72,9 @@ export interface DashboardSummaryResponse {
     humidity?: SensorMetricSummary | null;
     modbus?: SensorMetricSummary | null;
   };
+  power_metrics?: PowerMetrics;
+  soil_health?: any | null;
+  aktuator?: Record<string, boolean> | null;
 }
 
 export const useTelemetryStore = defineStore("telemetry", () => {
@@ -71,6 +94,12 @@ export const useTelemetryStore = defineStore("telemetry", () => {
   // Sensor per node, disimpan supaya handler WebSocket bisa membaca ambangnya
   // tanpa menembak API tiap kali ada pesan masuk.
   const sensorsByNode = ref<Record<string, any[]>>({});
+
+  // Status aktuator sudah didekode backend (services/aktuator.py), yang tahu
+  // maskanya 4 bit dan tahu node mana yang punya valve. Dulu nilai ini dibuang
+  // di sini lalu didekode ulang di NodeDashboard dengan batas 0-7, sehingga
+  // valve_timeout (bit3) menghapus SELURUH pembacaan aktuator.
+  const aktuatorByNode = ref<Record<string, any>>({});
 
   // {sensorId: sedang di luar ambang} -- supaya notifikasi muncul sekali saat
   // melewati batas dan sekali saat pulih, bukan tiap pembacaan.
@@ -120,10 +149,32 @@ export const useTelemetryStore = defineStore("telemetry", () => {
 
   const cekWebpush = async () => {
     if (!("serviceWorker" in navigator) || !("PushManager" in window)) return false;
-    const reg = await navigator.serviceWorker.getRegistration("/sw.js");
-    const sub = reg ? await reg.pushManager.getSubscription() : null;
-    webpushAktif.value = !!sub;
-    return webpushAktif.value;
+    try {
+      const reg = await navigator.serviceWorker.getRegistration("/sw.js");
+      const sub = reg ? await reg.pushManager.getSubscription() : null;
+      if (!sub) {
+        webpushAktif.value = false;
+        return false;
+      }
+      // Jika browser memiliki subscription, sinkronkan ke backend agar tidak out-of-sync
+      if (authStore.token) {
+        const simpan = await fetch(`${API_BASE_URL}/push/subscribe`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${authStore.token}`,
+          },
+          body: JSON.stringify(sub.toJSON()),
+        });
+        webpushAktif.value = simpan.ok;
+        return simpan.ok;
+      }
+      webpushAktif.value = true;
+      return true;
+    } catch {
+      webpushAktif.value = false;
+      return false;
+    }
   };
 
   const daftarWebpush = async () => {
@@ -168,6 +219,53 @@ export const useTelemetryStore = defineStore("telemetry", () => {
     }
   };
 
+  const batalWebpush = async () => {
+    try {
+      if (!("serviceWorker" in navigator)) {
+        webpushAktif.value = false;
+        return true;
+      }
+
+      let endpoint = "";
+      try {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        for (const reg of regs) {
+          const sub = await reg.pushManager.getSubscription();
+          if (sub) {
+            endpoint = sub.endpoint;
+            await sub.unsubscribe().catch(() => {});
+          }
+        }
+      } catch (e) {
+        console.warn("[TelemetryStore] Warning saat membaca push subscription:", e);
+      }
+
+      if (authStore.token && endpoint) {
+        try {
+          await fetch(`${API_BASE_URL}/push/unsubscribe`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${authStore.token}`,
+            },
+            body: JSON.stringify({ endpoint }),
+          });
+        } catch (e) {
+          console.warn("[TelemetryStore] Gagal request hapus ke backend:", e);
+        }
+      }
+
+      webpushAktif.value = false;
+      return true;
+    } catch (e) {
+      console.error("[TelemetryStore] Gagal membatalkan Web Push", e);
+      webpushAktif.value = false;
+      return true;
+    }
+  };
+
+  // Ambang OPERATOR dari database. Bukan kelas pustaka -- vonis terhadap
+  // standar terbit datang dari backend lewat dashboardSummaries.soil_health.
   const cekAmbang = (nodeId: string, feed: Record<string, any>) => {
     const daftar = sensorsByNode.value[nodeId];
     if (!daftar?.length) return;
@@ -277,6 +375,20 @@ export const useTelemetryStore = defineStore("telemetry", () => {
             };
 
             pendingFeeds[nodeId] = newFeed;
+
+            // Dikirim backend di tiap pesan; sebelumnya diabaikan total.
+            if (msg.aktuator !== undefined) {
+              aktuatorByNode.value[nodeId] = msg.aktuator;
+            }
+
+            if (msg.power_metrics) {
+              if (dashboardSummaries.value[nodeId]) {
+                dashboardSummaries.value[nodeId].power_metrics = {
+                  ...(dashboardSummaries.value[nodeId].power_metrics || {}),
+                  ...msg.power_metrics,
+                };
+              }
+            }
 
             // Batch reactive update into next browser animation frame (60 FPS smooth rendering)
             if (!rafId) {
@@ -482,6 +594,7 @@ export const useTelemetryStore = defineStore("telemetry", () => {
     disconnectWebSocket,
     fetchSensors,
     fetchHistory,
+    aktuatorByNode,
     getLatest,
     getChartData,
     getNodeLastSeen,
@@ -492,5 +605,6 @@ export const useTelemetryStore = defineStore("telemetry", () => {
     webpushAktif,
     cekWebpush,
     daftarWebpush,
+    batalWebpush,
   };
 });

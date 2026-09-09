@@ -138,7 +138,8 @@ const domains = [
   { id: 'all', label: 'Semua Sensor', icon: '🌿', desc: 'Seluruh parameter tanah, iklim, & perangkat' },
   { id: 'npk', label: 'Unsur Hara NPK', icon: '🧪', desc: 'Nitrogen (N), Fosfor (P), Kalium (K)' },
   { id: 'soil', label: 'Kondisi Tanah', icon: '🌱', desc: 'Moisture, pH Tanah, Suhu Tanah, EC' },
-  { id: 'iot', label: 'Kondisi IoT & Panel', icon: '⚡', desc: 'Suhu Enclosure Box, Status Suplai & Modbus' }
+  { id: 'iot', label: 'Kondisi IoT & Panel', icon: '🌡️', desc: 'Suhu Enclosure Box, Suhu Luar, Kelembaban' },
+  { id: 'power', label: 'Sistem Kelistrikan', icon: '⚡', desc: 'Tegangan, Arus, & Daya Baterai/Beban' }
 ]
 
 // Filter active sensors by chosen domain

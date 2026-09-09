@@ -7,7 +7,7 @@
  * parameters for the same station and period. Everything now routes through here.
  */
 
-export type SensorCategory = 'npk' | 'soil' | 'environment' | 'other'
+export type SensorCategory = 'npk' | 'soil' | 'environment' | 'power' | 'other'
 
 /** Categories a user can pick in the dashboard and the export dialogs. */
 export type CategorySelection = 'all' | SensorCategory | 'iot'
@@ -16,20 +16,118 @@ export function getSensorCategory(sensor: any): SensorCategory {
   const name = (sensor?.name || '').toLowerCase()
   const type = (sensor?.type || '').toLowerCase()
 
-  if (name.includes('nitrogen') || name.includes('phosphorus') || name.includes('potassium') ||
-      name.includes('kalium') || name.includes('fosfor') || type.includes('npk')) {
+  // 1. Prioritas tipe semantik NPK
+  if (['npk_n', 'npk_p', 'npk_k', 'nitrogen', 'phosphorus', 'potassium'].includes(type) ||
+      name.includes('nitrogen') || name.includes('phosphorus') || name.includes('phosphor') ||
+      name.includes('phospor') || name.includes('potassium') || name.includes('kalium') ||
+      name.includes('fosfor') || type.includes('npk')) {
     return 'npk'
   }
-  if (name.includes('soil') || name.includes('tanah') || name.includes('ph') ||
-      name.includes('ec') || name.includes('analog') || name.includes('probe') || type.includes('soil')) {
+
+  // 2. Prioritas tipe semantik Tanah
+  if (['soil_ph', 'soil_ec', 'soil_temp', 'soil_moisture', 'avg_soil_moisture', 'probe_moist', 'soil_probe'].includes(type) ||
+      name.includes('soil') || name.includes('tanah') || name.includes('ph') ||
+      name.includes('ec') || name.includes('analog') || name.includes('probe') || name.includes('daya hantar') || type.includes('soil')) {
     return 'soil'
   }
-  if (name.includes('suhu') || name.includes('temp') || name.includes('kelembaban') ||
-      name.includes('humidity') || name.includes('enclosure') || name.includes('udara') ||
-      name.includes('cahaya') || name.includes('light') || type.includes('env') || type.includes('temp')) {
+
+  // 3. Prioritas tipe semantik Kelistrikan & Daya (Tegangan, Arus, Daya INA226)
+  if (['batt_volt', 'load_volt', 'batt_current', 'load_current', 'load_power', 'power'].includes(type) ||
+      name.includes('baterai') || name.includes('aki') || (name.includes('daya') && !name.includes('daya hantar')) ||
+      (name.includes('load') && (name.includes('tegangan') || name.includes('arus') || name.includes('volt') || name.includes('ampere') || name.includes('watt'))) ||
+      (name.includes('beban') && (name.includes('tegangan') || name.includes('arus') || name.includes('volt') || name.includes('ampere') || name.includes('watt') || name.includes('daya'))) ||
+      name.includes('tegangan') || name.includes('arus') || name.includes('solar') || name.includes('surya') || (name.includes('listrik') && !name.includes('daya hantar')) || type.includes('volt') || type.includes('current')) {
+    return 'power'
+  }
+
+  // 4. Prioritas tipe semantik Lingkungan & IoT
+  if (['air_temp', 'air_humidity', 'box_temp'].includes(type) ||
+      name.includes('suhu') || name.includes('temp') || name.includes('kelembaban') ||
+      name.includes('kelembapan') || name.includes('humidity') || name.includes('enclosure') ||
+      name.includes('udara') || name.includes('cahaya') || type.includes('env') || type.includes('temp')) {
     return 'environment'
   }
+
   return 'other'
+}
+
+export type TargetWidgetInfo = {
+  widgetName: string
+  badgeVariant: 'default' | 'secondary' | 'outline' | 'destructive'
+  icon: string
+  iconSrc?: string
+  isLucide?: boolean
+  description: string
+}
+
+/**
+ * Menghasilkan informasi target widget visual di Dashboard berdasarkan type/name sensor.
+ * Berguna untuk visual hint di menu Settings agar developer/operator langsung paham
+ * di mana metrik ini akan ditampilkan.
+ */
+export function getTargetWidget(sensor: any): TargetWidgetInfo {
+  const name = (sensor?.name || '').toLowerCase()
+  const type = (sensor?.type || '').toLowerCase()
+
+  if (type === 'actuator' || name.includes('aktuator')) {
+    return {
+      widgetName: 'Status Aktuator',
+      badgeVariant: 'outline',
+      icon: '🌀',
+      iconSrc: '/actuator-icon.svg',
+      description: 'Portlet Status Aktuator (Kipas, Lampu, Valve) di sidebar kiri dashboard.'
+    }
+  }
+  if (['npk_n', 'npk_p', 'npk_k', 'nitrogen', 'phosphorus', 'potassium'].includes(type) ||
+      name.includes('nitrogen') || name.includes('fosfor') || name.includes('phosphor') ||
+      name.includes('kalium') || name.includes('potassium')) {
+    return {
+      widgetName: 'Unsur Hara NPK',
+      badgeVariant: 'default',
+      icon: '🌿',
+      iconSrc: '/npk-icon.svg',
+      description: 'Kartu metrik utama Unsur Hara NPK (Nitrogen, Fosfor, dan Kalium) di baris atas dashboard.'
+    }
+  }
+  if (['soil_ph', 'soil_ec', 'soil_temp', 'soil_moisture', 'avg_soil_moisture', 'probe_moist', 'soil_probe'].includes(type) ||
+      name.includes('tanah') || name.includes('keasaman') || name.includes('conductivity') ||
+      name.includes('kelembapan tanah') || name.includes('kelembaban tanah') || name.includes('ph tanah') || name.includes('ec tanah')) {
+    return {
+      widgetName: 'Kondisi Tanah',
+      badgeVariant: 'secondary',
+      icon: '🌱',
+      iconSrc: '/soil-icon.svg',
+      description: 'Portlet Kondisi Tanah (Multi-probe kelembapan, pH, Suhu, dan EC) di dashboard.'
+    }
+  }
+  if (['batt_volt', 'load_volt', 'batt_current', 'load_current', 'load_power', 'power'].includes(type) ||
+      name.includes('baterai') || name.includes('daya') ||
+      (name.includes('load') && (name.includes('tegangan') || name.includes('arus')))) {
+    return {
+      widgetName: 'Sistem Manajemen Daya',
+      badgeVariant: 'outline',
+      icon: '⚡',
+      isLucide: true,
+      description: 'Portlet Sistem Manajemen Daya (Tegangan Baterai 12V, Arus, dan Beban Sistem INA226) di dashboard.'
+    }
+  }
+  if (['box_temp', 'air_temp', 'air_humidity', 'humidity', 'temperature'].includes(type) ||
+      name.includes('box') || name.includes('panel') || name.includes('enclosure') ||
+      name.includes('luar') || name.includes('udara') || name.includes('suhu') || name.includes('lembab')) {
+    return {
+      widgetName: 'Kondisi IoT',
+      badgeVariant: 'secondary',
+      icon: '📡',
+      iconSrc: '/iot-icon.svg',
+      description: 'Portlet Kondisi IoT (Suhu Box Panel, Suhu Luar, dan Kelembaban Udara) di dashboard.'
+    }
+  }
+  return {
+    widgetName: 'Metrik Tambahan',
+    badgeVariant: 'outline',
+    icon: '📌',
+    description: 'Grid metrik tambahan/dinamis di bagian bawah dashboard.'
+  }
 }
 
 /**
@@ -40,7 +138,7 @@ export function getSensorCategory(sensor: any): SensorCategory {
 export function sortSensorsCanonically<T extends { name?: string }>(list: T[]): T[] {
   const npkOrder = (n: string) => {
     if (n.includes('nitrogen') || n === 'n') return 1
-    if (n.includes('phosphor') || n.includes('fosfor') || n === 'p') return 2
+    if (n.includes('phosphor') || n.includes('phospor') || n.includes('fosfor') || n === 'p') return 2
     if (n.includes('potassium') || n.includes('kalium') || n === 'k') return 3
     return 99
   }
@@ -48,6 +146,14 @@ export function sortSensorsCanonically<T extends { name?: string }>(list: T[]): 
     if (n.includes('probe 1')) return 1
     if (n.includes('probe 2')) return 2
     if (n.includes('probe 3')) return 3
+    return 99
+  }
+  const powerOrder = (n: string) => {
+    if (n.includes('tegangan baterai') || n.includes('tegangan aki') || n.includes('batt volt')) return 1
+    if (n.includes('tegangan load') || n.includes('tegangan beban') || n.includes('tegangan')) return 2
+    if (n.includes('arus baterai') || n.includes('arus aki') || n.includes('batt curr')) return 3
+    if (n.includes('arus load') || n.includes('arus beban') || n.includes('arus')) return 4
+    if (n.includes('daya') && !n.includes('daya hantar')) return 5
     return 99
   }
 
@@ -62,6 +168,10 @@ export function sortSensorsCanonically<T extends { name?: string }>(list: T[]): 
     const probeA = probeOrder(nameA)
     const probeB = probeOrder(nameB)
     if (probeA !== 99 || probeB !== 99) return probeA - probeB
+
+    const powA = powerOrder(nameA)
+    const powB = powerOrder(nameB)
+    if (powA !== 99 || powB !== 99) return powA - powB
 
     return nameA.localeCompare(nameB)
   })

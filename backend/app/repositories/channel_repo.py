@@ -16,7 +16,11 @@ async def list_all(db: AsyncSession) -> list[ThingspeakChannel]:
     return list(result.scalars().all())
 
 async def get_by_node_id(db: AsyncSession, node_id: UUID) -> list[ThingspeakChannel]:
-    result = await db.execute(select(ThingspeakChannel).where(ThingspeakChannel.node_id == node_id))
+    result = await db.execute(
+        select(ThingspeakChannel)
+        .where(ThingspeakChannel.node_id == node_id)
+        .order_by(ThingspeakChannel.created_at.asc(), ThingspeakChannel.id.asc())
+    )
     return list(result.scalars().all())
 
 async def create(db: AsyncSession, node_id: UUID, channel_id: str, read_api_key: str, write_api_key: str, label: str | None = None) -> ThingspeakChannel:

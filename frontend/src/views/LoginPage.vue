@@ -1,23 +1,34 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useMutation } from '@tanstack/vue-query'
-import { useDark } from '@vueuse/core'
+import { usePreferredDark } from '@vueuse/core'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Eye, EyeOff, User, ArrowRight, Sun, Moon, ShieldCheck, Check, AlertCircle } from 'lucide-vue-next'
+import { Eye, EyeOff, User, ArrowRight, Laptop, ShieldCheck, Check, AlertCircle } from 'lucide-vue-next'
 
-const isDarkMode = useDark({
-  storageKey: 'theme',
-  valueDark: 'dark',
-  valueLight: 'light'
+// Halaman login selalu mengikuti tema sistem laptop (Dark / Light)
+const preferredDark = usePreferredDark()
+const isDarkMode = computed(() => preferredDark.value)
+
+// Sinkronisasi kelas dark pada <html> secara dinamis mengikuti preferensi laptop
+watch(preferredDark, (isDark) => {
+  document.documentElement.classList.toggle('dark', isDark)
+}, { immediate: true })
+
+onUnmounted(() => {
+  // Kembalikan ke preferensi tema dashboard saat berpindah dari halaman login
+  const storedTheme = localStorage.getItem('theme')
+  if (storedTheme === 'dark') {
+    document.documentElement.classList.add('dark')
+  } else if (storedTheme === 'light') {
+    document.documentElement.classList.remove('dark')
+  } else {
+    document.documentElement.classList.toggle('dark', preferredDark.value)
+  }
 })
-
-const toggleTheme = () => {
-  isDarkMode.value = !isDarkMode.value
-}
 
 const username = ref('')
 const password = ref('')
@@ -121,18 +132,15 @@ const handleLogin = () => {
 <template>
   <div class="relative flex items-center justify-center min-h-screen overflow-hidden bg-[#F0FDF4] dark:bg-[#030712] text-foreground transition-colors duration-500">
 
-    <!-- Theme Switcher Floating Pill in Top-Right -->
+    <!-- Theme Indicator Floating Pill in Top-Right (Always synced with laptop OS) -->
     <div class="absolute top-4 right-4 z-30">
-      <button 
-        type="button" 
-        @click="toggleTheme" 
-        class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-slate-200/80 dark:border-white/10 text-xs font-semibold text-slate-700 dark:text-slate-200 shadow-sm hover:scale-105 transition-all cursor-pointer select-none"
-        :title="isDarkMode ? 'Beralih ke Siang (Light Mode)' : 'Beralih ke Malam (Dark Mode)'"
+      <div 
+        class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-slate-200/80 dark:border-white/10 text-xs font-semibold text-slate-700 dark:text-slate-200 shadow-sm select-none cursor-default"
+        :title="`Tema login otomatis mengikuti sistem laptop (${isDarkMode ? 'Mode Gelap' : 'Mode Terang'})`"
       >
-        <Sun v-if="isDarkMode" class="w-3.5 h-3.5 text-amber-400" />
-        <Moon v-else class="w-3.5 h-3.5 text-emerald-700" />
-        <span>{{ isDarkMode ? 'Malam' : 'Siang' }}</span>
-      </button>
+        <Laptop class="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+        <span>{{ isDarkMode ? 'Mode Gelap' : 'Mode Terang' }}</span>
+      </div>
     </div>
 
     <!-- ======================================================== -->
@@ -501,10 +509,10 @@ const handleLogin = () => {
             <img src="/Logo-UGM.png" alt="Universitas Gadjah Mada" class="h-9 max-w-[50px] object-contain select-none brightness-0 invert group-hover:brightness-100 group-hover:invert-0 dark:group-hover:brightness-0 dark:group-hover:invert opacity-85 group-hover:opacity-100 group-hover:scale-105 transition-all duration-300 drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)] group-hover:drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]" title="Universitas Gadjah Mada" />
             <img src="/Logo-DIKE.png" alt="Departemen Ilmu Komputer dan Elektronika" class="h-8 max-w-[70px] object-contain select-none brightness-0 invert group-hover:brightness-100 group-hover:invert-0 dark:group-hover:invert opacity-85 group-hover:opacity-100 group-hover:scale-105 transition-all duration-300 drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)] group-hover:drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]" title="Departemen Ilmu Komputer dan Elektronika UGM" />
             <img src="/logo-icon.webp" alt="Laboratorium Elektronika dan Instrumentasi" class="h-8 max-w-[38px] object-contain select-none brightness-0 invert group-hover:brightness-100 group-hover:invert-0 opacity-85 group-hover:opacity-100 group-hover:scale-105 transition-all duration-300 drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)] group-hover:drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]" title="Laboratorium Elektronika dan Instrumentasi" />
-            <img src="/logo-webdev.webp" alt="Webdev ERC" class="h-8 max-w-[38px] object-contain select-none brightness-0 invert group-hover:brightness-100 group-hover:invert-0 dark:group-hover:invert opacity-85 group-hover:opacity-100 group-hover:scale-105 transition-all duration-300 drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)] group-hover:drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]" title="Webdev ERC" />
+            <img src="/logo-webdev.webp" alt="Webdev ERC UGM" class="h-8 max-w-[38px] object-contain select-none brightness-0 invert group-hover:brightness-100 group-hover:invert-0 dark:group-hover:invert opacity-85 group-hover:opacity-100 group-hover:scale-105 transition-all duration-300 drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)] group-hover:drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]" title="Webdev ERC UGM" />
           </div>
           <p class="text-[11px] font-semibold text-white/90 drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)]">
-            &copy; 2026 G-CONNECT &bull; Laboratorium ELINS DIKE UGM
+            &copy; 2026 G-CONNECT &bull; Laboratorium Riset Sistem Elektronika & Instrumentasi UGM
           </p>
         </div>
 

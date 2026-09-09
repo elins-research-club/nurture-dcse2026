@@ -3,7 +3,7 @@ const logos = [
   { src: '/Logo-UGM.png', alt: 'Universitas Gadjah Mada', class: 'h-[45px] max-w-[53px] dark:brightness-0 dark:invert' },
   { src: '/Logo-DIKE.png', alt: 'Departemen Ilmu Komputer dan Elektronika UGM', class: 'h-9 max-w-[75px] dark:brightness-0 dark:invert' },
   { src: '/logo-icon.webp', alt: 'Laboratorium ELINS', class: 'h-9 max-w-[40px]' },
-  { src: '/logo-webdev.webp', alt: 'Webdev ERC', class: 'h-9 max-w-[40px] dark:invert' },
+  { src: '/logo-webdev.webp', alt: 'Webdev ERC UGM', class: 'h-9 max-w-[40px] dark:invert' },
 ]
 </script>
 

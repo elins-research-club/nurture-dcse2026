@@ -15,31 +15,26 @@ const props = withDefaults(defineProps<{
   accentGradient?: string
   minThreshold?: number | null
   maxThreshold?: number | null
+  isStale?: boolean
+  readingAt?: string | null
 }>(), {
   size: 'default',
+  isStale: false,
 })
 
-// Determine threshold status (Rendah / Ideal / Tinggi) for the capsule badge
+// Status kapsul (Rendah / Ideal / Tinggi) SEMATA dari ambang operator di
+// database. Kalau operator belum mengisinya, kartu tidak menampilkan status.
+//
+// Dulu di sini ada angka cadangan NPK (N 20-60, P 20-40, K 20-40) yang tidak
+// punya sumber dan bahkan BERBEDA dari angka cadangan di NodeDashboard.vue
+// (N 20-80, P 15-60, K 20-60), jadi satu pembacaan bisa disebut "Ideal" di satu
+// kartu dan "Tinggi" di kartu lain. Klasifikasi terhadap standar terbit datang
+// dari backend (soil_health).
 const thresholdStatus = computed(() => {
   if (props.value === null || props.value === undefined) return null
 
-  let min = props.minThreshold
-  let max = props.maxThreshold
-
-  // Default agronomic thresholds for NPK if not configured in DB
-  if (min == null && max == null && props.type === 'npk') {
-    const t = props.title.toLowerCase()
-    if (t.includes('nitrogen') || t.includes('nitrat')) {
-      min = 20
-      max = 60
-    } else if (t.includes('phosphorus') || t.includes('fosfor')) {
-      min = 20
-      max = 40
-    } else if (t.includes('potassium') || t.includes('kalium')) {
-      min = 20
-      max = 40
-    }
-  }
+  const min = props.minThreshold
+  const max = props.maxThreshold
 
   if (min == null && max == null) return null
 
@@ -93,8 +88,8 @@ const semanticTheme = computed(() => {
 
   if (status === 'ideal') {
     return {
-      gradient: 'linear-gradient(135deg, #00B200 0%, #008A00 45%, #006400 100%)', // Ideal Green
-      shadowClass: 'shadow-md shadow-[#00b200]/20 hover:shadow-lg hover:shadow-[#00b200]/30'
+      gradient: 'linear-gradient(135deg, #059669 0%, #047857 45%, #065F46 100%)', // Organic Emerald Green
+      shadowClass: 'shadow-md shadow-emerald-600/20 hover:shadow-lg hover:shadow-emerald-600/30'
     }
   }
 
@@ -110,7 +105,7 @@ const semanticTheme = computed(() => {
   }
 
   // 2. Phosphorus (P) -> Ocean Blue
-  if (t.includes('phosphorus') || t.includes('fosfor') || t === 'p') {
+  if (t.includes('phosphorus') || t.includes('phosphor') || t.includes('phospor') || t.includes('fosfor') || t === 'p') {
     return {
       gradient: 'linear-gradient(135deg, #60A5FA 0%, #3B82F6 45%, #1D4ED8 100%)',
       shadowClass: 'shadow-md shadow-blue-400/20 hover:shadow-lg hover:shadow-blue-400/30'
@@ -205,6 +200,16 @@ const semanticTheme = computed(() => {
           </h3>
           <span class="text-white/95 font-bold text-sm drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]">{{ unit }}</span>
         </div>
+        <!-- Angka hasil forward-fill: pembacaan lama yang disalin karena paket
+             terbaru tidak membawa field ini. -->
+        <p
+          v-if="isStale"
+          class="mt-1 text-[11px] font-semibold text-white/80 flex items-center gap-1"
+          :title="readingAt ? 'Pembacaan terakhir: ' + readingAt : 'Tidak ada pembacaan baru'"
+        >
+          <span class="inline-block w-1.5 h-1.5 rounded-full bg-white/70"></span>
+          Data terakhir, bukan pembacaan baru
+        </p>
       </div>
 
       <!-- Structured Stacked Status & Threshold Container (Option B - Apple Health Style) -->
@@ -229,7 +234,7 @@ const semanticTheme = computed(() => {
           class="text-xs sm:text-[13px] font-bold text-white flex items-center justify-center gap-1.5 border-t border-white/25 pt-1.5 w-full tracking-tight whitespace-nowrap"
           :title="`Ambang Batas Normal: ${thresholdStatus.min ?? 0} - ${thresholdStatus.max ?? '∞'} ${unit}`"
         >
-          <span class="text-white/80 text-[11px] sm:text-xs font-medium">Batas:</span>
+          <span class="text-white/80 text-[11px] sm:text-xs font-medium">Normal:</span>
           <span class="font-black text-white">{{ thresholdStatus.min ?? 0 }}–{{ thresholdStatus.max ?? '∞' }}</span>
           <span class="text-[11px] sm:text-xs text-white/85 font-semibold">{{ unit }}</span>
         </div>

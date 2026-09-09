@@ -1,0 +1,452 @@
+{
+  "nodes": [
+    {
+      "id": "80869b56-f051-48bd-af0d-551777f23f87",
+      "node_id": "NODE001",
+      "name": "NODE 1 ",
+      "location": "Tempel, Sleman",
+      "field_layout": "node1_packed",
+      "latitude": -7.66172,
+      "longitude": 110.331968,
+      "is_active": true
+    },
+    {
+      "id": "a61f26b3-a429-455f-b5ba-8553683c071e",
+      "node_id": "NODE002",
+      "name": "NODE2",
+      "location": "Tempel, Sleman",
+      "field_layout": "node2_plain",
+      "latitude": -7.662064,
+      "longitude": 110.332069,
+      "is_active": true
+    }
+  ],
+  "channels": [
+    {
+      "id": "c6ea4153-b149-44d7-8460-75626e9e757f",
+      "node_id": "80869b56-f051-48bd-af0d-551777f23f87",
+      "channel_id": "3461921",
+      "read_api_key": "EX0CVBIPRYS6F3XV",
+      "write_api_key": "N/A",
+      "label": "Channel 1"
+    },
+    {
+      "id": "54a8c74f-fd7f-46bb-808f-94c7f7a49208",
+      "node_id": "80869b56-f051-48bd-af0d-551777f23f87",
+      "channel_id": "3461926",
+      "read_api_key": "ZDOX2HPC65FJ9M9M",
+      "write_api_key": "N/A",
+      "label": "Channel 2"
+    },
+    {
+      "id": "ac57bd8d-3172-4d89-8820-d3784da5853d",
+      "node_id": "a61f26b3-a429-455f-b5ba-8553683c071e",
+      "channel_id": "3461925",
+      "read_api_key": "SQ76JK0JJOUYO7OA",
+      "write_api_key": "N/A",
+      "label": "Channel 1"
+    },
+    {
+      "id": "6e137ca6-64d8-433b-9c6c-58a347848cbd",
+      "node_id": "a61f26b3-a429-455f-b5ba-8553683c071e",
+      "channel_id": "3461928",
+      "read_api_key": "8RZE4GJTIIXHXO7Y",
+      "write_api_key": "N/A",
+      "label": "Channel 2"
+    }
+  ],
+  "sensors": [
+    {
+      "id": "f2c749b9-4880-46b0-84a3-0dcfd0ce41a9",
+      "node_id": "80869b56-f051-48bd-af0d-551777f23f87",
+      "channel_id": "54a8c74f-fd7f-46bb-808f-94c7f7a49208",
+      "name": "Arus Load",
+      "type": "load_current",
+      "unit": "A",
+      "thingspeak_field": "field5",
+      "min_threshold": 0.0,
+      "max_threshold": 1.0,
+      "enabled": true
+    },
+    {
+      "id": "85dfa9c0-3cfd-4a6e-bfaf-d4238b422d91",
+      "node_id": "a61f26b3-a429-455f-b5ba-8553683c071e",
+      "channel_id": "6e137ca6-64d8-433b-9c6c-58a347848cbd",
+      "name": "Arus Baterai",
+      "type": "batt_current",
+      "unit": "A",
+      "thingspeak_field": "field5",
+      "min_threshold": 0.0,
+      "max_threshold": 1.0,
+      "enabled": true
+    },
+    {
+      "id": "abd449af-dca1-4ea1-b8e8-2fdb023cf333",
+      "node_id": "80869b56-f051-48bd-af0d-551777f23f87",
+      "channel_id": "54a8c74f-fd7f-46bb-808f-94c7f7a49208",
+      "name": "Suhu Tanah",
+      "type": "soil_temp",
+      "unit": "C",
+      "thingspeak_field": "field1",
+      "min_threshold": 20.0,
+      "max_threshold": 32.0,
+      "enabled": true
+    },
+    {
+      "id": "746967bf-7986-4a06-b347-df61b55d1066",
+      "node_id": "80869b56-f051-48bd-af0d-551777f23f87",
+      "channel_id": "54a8c74f-fd7f-46bb-808f-94c7f7a49208",
+      "name": "Tegangan Baterai",
+      "type": "batt_volt",
+      "unit": "V",
+      "thingspeak_field": "field2",
+      "min_threshold": 11.5,
+      "max_threshold": 14.2,
+      "enabled": true
+    },
+    {
+      "id": "ef9df73d-3325-4579-8bc2-b74b8c45020c",
+      "node_id": "80869b56-f051-48bd-af0d-551777f23f87",
+      "channel_id": "54a8c74f-fd7f-46bb-808f-94c7f7a49208",
+      "name": "Tegangan Load",
+      "type": "load_volt",
+      "unit": "V",
+      "thingspeak_field": "field3",
+      "min_threshold": 11.2,
+      "max_threshold": 14.0,
+      "enabled": true
+    },
+    {
+      "id": "aaf337fc-81bf-499d-982f-64b3df78e1f7",
+      "node_id": "a61f26b3-a429-455f-b5ba-8553683c071e",
+      "channel_id": "6e137ca6-64d8-433b-9c6c-58a347848cbd",
+      "name": "Tegangan Load",
+      "type": "load_volt",
+      "unit": "V",
+      "thingspeak_field": "field4",
+      "min_threshold": 11.2,
+      "max_threshold": 14.0,
+      "enabled": true
+    },
+    {
+      "id": "9b38372e-3cc9-4dc0-bdde-adaaebb225c9",
+      "node_id": "a61f26b3-a429-455f-b5ba-8553683c071e",
+      "channel_id": "ac57bd8d-3172-4d89-8820-d3784da5853d",
+      "name": "Kalium",
+      "type": "npk_k",
+      "unit": "mg/kg",
+      "thingspeak_field": "field3",
+      "min_threshold": 20.0,
+      "max_threshold": 60.0,
+      "enabled": true
+    },
+    {
+      "id": "c87011fe-75b6-4337-86e2-7a2abb4d4a5b",
+      "node_id": "80869b56-f051-48bd-af0d-551777f23f87",
+      "channel_id": "54a8c74f-fd7f-46bb-808f-94c7f7a49208",
+      "name": "Suhu Dalam Panel",
+      "type": "box_temp",
+      "unit": "C",
+      "thingspeak_field": "field6",
+      "min_threshold": 20.0,
+      "max_threshold": 34.0,
+      "enabled": true
+    },
+    {
+      "id": "4b450ff6-6607-49ea-b103-a1aaeb1901e5",
+      "node_id": "80869b56-f051-48bd-af0d-551777f23f87",
+      "channel_id": "54a8c74f-fd7f-46bb-808f-94c7f7a49208",
+      "name": "Daya Beban Aktual",
+      "type": "load_power",
+      "unit": "W",
+      "thingspeak_field": "field8",
+      "min_threshold": 0.0,
+      "max_threshold": 10.0,
+      "enabled": true
+    },
+    {
+      "id": "07cbdb83-fa5c-4c5d-afef-62d992fc2b58",
+      "node_id": "a61f26b3-a429-455f-b5ba-8553683c071e",
+      "channel_id": "ac57bd8d-3172-4d89-8820-d3784da5853d",
+      "name": "Nitrogen",
+      "type": "npk_n",
+      "unit": "mg/kg",
+      "thingspeak_field": "field1",
+      "min_threshold": 20.0,
+      "max_threshold": 80.0,
+      "enabled": true
+    },
+    {
+      "id": "08a314c8-7706-4133-ab83-9c50ea9edee3",
+      "node_id": "80869b56-f051-48bd-af0d-551777f23f87",
+      "channel_id": "c6ea4153-b149-44d7-8460-75626e9e757f",
+      "name": "Suhu Luar Rata-Rata",
+      "type": "air_temp",
+      "unit": "C",
+      "thingspeak_field": "field7",
+      "min_threshold": 20.0,
+      "max_threshold": 35.0,
+      "enabled": true
+    },
+    {
+      "id": "0ce6c502-2e1d-464b-a303-ab8f6e04cab6",
+      "node_id": "a61f26b3-a429-455f-b5ba-8553683c071e",
+      "channel_id": "ac57bd8d-3172-4d89-8820-d3784da5853d",
+      "name": "EC Tanah",
+      "type": "soil_ec",
+      "unit": "uS/cm",
+      "thingspeak_field": "field5",
+      "min_threshold": 800.0,
+      "max_threshold": 2000.0,
+      "enabled": true
+    },
+    {
+      "id": "263b04bc-b73c-40e7-bb57-94054ba34869",
+      "node_id": "a61f26b3-a429-455f-b5ba-8553683c071e",
+      "channel_id": "ac57bd8d-3172-4d89-8820-d3784da5853d",
+      "name": "Lembab Luar Rata-Rata",
+      "type": "air_humidity",
+      "unit": "%",
+      "thingspeak_field": "field7",
+      "min_threshold": 50.0,
+      "max_threshold": 85.0,
+      "enabled": true
+    },
+    {
+      "id": "366364cd-f1c5-4f61-9101-6413ae5d3415",
+      "node_id": "80869b56-f051-48bd-af0d-551777f23f87",
+      "channel_id": "54a8c74f-fd7f-46bb-808f-94c7f7a49208",
+      "name": "Status Aktuator",
+      "type": "actuator",
+      "unit": "",
+      "thingspeak_field": "field7",
+      "min_threshold": null,
+      "max_threshold": null,
+      "enabled": true
+    },
+    {
+      "id": "9d926553-2433-45fb-8538-a6ed4f783c29",
+      "node_id": "a61f26b3-a429-455f-b5ba-8553683c071e",
+      "channel_id": "ac57bd8d-3172-4d89-8820-d3784da5853d",
+      "name": "Suhu Luar Rata-Rata",
+      "type": "air_temp",
+      "unit": "C",
+      "thingspeak_field": "field6",
+      "min_threshold": 20.0,
+      "max_threshold": 35.0,
+      "enabled": true
+    },
+    {
+      "id": "3c0424f6-84d3-47ad-9ed9-8f327461da5b",
+      "node_id": "a61f26b3-a429-455f-b5ba-8553683c071e",
+      "channel_id": "ac57bd8d-3172-4d89-8820-d3784da5853d",
+      "name": "pH Tanah",
+      "type": "soil_ph",
+      "unit": "pH",
+      "thingspeak_field": "field4",
+      "min_threshold": 6.0,
+      "max_threshold": 7.0,
+      "enabled": true
+    },
+    {
+      "id": "4a01c893-3163-44ca-b4cd-5790efda39f8",
+      "node_id": "a61f26b3-a429-455f-b5ba-8553683c071e",
+      "channel_id": "6e137ca6-64d8-433b-9c6c-58a347848cbd",
+      "name": "Kelembapan Probe NPK",
+      "type": "soil_moisture",
+      "unit": "%",
+      "thingspeak_field": "field2",
+      "min_threshold": 35.0,
+      "max_threshold": 55.0,
+      "enabled": true
+    },
+    {
+      "id": "6274e8c6-6723-4e44-adb4-3502afa94d54",
+      "node_id": "a61f26b3-a429-455f-b5ba-8553683c071e",
+      "channel_id": "6e137ca6-64d8-433b-9c6c-58a347848cbd",
+      "name": "Suhu Tanah",
+      "type": "soil_temp",
+      "unit": "C",
+      "thingspeak_field": "field1",
+      "min_threshold": 20.0,
+      "max_threshold": 32.0,
+      "enabled": true
+    },
+    {
+      "id": "6ec5e446-7e47-409a-b60a-98f0c08c92e1",
+      "node_id": "80869b56-f051-48bd-af0d-551777f23f87",
+      "channel_id": "c6ea4153-b149-44d7-8460-75626e9e757f",
+      "name": "Lembab Luar Rata-Rata",
+      "type": "air_humidity",
+      "unit": "%",
+      "thingspeak_field": "field8",
+      "min_threshold": 50.0,
+      "max_threshold": 85.0,
+      "enabled": true
+    },
+    {
+      "id": "6f1f30f2-e4e6-4495-9e07-01f655bfecbc",
+      "node_id": "80869b56-f051-48bd-af0d-551777f23f87",
+      "channel_id": "c6ea4153-b149-44d7-8460-75626e9e757f",
+      "name": "pH Tanah",
+      "type": "soil_ph",
+      "unit": "pH",
+      "thingspeak_field": "field4",
+      "min_threshold": 6.0,
+      "max_threshold": 7.0,
+      "enabled": true
+    },
+    {
+      "id": "b0b9a687-24e4-4ad8-837c-8d624299786a",
+      "node_id": "80869b56-f051-48bd-af0d-551777f23f87",
+      "channel_id": "c6ea4153-b149-44d7-8460-75626e9e757f",
+      "name": "Fosfor",
+      "type": "npk_p",
+      "unit": "mg/kg",
+      "thingspeak_field": "field2",
+      "min_threshold": 15.0,
+      "max_threshold": 60.0,
+      "enabled": true
+    },
+    {
+      "id": "76256900-e74a-4beb-94d6-003b6b684a8f",
+      "node_id": "a61f26b3-a429-455f-b5ba-8553683c071e",
+      "channel_id": "6e137ca6-64d8-433b-9c6c-58a347848cbd",
+      "name": "Tegangan Baterai",
+      "type": "batt_volt",
+      "unit": "V",
+      "thingspeak_field": "field3",
+      "min_threshold": 11.5,
+      "max_threshold": 14.2,
+      "enabled": true
+    },
+    {
+      "id": "80cd36b5-4b37-437e-8ea6-9c2e80d1e0e7",
+      "node_id": "80869b56-f051-48bd-af0d-551777f23f87",
+      "channel_id": "c6ea4153-b149-44d7-8460-75626e9e757f",
+      "name": "Kalium",
+      "type": "npk_k",
+      "unit": "mg/kg",
+      "thingspeak_field": "field3",
+      "min_threshold": 20.0,
+      "max_threshold": 60.0,
+      "enabled": true
+    },
+    {
+      "id": "a58a0161-3f80-45da-8f30-72f11d3095ed",
+      "node_id": "a61f26b3-a429-455f-b5ba-8553683c071e",
+      "channel_id": "6e137ca6-64d8-433b-9c6c-58a347848cbd",
+      "name": "Arus Load",
+      "type": "load_current",
+      "unit": "A",
+      "thingspeak_field": "field6",
+      "min_threshold": 0.0,
+      "max_threshold": 2.5,
+      "enabled": true
+    },
+    {
+      "id": "a9cd3b34-c9db-4548-94e5-5f2d754f223d",
+      "node_id": "80869b56-f051-48bd-af0d-551777f23f87",
+      "channel_id": "c6ea4153-b149-44d7-8460-75626e9e757f",
+      "name": "Rata-rata Kelembapan Tanah",
+      "type": "soil_moisture",
+      "unit": "%",
+      "thingspeak_field": "field6",
+      "min_threshold": 35.0,
+      "max_threshold": 55.0,
+      "enabled": true
+    },
+    {
+      "id": "b7be8fb1-1ffa-4f9e-a546-f32cc9241996",
+      "node_id": "a61f26b3-a429-455f-b5ba-8553683c071e",
+      "channel_id": "6e137ca6-64d8-433b-9c6c-58a347848cbd",
+      "name": "Status Aktuator",
+      "type": "actuator",
+      "unit": "",
+      "thingspeak_field": "field8",
+      "min_threshold": null,
+      "max_threshold": null,
+      "enabled": true
+    },
+    {
+      "id": "c0e40865-efc2-49f8-a354-32292fd3f5ad",
+      "node_id": "80869b56-f051-48bd-af0d-551777f23f87",
+      "channel_id": "c6ea4153-b149-44d7-8460-75626e9e757f",
+      "name": "Nitrogen",
+      "type": "npk_n",
+      "unit": "mg/kg",
+      "thingspeak_field": "field1",
+      "min_threshold": 20.0,
+      "max_threshold": 80.0,
+      "enabled": true
+    },
+    {
+      "id": "e7cdcaa4-9f23-4785-8840-d1c71fe86bbc",
+      "node_id": "80869b56-f051-48bd-af0d-551777f23f87",
+      "channel_id": "c6ea4153-b149-44d7-8460-75626e9e757f",
+      "name": "EC Tanah",
+      "type": "soil_ec",
+      "unit": "uS/cm",
+      "thingspeak_field": "field5",
+      "min_threshold": 800.0,
+      "max_threshold": 2000.0,
+      "enabled": true
+    },
+    {
+      "id": "f408ca07-8f91-4d9f-8f58-760933e7fc97",
+      "node_id": "a61f26b3-a429-455f-b5ba-8553683c071e",
+      "channel_id": "6e137ca6-64d8-433b-9c6c-58a347848cbd",
+      "name": "Suhu Dalam Panel",
+      "type": "box_temp",
+      "unit": "C",
+      "thingspeak_field": "field7",
+      "min_threshold": 20.0,
+      "max_threshold": 38.0,
+      "enabled": true
+    },
+    {
+      "id": "fa7b9e63-7a54-4e82-a50f-6b0539a73ab6",
+      "node_id": "a61f26b3-a429-455f-b5ba-8553683c071e",
+      "channel_id": "ac57bd8d-3172-4d89-8820-d3784da5853d",
+      "name": "Daya Beban Aktual",
+      "type": "load_power",
+      "unit": "W",
+      "thingspeak_field": "field8",
+      "min_threshold": 0.0,
+      "max_threshold": 10.0,
+      "enabled": true
+    },
+    {
+      "id": "fb083ab0-ec6a-4303-9798-40de49cd4426",
+      "node_id": "a61f26b3-a429-455f-b5ba-8553683c071e",
+      "channel_id": "ac57bd8d-3172-4d89-8820-d3784da5853d",
+      "name": "Fosfor",
+      "type": "npk_p",
+      "unit": "mg/kg",
+      "thingspeak_field": "field2",
+      "min_threshold": 15.0,
+      "max_threshold": 60.0,
+      "enabled": true
+    },
+    {
+      "id": "f647946b-fc67-43cb-8f49-af8de3287595",
+      "node_id": "80869b56-f051-48bd-af0d-551777f23f87",
+      "channel_id": "54a8c74f-fd7f-46bb-808f-94c7f7a49208",
+      "name": "Arus Baterai",
+      "type": "batt_current",
+      "unit": "A",
+      "thingspeak_field": "field4",
+      "min_threshold": 0.0,
+      "max_threshold": 3.0,
+      "enabled": true
+    }
+  ],
+  "system_config": [
+    {
+      "id": 1,
+      "offline_threshold_mins": 20,
+      "telegram_bot_token": "8942934307:AAGee6rKJIvJvf87gftAVJ_ES9QhdR200II",
+      "telegram_chat_id": "-1003952293699"
+    }
+  ]
+}

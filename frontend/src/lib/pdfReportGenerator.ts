@@ -23,6 +23,7 @@ export interface SensorStatItem {
   minThreshold?: number | null
   maxThreshold?: number | null
   status?: string
+  category?: string
 }
 
 export interface PDFReportOptions {
@@ -31,6 +32,7 @@ export interface PDFReportOptions {
   location?: string
   coordinates?: string
   rangeLabel: string
+  categoryId?: string
   categoryLabel?: string
   /* Parameter names highlighted by the dashboard ikhtisar, in its own order. */
   highlightParams?: string[]
@@ -83,7 +85,263 @@ function categoryCode(label?: string): string {
   if (l.includes('npk') || l.includes('hara')) return 'NPK'
   if (l.includes('tanah')) return 'TNH'
   if (l.includes('iot') || l.includes('lingkungan')) return 'ENV'
+  if (l.includes('listrik') || l.includes('daya') || l.includes('power')) return 'PWR'
   return 'UMM'
+}
+
+function parseNumber(val: any): number | null {
+  if (val === null || val === undefined || val === '--' || val === '') return null
+  const n = typeof val === 'number' ? val : Number(val)
+  return Number.isFinite(n) ? n : null
+}
+
+function buildAcademicTelemetrySynthesis(options: PDFReportOptions): string {
+  const stats = options.stats || []
+  if (!stats.length) {
+    return `Tidak terdapat data telemetri yang terekam untuk kategori ${options.categoryLabel || 'terpilih'} pada stasiun ${options.nodeCode} periode ${options.rangeLabel.toLowerCase()}. Disarankan melakukan verifikasi transmisi perangkat IoT dan pemetaan kanal ThingSpeak.`
+  }
+
+  interface CleanStat {
+    name: string
+    unit: string
+    domain: string
+    category: string
+    last: number | null
+    avg: number | null
+    min: number | null
+    max: number | null
+    minTh: number | null
+    maxTh: number | null
+    hasThreshold: boolean
+    status: string
+  }
+
+  const cleanStats: CleanStat[] = stats.map(s => {
+    const last = parseNumber(s.lastVal)
+    const avg = parseNumber(s.avg)
+    const min = parseNumber(s.min)
+    const max = parseNumber(s.max)
+    const minTh = parseNumber(s.minThreshold)
+    const maxTh = parseNumber(s.maxThreshold)
+    const hasThreshold = minTh !== null || maxTh !== null
+
+    return {
+      name: s.name,
+      unit: s.unit || '',
+      domain: s.domain || 'Lahan',
+      category: s.category || 'other',
+      last,
+      avg,
+      min,
+      max,
+      minTh,
+      maxTh,
+      hasThreshold,
+      status: s.status || 'Optimal'
+    }
+  })
+
+  const total = cleanStats.length
+  const withThreshold = cleanStats.filter(s => s.hasThreshold)
+  const withoutThreshold = cleanStats.filter(s => !s.hasThreshold)
+  const below = withThreshold.filter(s => s.status === 'Di Bawah Batas')
+  const above = withThreshold.filter(s => s.status === 'Melebihi Batas')
+  const optimal = withThreshold.filter(s => s.status === 'Optimal')
+
+  // 1. Paragraf Ringkasan Kepatuhan & Cakupan Evaluasi
+  let p1 = `Pemantauan telemetri kategori ${options.categoryLabel || 'Semua Parameter'} pada stasiun ${options.nodeCode} (${options.nodeName}) selama periode ${options.rangeLabel.toLowerCase()} menghimpun ${options.dataPointsCount} titik data pada ${total} parameter sensor.`
+
+  if (withThreshold.length > 0) {
+    const complianceRate = Math.round((optimal.length / withThreshold.length) * 100)
+    p1 += ` Dari ${total} parameter, sebanyak ${withThreshold.length} parameter memiliki ambang batas operasional yang terdefinisi dengan tingkat kepatuhan ${complianceRate}% (${optimal.length} dari ${withThreshold.length} parameter berstatus normal).`
+
+    if (below.length > 0 || above.length > 0) {
+      const anomalies: string[] = []
+      if (below.length > 0) {
+        const list = below.map(s => `${s.name} (${s.last !== null ? s.last : '--'} ${s.unit}, ambang min. ${s.minTh ?? '--'})`).join(', ')
+        anomalies.push(`${below.length} parameter di bawah ambang batas (${list})`)
+      }
+      if (above.length > 0) {
+        const list = above.map(s => `${s.name} (${s.last !== null ? s.last : '--'} ${s.unit}, ambang maks. ${s.maxTh ?? '--'})`).join(', ')
+        anomalies.push(`${above.length} parameter melebihi batas (${list})`)
+      }
+      p1 += ` Deviasi tercatat pada: ${anomalies.join('; ')}.`
+    }
+
+    if (withoutThreshold.length > 0) {
+      p1 += ` Sebanyak ${withoutThreshold.length} parameter belum memiliki ambang batas acuan sehingga evaluasi deviasi dilakukan berdasarkan analisis deskriptif kuantitatif.`
+    }
+  } else {
+    p1 += ` Seluruh ${total} parameter belum memiliki ambang batas operasional yang terdefinisi. Evaluasi dilakukan berdasarkan analisis deskriptif terhadap statistik kuantitatif periode pengamatan.`
+  }
+
+  // Helper: cari sensor berdasarkan category taxonomy + nama
+  const byCat = (cat: string) => cleanStats.filter(s => s.category === cat)
+  const findByName = (patterns: string[]) =>
+    cleanStats.find(s => patterns.some(p => s.name.toLowerCase().includes(p)))
+
+  const npkSensors = byCat('npk')
+  const nSensor = npkSensors.find(s => s.name.toLowerCase().includes('nitrogen') || s.name.toLowerCase().includes('nitrat'))
+  const pSensor = npkSensors.find(s => s.name.toLowerCase().includes('fosfor') || s.name.toLowerCase().includes('phosphor') || s.name.toLowerCase().includes('phospor'))
+  const kSensor = npkSensors.find(s => s.name.toLowerCase().includes('kalium') || s.name.toLowerCase().includes('potassium'))
+
+  const soilSensors = byCat('soil')
+  const soilMoists = soilSensors.filter(s => {
+    const n = s.name.toLowerCase()
+    return n.includes('lembab') || n.includes('lembap') || n.includes('moisture') || n.includes('kelembab') || n.includes('kelembap')
+  })
+  const phSensor = soilSensors.find(s => {
+    const n = s.name.toLowerCase()
+    return n.includes('ph') && !n.includes('phosphor') && !n.includes('fosfor') && !n.includes('phospor')
+  })
+  const ecSensor = soilSensors.find(s => {
+    const n = s.name.toLowerCase()
+    return n.includes('ec') || n.includes('konduktivitas') || n.includes('conductivity') || n.includes('daya hantar')
+  })
+
+  const envSensors = byCat('environment')
+  const airTempSensors = envSensors.filter(s => {
+    const n = s.name.toLowerCase()
+    return (n.includes('suhu') || n.includes('temp')) && !n.includes('dalam') && !n.includes('panel') && !n.includes('box') && !n.includes('tanah')
+  })
+  const airHumSensors = envSensors.filter(s => {
+    const n = s.name.toLowerCase()
+    return (n.includes('lembab') || n.includes('lembap') || n.includes('humidity')) && !n.includes('tanah') && !n.includes('soil')
+  })
+  const boxTempSensor = envSensors.find(s => {
+    const n = s.name.toLowerCase()
+    return n.includes('dalam') || n.includes('box') || n.includes('panel') || n.includes('enclosure') || n.includes('casing')
+  })
+
+  const powerSensors = byCat('power')
+  const voltSensors = powerSensors.filter(s => {
+    const n = s.name.toLowerCase()
+    return n.includes('tegangan') || n.includes('voltage') || n.includes('volt')
+  })
+  const currSensors = powerSensors.filter(s => {
+    const n = s.name.toLowerCase()
+    return n.includes('arus') || n.includes('current') || n.includes('ampere')
+  })
+
+  // 2. Paragraf Temuan Kuantitatif & Dinamika Parameter
+  let p2 = ''
+  const cat = (options.categoryId || '').toLowerCase()
+  const catLabel = (options.categoryLabel || '').toLowerCase()
+
+  if (cat === 'npk' || catLabel.includes('npk') || catLabel.includes('hara')) {
+    const nVal = nSensor?.avg ?? nSensor?.last ?? 0
+    const pVal = pSensor?.avg ?? pSensor?.last ?? 0
+    const kVal = kSensor?.avg ?? kSensor?.last ?? 0
+
+    if (nVal <= 2 && pVal <= 2 && kVal <= 2) {
+      p2 = `Evaluasi kuantitatif unsur hara makro primer mengindikasikan status defisiensi hara kritis pada media tanam. Rata-rata kadar Nitrogen tercatat ${nSensor?.avg ?? 0} ${nSensor?.unit || 'mg/kg'} (rentang ${nSensor?.min ?? 0}–${nSensor?.max ?? 0}), Fosfor ${pSensor?.avg ?? 0} ${pSensor?.unit || 'mg/kg'} (rentang ${pSensor?.min ?? 0}–${pSensor?.max ?? 0}), dan Kalium ${kSensor?.avg ?? 0} ${kSensor?.unit || 'mg/kg'} (rentang ${kSensor?.min ?? 0}–${kSensor?.max ?? 0}). Kondisi ini mengindikasikan ketiadaan suplai nutrisi makro esensial yang berpotensi menghambat metabolisme vegetatif tanaman.`
+    } else {
+      p2 = `Dinamika hara makro menunjukkan ketersediaan Nitrogen rata-rata ${nSensor?.avg ?? '--'} ${nSensor?.unit || 'mg/kg'} (rentang ${nSensor?.min ?? '--'}–${nSensor?.max ?? '--'}), Fosfor rata-rata ${pSensor?.avg ?? '--'} ${pSensor?.unit || 'mg/kg'} (rentang ${pSensor?.min ?? '--'}–${pSensor?.max ?? '--'}), dan Kalium rata-rata ${kSensor?.avg ?? '--'} ${kSensor?.unit || 'mg/kg'} (rentang ${kSensor?.min ?? '--'}–${kSensor?.max ?? '--'}). ${nVal >= 20 && pVal >= 15 && kVal >= 20 ? 'Keseimbangan nutrisi hara primer berada pada tingkat kecukupan optimal.' : 'Diperlukan evaluasi penyeimbangan formulasi pupuk pada fraksi hara yang mengalami defisit.'}`
+    }
+  } else if (cat === 'soil' || catLabel.includes('tanah')) {
+    const parts: string[] = []
+    if (soilMoists.length > 0) {
+      const validM = soilMoists.map(s => s.avg).filter((v): v is number => v !== null)
+      if (validM.length) {
+        const overallM = (validM.reduce((a, b) => a + b, 0) / validM.length).toFixed(1)
+        const minM = Math.min(...soilMoists.map(s => s.min).filter((v): v is number => v !== null))
+        const maxM = Math.max(...soilMoists.map(s => s.max).filter((v): v is number => v !== null))
+        if (Number(overallM) < 30) {
+          parts.push(`Kadar kelembaban tanah mengindikasikan status defisit air (rata-rata ${overallM}%, rentang fluktuasi ${minM}%–${maxM}%), yang menuntut evaluasi frekuensi irigasi.`)
+        } else if (Number(overallM) > 80) {
+          parts.push(`Kadar kelembaban tanah terpantau sangat basah/jenuh air (rata-rata ${overallM}%, rentang ${minM}%–${maxM}%), yang berpotensi menurunkan pasokan oksigen pori tanah.`)
+        } else {
+          parts.push(`Kadar kelembaban tanah terjaga stabil (rata-rata ${overallM}%, rentang ${minM}%–${maxM}%).`)
+        }
+      }
+    }
+    if (phSensor && phSensor.last !== null) {
+      if (phSensor.last < 5.8) {
+        parts.push(`Tingkat kemasaman tanah tergolong masam (pH ${phSensor.last}).`)
+      } else if (phSensor.last > 7.5) {
+        parts.push(`Derajat keasaman tergolong alkalis (pH ${phSensor.last}).`)
+      } else {
+        parts.push(`Reaksi kimiawi tanah menunjukkan derajat kemasaman netral yang ideal (pH ${phSensor.last}).`)
+      }
+    }
+    if (ecSensor && ecSensor.last !== null) {
+      parts.push(`Indeks konduktivitas listrik (EC) tercatat rata-rata ${ecSensor.avg ?? ecSensor.last} ${ecSensor.unit || 'µS/cm'} (puncak ${ecSensor.max ?? ecSensor.last} ${ecSensor.unit || 'µS/cm'}).`)
+    }
+    p2 = parts.join(' ')
+  } else if (cat === 'environment' || catLabel.includes('lingkungan') || catLabel.includes('iot')) {
+    const parts: string[] = []
+    if (airTempSensors.length > 0) {
+      const t = airTempSensors[0]
+      parts.push(`Suhu lingkungan mikro berfluktuasi antara ${t.min ?? '--'}°C hingga ${t.max ?? '--'}°C (rata-rata ${t.avg ?? t.last ?? '--'}°C).`)
+    }
+    if (airHumSensors.length > 0) {
+      const h = airHumSensors[0]
+      parts.push(`Kelembaban relatif udara terpantau pada rata-rata ${h.avg ?? h.last ?? '--'}% (rentang ${h.min ?? '--'}%–${h.max ?? '--'}%).`)
+    }
+    if (boxTempSensor) {
+      const bMax = boxTempSensor.max ?? boxTempSensor.last
+      const safeLim = options.enclosureSafeLimit || 55
+      if (bMax !== null && bMax > 45) {
+        parts.push(`Suhu boks panel mikrokontroler sempat menyentuh ${bMax}°C (rata-rata ${boxTempSensor.avg ?? '--'}°C), mendekati batas toleransi termal komponen (${safeLim}°C).`)
+      } else {
+        parts.push(`Integritas termal boks panel mikrokontroler terjaga stabil (rata-rata ${boxTempSensor.avg ?? '--'}°C, maks. ${bMax ?? '--'}°C, di bawah ambang batas aman ${safeLim}°C).`)
+      }
+    }
+    p2 = parts.join(' ')
+  } else if (cat === 'power' || catLabel.includes('listrik') || catLabel.includes('daya')) {
+    const parts: string[] = []
+    if (voltSensors.length > 0) {
+      const v = voltSensors[0]
+      parts.push(`Stabilitas catu daya terpantau dengan tegangan operasional rata-rata ${v.avg ?? v.last} ${v.unit || 'V'} (rentang fluktuasi ${v.min ?? '--'}–${v.max ?? '--'} ${v.unit || 'V'}).`)
+    }
+    if (currSensors.length > 0) {
+      const c = currSensors[0]
+      parts.push(`Beban konsumsi arus tercatat rata-rata ${c.avg ?? c.last} ${c.unit || 'mA'} dengan konsumsi puncak ${c.max ?? '--'} ${c.unit || 'mA'}.`)
+    }
+    p2 = parts.join(' ')
+  } else {
+    // Semua Parameter — ringkasan holistik
+    const findings: string[] = []
+    if (nSensor && pSensor && kSensor) {
+      findings.push(`Hara NPK: N rata-rata ${nSensor.avg ?? '--'}, P ${pSensor.avg ?? '--'}, K ${kSensor.avg ?? '--'} mg/kg.`)
+    }
+    if (soilMoists.length > 0) {
+      const valid = soilMoists.map(s => s.avg).filter((v): v is number => v !== null)
+      if (valid.length) {
+        findings.push(`Kelembaban tanah rata-rata ${(valid.reduce((a, b) => a + b, 0) / valid.length).toFixed(1)}%.`)
+      }
+    }
+    if (phSensor && phSensor.last !== null) findings.push(`pH tanah ${phSensor.last}.`)
+    if (boxTempSensor) {
+      findings.push(`Suhu panel maks. ${boxTempSensor.max ?? boxTempSensor.last ?? '--'}°C.`)
+    }
+    if (voltSensors.length > 0) {
+      findings.push(`Tegangan suplai rata-rata ${voltSensors[0].avg ?? voltSensors[0].last} ${voltSensors[0].unit || 'V'}.`)
+    }
+    p2 = findings.length
+      ? `Dinamika kuantitatif lintas domain: ${findings.join(' ')}`
+      : ''
+  }
+
+  // Fallback jika p2 kosong — enumerasi deskriptif seluruh sensor
+  if (!p2) {
+    const items = cleanStats
+      .filter(s => s.avg !== null || s.last !== null)
+      .map(s => `${s.name} rata-rata ${s.avg ?? s.last ?? '--'} ${s.unit} (min ${s.min ?? '--'}, maks ${s.max ?? '--'})`)
+    p2 = items.length
+      ? `Evaluasi parameter pada kategori ${options.categoryLabel || 'terpilih'}: ${items.join('; ')}.`
+      : `Data agregasi tidak tersedia untuk evaluasi kuantitatif pada periode ini.`
+  }
+
+  // 3. Paragraf Kesimpulan & Rekomendasi
+  let p3 = ''
+  if (below.length > 0 || above.length > 0) {
+    p3 = `Rekomendasi teknis: Prioritaskan mitigasi pada parameter yang mengalami deviasi ambang batas guna menjaga stabilitas agronomis lahan dan kinerja instrumen IoT. Pengawasan telemetri berkala disarankan hingga nilai pengukuran kembali ke rentang batas toleransi standar.`
+  } else {
+    p3 = `Kesimpulan evaluasi: Seluruh instrumen pemantauan dan kondisi parameter lahan berada dalam batas operasional yang andal. Disarankan mempertahankan siklus pengelolaan dan pemeliharaan perangkat saat ini.`
+  }
+
+  return `${p1}\n\n${p2}\n\n${p3}`
 }
 
 export async function generateExecutivePDFReport(options: PDFReportOptions): Promise<any> {
@@ -436,18 +694,12 @@ export async function generateExecutivePDFReport(options: PDFReportOptions): Pro
 
   const tableRows = options.stats.map((s, idx) => {
     // WinAnsi has no infinity glyph, so open-ended ranges are worded instead.
-    let thresholdText = 'Standar'
+    let thresholdText = '--'
     if (s.minThreshold != null && s.maxThreshold != null) thresholdText = `${s.minThreshold} - ${s.maxThreshold}`
     else if (s.minThreshold != null) thresholdText = `min. ${s.minThreshold}`
     else if (s.maxThreshold != null) thresholdText = `maks. ${s.maxThreshold}`
 
-    let statusText = s.status || 'Optimal'
-    const numVal = typeof s.lastVal === 'number' ? s.lastVal : (s.lastVal && !isNaN(Number(s.lastVal)) ? Number(s.lastVal) : null)
-    if (numVal !== null) {
-      if (s.maxThreshold != null && numVal > s.maxThreshold) statusText = 'Melebihi Batas'
-      else if (s.minThreshold != null && numVal < s.minThreshold) statusText = 'Di Bawah Batas'
-      else statusText = 'Optimal'
-    }
+    const statusText = s.status || 'Optimal'
 
     return [
       String(idx + 1),
@@ -553,47 +805,49 @@ export async function generateExecutivePDFReport(options: PDFReportOptions): Pro
   }
 
   // ===============================================================
-  // IV. CATATAN DAN ANALISIS
+  // IV. CATATAN DAN ANALISIS KONDISI LAHAN
   // ===============================================================
-  ensureSpace(20)
+  ensureSpace(25)
   y = sectionHeading('IV', 'Catatan dan Analisis Kondisi Lahan', y)
 
-  const agronomy = options.agronomyInsight ||
-    `Berdasarkan data telemetri periode ${options.rangeLabel.toLowerCase()}, kondisi kelembaban tanah dan rasio hara NPK berada pada rentang ideal. Disarankan mempertahankan siklus irigasi saat ini serta memantau fluktuasi suhu mikro lingkungan.`
-  const thermal = options.thermalInsight ||
-    `Suhu boks panel mikrokontroler terpantau stabil dalam batas aman termal (di bawah ${options.enclosureSafeLimit || 55}°C). Sistem proteksi dan ventilasi beroperasi secara optimal.`
+  const systemAnalysisText = buildAcademicTelemetrySynthesis(options)
+  const userNotesText = (options.notes && options.notes.trim())
+    ? options.notes.trim()
+    : 'Tidak ada catatan lapangan manual tambahan yang dilampirkan oleh penanggung jawab teknis pada periode pelaporan ini. Tindakan operasional dan mitigasi disarankan merujuk sepenuhnya pada hasil evaluasi telemetri otomatis di atas.'
 
-  const analysisItems: Array<[string, string]> = [
-    ['Kondisi Lahan dan Tanah', agronomy],
-    ['Kondisi Perangkat IoT', thermal]
+  const analysisSubsections: Array<[string, string]> = [
+    ['4.1 Sintesis dan Evaluasi Telemetri Otomatis Sistem', systemAnalysisText],
+    ['4.2 Catatan Lapangan dan Rekomendasi Penyusun', userNotesText]
   ]
-  if (options.notes && options.notes.trim()) {
-    analysisItems.push(['Catatan Tambahan Penyusun', options.notes.trim()])
-  }
 
-  analysisItems.forEach(([heading, body]) => {
-    doc.setFont('helvetica', 'normal')
-    doc.setFontSize(7.8)
-    const bodyLines: string[] = doc.splitTextToSize(body, CONTENT_W - 6)
-    const blockH = 3.6 + bodyLines.length * 3.6
-    ensureSpace(blockH + 4)
-
-    // Thin left rule marks the block, in place of a bullet.
-    doc.setDrawColor(...INK_MID)
-    doc.setLineWidth(0.7)
-    doc.line(MARGIN, y - 2.6, MARGIN, y - 2.6 + blockH)
-
+  analysisSubsections.forEach(([subHeading, bodyContent]) => {
+    ensureSpace(12)
     doc.setFont('helvetica', 'bold')
-    doc.setFontSize(7.6)
+    doc.setFontSize(8)
     doc.setTextColor(...INK)
-    doc.text(heading, MARGIN + 3.6, y)
+    doc.text(subHeading, MARGIN, y)
+    y += 4.5
 
-    doc.setFont('helvetica', 'normal')
-    doc.setFontSize(7.8)
-    doc.setTextColor(...INK_MID)
-    doc.text(bodyLines, MARGIN + 3.6, y + 4)
+    const paragraphs = bodyContent.split('\n\n').filter(p => p.trim().length > 0)
+    paragraphs.forEach((paragraph) => {
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(7.6)
+      const bodyLines: string[] = doc.splitTextToSize(paragraph.trim(), CONTENT_W - 6)
+      const blockH = bodyLines.length * 3.4
+      ensureSpace(blockH + 4)
 
-    y += blockH + 3
+      // Thin left rule marks the block
+      doc.setDrawColor(...INK_MID)
+      doc.setLineWidth(0.65)
+      doc.line(MARGIN, y - 2.2, MARGIN, y - 2.2 + blockH)
+
+      doc.setTextColor(...INK_MID)
+      doc.text(bodyLines, MARGIN + 3.6, y + 0.8)
+
+      y += blockH + 3
+    })
+
+    y += 2
   })
 
   // ===============================================================

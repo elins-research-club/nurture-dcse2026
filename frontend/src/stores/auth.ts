@@ -2,10 +2,29 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 
+export function isTokenExpired(tokenStr: string | null): boolean {
+  if (!tokenStr) return true
+  try {
+    const parts = tokenStr.split('.')
+    if (parts.length !== 3) return true
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')))
+    if (!payload.exp) return false
+    return Date.now() >= payload.exp * 1000
+  } catch {
+    return true
+  }
+}
+
 export const useAuthStore = defineStore('auth', () => {
-  const token = ref<string | null>(
-    localStorage.getItem('token') || sessionStorage.getItem('token')
-  )
+  const rawToken = localStorage.getItem('token') || sessionStorage.getItem('token')
+  const initialToken = isTokenExpired(rawToken) ? null : rawToken
+  if (rawToken && isTokenExpired(rawToken)) {
+    localStorage.removeItem('token')
+    sessionStorage.removeItem('token')
+    localStorage.removeItem('gconnect_remembered_token')
+  }
+
+  const token = ref<string | null>(initialToken)
   const user = ref<any>(null)
   const router = useRouter()
 
@@ -35,7 +54,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   const quickLogin = () => {
     const remembered = localStorage.getItem('gconnect_remembered_token')
-    if (remembered) {
+    if (remembered && !isTokenExpired(remembered)) {
       token.value = remembered
       isRemembered.value = true
       savedUsername.value = localStorage.getItem('gconnect_saved_username') || 'Administrator'
@@ -44,6 +63,9 @@ export const useAuthStore = defineStore('auth', () => {
         router.push('/dashboard')
       }
       return true
+    }
+    if (remembered && isTokenExpired(remembered)) {
+      localStorage.removeItem('gconnect_remembered_token')
     }
     return false
   }
@@ -59,7 +81,7 @@ export const useAuthStore = defineStore('auth', () => {
       localStorage.removeItem('gconnect_remembered_token')
       localStorage.removeItem('gconnect_saved_username')
     }
-    if (router) {
+    if (router && router.currentRoute.value.path !== '/dashboard') {
       router.push('/dashboard')
     }
   }
@@ -68,6 +90,15 @@ export const useAuthStore = defineStore('auth', () => {
     token.value = newToken
     if (userData) user.value = userData
     localStorage.setItem('token', newToken)
+  }
+
+  const isAuthenticated = () => {
+    if (!token.value) return false
+    if (isTokenExpired(token.value)) {
+      logout()
+      return false
+    }
+    return true
   }
 
   return {
@@ -79,6 +110,6 @@ export const useAuthStore = defineStore('auth', () => {
     login,
     quickLogin,
     logout,
-    isAuthenticated: () => !!token.value
+    isAuthenticated
   }
 })

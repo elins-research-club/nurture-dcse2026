@@ -7,31 +7,122 @@ from app.dependencies.auth import get_optional_current_user, require_admin
 from app.models.user import User
 from app.schemas.thingspeak_channel import ChannelResponse, ChannelCreate, ChannelUpdate
 from app.repositories import channel_repo, node_repo
+from app.services.field_decoder import LAYOUT_NODE1_PACKED, is_support_channel
 
 from app.models.sensor import Sensor
 from sqlalchemy import delete
 
-CHANNEL_1_TEMPLATES = [
-    {"name": "Nitrogen", "field": "field1", "unit": "mg/kg", "type": "npk"},
-    {"name": "Phosphorus", "field": "field2", "unit": "mg/kg", "type": "npk"},
-    {"name": "Potassium", "field": "field3", "unit": "mg/kg", "type": "npk"},
-    {"name": "pH", "field": "field4", "unit": "pH", "type": "soil"},
-    {"name": "eC", "field": "field5", "unit": "µS/cm", "type": "soil"},
-    {"name": "Rata-rata Kelembapan Tanah", "field": "field6", "unit": "%", "type": "soil"},
-    {"name": "Rata-rata Suhu Luar Box Panel", "field": "field7", "unit": "°C", "type": "environment"},
-    {"name": "Lembab luar rata-rata", "field": "field8", "unit": "%", "type": "environment"},
+# --------------------------------------------------------------------------
+# Peta field seed, mengikuti "Channel map" di CLAUDE.md.
+#
+# Ini cuma nilai awal supaya kanal baru tidak kosong; operator tetap bisa
+# mengubahnya lewat UI. Tapi kalau peta di bawah salah, sensor yang terbentuk
+# salah label sejak awal dan itu baru ketahuan jauh di belakang.
+#
+# Kanal utama identik untuk kedua node, KECUALI field6: Node 1 memakainya untuk
+# probe analog 1, Node 2 tidak punya probe analog sama sekali.
+# --------------------------------------------------------------------------
+
+# Peta field ThingSpeak terverifikasi dari firmware .ino:
+# Node 1:
+#   Kanal Utama (Ch 1):
+#     field1: Nitrogen (npk_n, mg/kg)
+#     field2: Fosfor (npk_p, mg/kg)
+#     field3: Kalium (npk_k, mg/kg)
+#     field4: pH Tanah (soil_ph, pH)
+#     field5: EC Tanah (soil_ec, uS/cm)
+#     field6: Rata-rata Kelembapan Tanah (soil_moisture, %)
+#     field7: Suhu Luar Rata-Rata (air_temp, C)
+#     field8: Lembab Luar Rata-Rata (air_humidity, %)
+#   Kanal Pendukung (Ch 2):
+#     field1: Suhu Tanah (soil_temp, C)
+#     field2: Tegangan Baterai (batt_volt, V)
+#     field3: Tegangan Load (load_volt, V)
+#     field4: Arus Baterai (batt_current, A)
+#     field5: Arus Load (load_current, A)
+#     field6: Suhu Dalam Panel (box_temp, C)
+#     field7: Status Aktuator (actuator, "")
+#     field8: Daya Beban Aktual (load_power, W)
+#
+# Node 2:
+#   Kanal Utama (Ch 1):
+#     field1: Nitrogen (npk_n, mg/kg)
+#     field2: Fosfor (npk_p, mg/kg)
+#     field3: Kalium (npk_k, mg/kg)
+#     field4: pH Tanah (soil_ph, pH)
+#     field5: EC Tanah (soil_ec, uS/cm)
+#     field6: Suhu Luar Rata-Rata (air_temp, C)
+#     field7: Lembab Luar Rata-Rata (air_humidity, %)
+#     field8: Daya Beban Aktual (load_power, W)
+#   Kanal Pendukung (Ch 2):
+#     field1: Suhu Tanah (soil_temp, C)
+#     field2: Kelembapan Probe NPK (soil_moisture, %)
+#     field3: Tegangan Baterai (batt_volt, V)
+#     field4: Tegangan Load (load_volt, V)
+#     field5: Arus Baterai (batt_current, A)
+#     field6: Arus Load (load_current, A)
+#     field7: Suhu Dalam Panel (box_temp, C)
+#     field8: Status Aktuator (actuator, "")
+
+TEMPLATE_UTAMA_NODE1 = [
+    {"name": "Nitrogen", "field": "field1", "unit": "mg/kg", "type": "npk_n"},
+    {"name": "Fosfor", "field": "field2", "unit": "mg/kg", "type": "npk_p"},
+    {"name": "Kalium", "field": "field3", "unit": "mg/kg", "type": "npk_k"},
+    {"name": "pH Tanah", "field": "field4", "unit": "pH", "type": "soil_ph"},
+    {"name": "EC Tanah", "field": "field5", "unit": "uS/cm", "type": "soil_ec"},
+    {"name": "Rata-rata Kelembapan Tanah", "field": "field6", "unit": "%", "type": "soil_moisture"},
+    {"name": "Suhu Luar Rata-Rata", "field": "field7", "unit": "C", "type": "air_temp"},
+    {"name": "Lembab Luar Rata-Rata", "field": "field8", "unit": "%", "type": "air_humidity"},
 ]
 
-CHANNEL_2_TEMPLATES = [
-    {"name": "Suhu Tanah", "field": "field1", "unit": "°C", "type": "soil"},
-    {"name": "Kelembapan Probe NPK", "field": "field2", "unit": "%", "type": "soil"},
-    {"name": "Kode Error Modbus", "field": "field3", "unit": "", "type": "system"},
-    {"name": "Soil probe 1", "field": "field4", "unit": "%", "type": "soil"},
-    {"name": "Soil probe 2", "field": "field5", "unit": "%", "type": "soil"},
-    {"name": "Soil probe 3", "field": "field6", "unit": "%", "type": "soil"},
-    {"name": "Suhu Dalam Box Panel", "field": "field7", "unit": "°C", "type": "environment"},
-    {"name": "Status aktuator", "field": "field8", "unit": "", "type": "actuator"},
+TEMPLATE_PENDUKUNG_NODE1 = [
+    {"name": "Suhu Tanah", "field": "field1", "unit": "C", "type": "soil_temp"},
+    {"name": "Tegangan Baterai", "field": "field2", "unit": "V", "type": "batt_volt"},
+    {"name": "Tegangan Load", "field": "field3", "unit": "V", "type": "load_volt"},
+    {"name": "Arus Baterai", "field": "field4", "unit": "A", "type": "batt_current"},
+    {"name": "Arus Load", "field": "field5", "unit": "A", "type": "load_current"},
+    {"name": "Suhu Dalam Panel", "field": "field6", "unit": "C", "type": "box_temp"},
+    {"name": "Status Aktuator", "field": "field7", "unit": "", "type": "actuator"},
+    {"name": "Daya Beban Aktual", "field": "field8", "unit": "W", "type": "load_power"},
 ]
+
+TEMPLATE_UTAMA_NODE2 = [
+    {"name": "Nitrogen", "field": "field1", "unit": "mg/kg", "type": "npk_n"},
+    {"name": "Fosfor", "field": "field2", "unit": "mg/kg", "type": "npk_p"},
+    {"name": "Kalium", "field": "field3", "unit": "mg/kg", "type": "npk_k"},
+    {"name": "pH Tanah", "field": "field4", "unit": "pH", "type": "soil_ph"},
+    {"name": "EC Tanah", "field": "field5", "unit": "uS/cm", "type": "soil_ec"},
+    {"name": "Suhu Luar Rata-Rata", "field": "field6", "unit": "C", "type": "air_temp"},
+    {"name": "Lembab Luar Rata-Rata", "field": "field7", "unit": "%", "type": "air_humidity"},
+    {"name": "Daya Beban Aktual", "field": "field8", "unit": "W", "type": "load_power"},
+]
+
+TEMPLATE_PENDUKUNG_NODE2 = [
+    {"name": "Suhu Tanah", "field": "field1", "unit": "C", "type": "soil_temp"},
+    {"name": "Kelembapan Probe NPK", "field": "field2", "unit": "%", "type": "soil_moisture"},
+    {"name": "Tegangan Baterai", "field": "field3", "unit": "V", "type": "batt_volt"},
+    {"name": "Tegangan Load", "field": "field4", "unit": "V", "type": "load_volt"},
+    {"name": "Arus Baterai", "field": "field5", "unit": "A", "type": "batt_current"},
+    {"name": "Arus Load", "field": "field6", "unit": "A", "type": "load_current"},
+    {"name": "Suhu Dalam Panel", "field": "field7", "unit": "C", "type": "box_temp"},
+    {"name": "Status Aktuator", "field": "field8", "unit": "", "type": "actuator"},
+]
+
+
+def pilih_template(layout: str, label: str | None, urutan: int) -> list[dict]:
+    """Pilih peta field sesuai node dan peran kanal.
+
+    Peran dibaca dari label kalau ada; kalau operator tidak memberi label,
+    kanal pertama dianggap utama dan sisanya pendukung.
+    """
+    pendukung = is_support_channel(label) if label else urutan > 0
+    node1 = layout == LAYOUT_NODE1_PACKED
+
+    if node1:
+        return TEMPLATE_PENDUKUNG_NODE1 if pendukung else TEMPLATE_UTAMA_NODE1
+    else:
+        return TEMPLATE_PENDUKUNG_NODE2 if pendukung else TEMPLATE_UTAMA_NODE2
+
 
 router = APIRouter(prefix="/nodes")
 
@@ -66,32 +157,30 @@ async def create_channel(node_id: str, channel_data: ChannelCreate, db: AsyncSes
     node = await _find_node(db, node_id)
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
-    
+
     existing_channels = await channel_repo.get_by_node_id(db, node.id)
     channel_index = len(existing_channels)
 
     channel = await channel_repo.create(
-        db, 
-        node_id=node.id, 
-        channel_id=channel_data.channel_id, 
-        read_api_key=channel_data.read_api_key, 
+        db,
+        node_id=node.id,
+        channel_id=channel_data.channel_id,
+        read_api_key=channel_data.read_api_key,
         write_api_key=channel_data.write_api_key,
-        label=channel_data.label or f"Channel {channel_index + 1}"
+        label=channel_data.label or ("Utama" if channel_index == 0 else "Pendukung")
     )
 
-    # Automatically seed the 8 standard sensor mappings for this channel
-    template = CHANNEL_1_TEMPLATES if channel_index == 0 else CHANNEL_2_TEMPLATES
-    for s in template:
-        new_sensor = Sensor(
+    # Seed sensor sesuai layout node dan peran kanal.
+    for s in pilih_template(node.field_layout, channel.label, channel_index):
+        db.add(Sensor(
             node_id=node.id,
             channel_id=channel.id,
             type=s["type"],
             name=s["name"],
             unit=s["unit"],
             thingspeak_field=s["field"],
-            enabled=True
-        )
-        db.add(new_sensor)
+            enabled=True,
+        ))
     await db.commit()
 
     return channel
@@ -114,7 +203,7 @@ async def delete_channel(node_id: str, channel_id: UUID, db: AsyncSession = Depe
     channel = await channel_repo.get_by_id(db, channel_id)
     if not channel or channel.node_id != node.id:
         raise HTTPException(status_code=404, detail="Channel not found")
-    
+
     # Delete associated sensors first to maintain clean data integrity
     await db.execute(delete(Sensor).where(Sensor.channel_id == channel.id))
     await channel_repo.delete(db, channel)

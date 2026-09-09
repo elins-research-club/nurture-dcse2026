@@ -17,7 +17,7 @@ import {
 } from 'lucide-vue-next'
 import { generateExecutivePDFReport, downloadExecutivePDFReport, type PDFReportOptions } from '@/lib/pdfReportGenerator'
 import { useTelemetryStore } from '@/stores/telemetry'
-import { filterSensorsByCategory } from '@/lib/sensorTaxonomy'
+import { filterSensorsByCategory, getSensorCategory } from '@/lib/sensorTaxonomy'
 
 const props = withDefaults(defineProps<{
   open: boolean
@@ -69,12 +69,13 @@ const categoryOptions = [
   { id: 'all' as const, label: 'Semua Parameter' },
   { id: 'npk' as const, label: 'Unsur Hara NPK' },
   { id: 'soil' as const, label: 'Kondisi Tanah' },
-  { id: 'environment' as const, label: 'IoT & Lingkungan' }
+  { id: 'environment' as const, label: 'IoT & Lingkungan' },
+  { id: 'power' as const, label: 'Sistem Kelistrikan' }
 ]
 
 // State for Dropdowns
 const selectedRange = ref<'1d' | '1w' | '1M' | 'custom'>('1d')
-const selectedCategory = ref<'all' | 'npk' | 'soil' | 'environment'>('all')
+const selectedCategory = ref<'all' | 'npk' | 'soil' | 'environment' | 'power'>('all')
 const modalFeeds = ref<any[]>([])
 
 // Fetch Feeds when Range Changes
@@ -159,21 +160,32 @@ const computedStats = computed(() => {
     const max = rawVals.length ? Number(Math.max(...rawVals).toFixed(1)) : '--'
     const avg = rawVals.length ? Number((rawVals.reduce((a, b) => a + b, 0) / rawVals.length).toFixed(1)) : '--'
 
-    const domainName = (s.name?.toLowerCase().includes('nitrogen') || s.name?.toLowerCase().includes('phosphor') || s.name?.toLowerCase().includes('kalium')) ? 'NPK' : (s.name?.toLowerCase().includes('panel') || s.name?.toLowerCase().includes('udara') ? 'IoT' : 'Tanah')
+    let status = 'Optimal'
+    const hasThreshold = s.min_threshold != null || s.max_threshold != null
+    if (typeof lastVal === 'number' && hasThreshold) {
+      if (s.max_threshold != null && lastVal > s.max_threshold) status = 'Melebihi Batas'
+      else if (s.min_threshold != null && lastVal < s.min_threshold) status = 'Di Bawah Batas'
+    } else if (!hasThreshold) {
+      status = 'Optimal'
+    }
+
+    const cat = getSensorCategory(s)
+    const domainMap: Record<string, string> = { npk: 'NPK', soil: 'Tanah', environment: 'IoT', power: 'Daya' }
 
     return {
       id: s.id,
       name: s.name,
       unit: s.unit || '',
       type: s.type,
-      domain: domainName,
+      domain: domainMap[cat] || 'Lahan',
+      category: cat,
       lastVal,
       avg,
       min,
       max,
       minThreshold: s.min_threshold,
       maxThreshold: s.max_threshold,
-      status: 'Optimal'
+      status
     }
   })
 })
@@ -190,6 +202,7 @@ const handleGeneratePDF = async (isPrint = false) => {
       location: props.location,
       coordinates: props.coordinates || (props.location && props.location.includes(',') ? props.location : undefined),
       rangeLabel: selectedRangeLabel.value,
+      categoryId: selectedCategory.value,
       categoryLabel: selectedCategoryLabel.value,
       // Only mirror the dashboard's ikhtisar while the report still covers the
       // same category; once the user picks another, those names no longer apply.

@@ -18,7 +18,13 @@ async def create_node(node_data: NodeCreate, db: AsyncSession = Depends(get_db),
     node = await node_repo.get_by_node_id(db, node_data.node_id)
     if node:
         raise HTTPException(status_code=400, detail="Node ID already registered")
-    return await node_repo.create(db, node_id=node_data.node_id, name=node_data.name, location=node_data.location)
+    return await node_repo.create(
+        db,
+        node_id=node_data.node_id,
+        name=node_data.name,
+        location=node_data.location,
+        field_layout=node_data.field_layout,
+    )
 
 @router.get("/{node_id}", response_model=NodeResponse)
 async def get_node(node_id: str, db: AsyncSession = Depends(get_db), current_user: Optional[User] = Depends(get_optional_current_user)):

@@ -132,7 +132,7 @@ const hexToRgba = (hex: string, alpha: number): string => {
 const getSensorDeterministicColor = (sensorName: string, index: number): string => {
   const name = (sensorName || '').toLowerCase()
   if (name.includes('nitrogen') || name === 'n') return '#10b981' // Green
-  if (name.includes('phosphor') || name.includes('fosfor') || name === 'p') return '#3b82f6' // Blue
+  if (name.includes('phosphor') || name.includes('phospor') || name.includes('fosfor') || name === 'p') return '#3b82f6' // Blue
   if (name.includes('potassium') || name.includes('kalium') || name === 'k') return '#8b5cf6' // Purple
   if (name.includes('ph')) return '#f59e0b' // Amber
   if (name.includes('ec') || name.includes('daya hantar')) return '#84cc16' // Lime
@@ -140,7 +140,11 @@ const getSensorDeterministicColor = (sensorName: string, index: number): string 
   if (name.includes('suhu') || name.includes('temp')) return '#ef4444' // Red
   if (name.includes('probe 1')) return '#0ea5e9' // Sky Blue
   if (name.includes('probe 2')) return '#06b6d4' // Cyan
-  if (name.includes('probe 3')) return '#14b8a6' // Teal
+  if (name.includes('tegangan baterai') || name.includes('tegangan aki') || name.includes('batt volt')) return '#10b981' // Emerald
+  if (name.includes('tegangan load') || name.includes('tegangan beban') || name.includes('tegangan')) return '#3b82f6' // Blue
+  if (name.includes('arus baterai') || name.includes('arus aki') || name.includes('batt curr')) return '#06b6d4' // Cyan
+  if (name.includes('arus load') || name.includes('arus beban') || name.includes('arus')) return '#f59e0b' // Amber
+  if (name.includes('daya') && !name.includes('daya hantar')) return '#8b5cf6' // Purple
   if (name.includes('kelembaban') || name.includes('moisture') || name.includes('lembab')) return '#06b6d4' // Cyan
   
   return COLOR_PALETTE[index % COLOR_PALETTE.length]
@@ -230,7 +234,7 @@ const option = computed(() => {
       padding: [10, 14],
       textStyle: { 
         color: '#f8fafc', 
-        fontSize: 16, 
+        fontSize: 14, 
         fontWeight: 500,
         fontFamily: "'Plus Jakarta Sans', sans-serif" 
       },
@@ -243,11 +247,40 @@ const option = computed(() => {
         },
         label: {
           backgroundColor: dark ? '#334155' : '#475569',
-          fontSize: 15,
+          fontSize: 13,
           fontWeight: 600,
           fontFamily: "'Plus Jakarta Sans', sans-serif",
           borderRadius: 6
         }
+      },
+      formatter: (params: any) => {
+        if (!Array.isArray(params) || params.length === 0) return ''
+        const timeStr = params[0].axisValueLabel || params[0].name || ''
+        let html = `<div style="font-weight:700;margin-bottom:6px;font-size:13px;color:${dark ? '#94a3b8' : '#cbd5e1'}">${timeStr}</div>`
+        params.forEach((item: any) => {
+          if (item.value == null || isNaN(item.value)) return
+          const marker = item.marker || ''
+          const seriesName = item.seriesName || ''
+          const valNum = Number(item.value)
+          let formattedVal = ''
+          const nameLower = seriesName.toLowerCase()
+          if (nameLower.includes('(a)') || nameLower.includes('arus') || nameLower.includes('current')) {
+            formattedVal = `${valNum > 0 ? '+' : ''}${valNum.toFixed(3)} A`
+          } else if (nameLower.includes('(v)') || nameLower.includes('tegangan') || nameLower.includes('volt')) {
+            formattedVal = `${valNum.toFixed(2)} V`
+          } else if (nameLower.includes('(w)') || nameLower.includes('watt') || (nameLower.includes('daya') && !nameLower.includes('daya hantar'))) {
+            formattedVal = `${valNum > 0 ? '+' : ''}${valNum.toFixed(2)} W`
+          } else if (nameLower.includes('ph')) {
+            formattedVal = `${valNum.toFixed(2)} pH`
+          } else {
+            formattedVal = Number.isInteger(valNum) ? String(valNum) : valNum.toFixed(1)
+          }
+          html += `<div style="display:flex;align-items:center;justify-content:space-between;gap:14px;font-size:13px;line-height:1.7;">
+            <span style="display:flex;align-items:center;gap:6px;">${marker} <span style="color:${dark ? '#e2e8f0' : '#f8fafc'}">${seriesName}</span></span>
+            <span style="font-weight:700;font-family:monospace;color:#fff">${formattedVal}</span>
+          </div>`
+        })
+        return html
       }
     },
     legend: {

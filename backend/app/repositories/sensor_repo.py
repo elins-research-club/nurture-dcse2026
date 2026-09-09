@@ -19,6 +19,10 @@ async def create(db: AsyncSession, node_id: UUID, channel_id: UUID, type: str, n
     return sensor
 
 async def update(db: AsyncSession, sensor: Sensor, **kwargs) -> Sensor:
+    # Router menyaring lewat model_dump(exclude_unset=True), jadi kunci yang sampai
+    # ke sini memang sengaja dikirim. Guard "value is not None" yang lama membuat
+    # enabled=False tidak bisa disimpan dan ambang yang sudah diisi tidak bisa
+    # dikosongkan kembali.
     for key, value in kwargs.items():
         if hasattr(sensor, key):
             setattr(sensor, key, value)
