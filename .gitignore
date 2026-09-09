@@ -41,6 +41,9 @@ pnpm-debug.log*
 postgres_data/
 .n8n/
 
+# Docker Local Overrides
+docker-compose.override.yml
+
 
 # IDE & OS
 .vscode/
