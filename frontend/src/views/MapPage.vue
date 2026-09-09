@@ -9,7 +9,7 @@ import DashboardLayout from '@/components/layout/DashboardLayout.vue'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { MapPin, Edit2, Save, X, Search, Compass, ChevronRight } from 'lucide-vue-next'
+import { MapPin, Edit2, Save, X, Search, Compass, ChevronRight, ChevronUp } from 'lucide-vue-next'
 import { reverseGeocode } from '@/lib/geocoding'
 
 const ELINS_CENTER: [number, number] = [-7.7679423, 110.3765989]
@@ -25,11 +25,23 @@ const activeNodeId = ref<string | null>(null)
 
 const filteredNodes = computed(() => {
   const q = searchQuery.value.trim().toLowerCase()
-  if (!q) return nodes.value
-  return nodes.value.filter((n: any) => 
-    (n.name && n.name.toLowerCase().includes(q)) || 
-    (n.node_id && n.node_id.toLowerCase().includes(q)) ||
-    (n.location && n.location.toLowerCase().includes(q))
+  const hasil = !q
+    ? [...nodes.value]
+    : nodes.value.filter((n: any) =>
+        (n.name && n.name.toLowerCase().includes(q)) ||
+        (n.node_id && n.node_id.toLowerCase().includes(q)) ||
+        (n.location && n.location.toLowerCase().includes(q))
+      )
+
+  // API tidak menjamin urutan, jadi diurutkan sendiri supaya Blok A selalu di
+  // atas Blok B. Disalin dulu ([...]) karena sort mengubah array aslinya --
+  // tanpa itu cache milik query ikut teracak.
+  return hasil.sort((a: any, b: any) =>
+    String(a.node_id || a.name || '').localeCompare(
+      String(b.node_id || b.name || ''),
+      undefined,
+      { numeric: true, sensitivity: 'base' }
+    )
   )
 })
 
@@ -37,64 +49,12 @@ const mapContainer = ref<HTMLElement | null>(null)
 let map: L.Map | null = null
 const markers: Record<string, L.Marker> = {}
 
-// --- Mobile Draggable Bottom Sheet for Node Sidebar ---
-// Di layar sempit, panel node dijadikan bottom sheet yang bisa diseret turun
-// (menyisakan cuma handle + judul) supaya peta di belakangnya kelihatan.
-// Di sm+ (desktop/tablet) tetap panel mengambang biasa, tidak draggable.
-const sheetRef = ref<HTMLElement | null>(null)
-const isMobileSheet = ref(false)
-const sheetCollapsed = ref(false)
-const sheetDragOffset = ref(0)
-const isDraggingSheet = ref(false)
-const SHEET_PEEK_PX = 84
-let dragStartY = 0
-let dragStartOffset = 0
-
-const updateIsMobileSheet = () => {
-  isMobileSheet.value = window.matchMedia('(max-width: 639px)').matches
-}
-
-const sheetMaxOffset = () => Math.max(0, (sheetRef.value?.offsetHeight ?? 0) - SHEET_PEEK_PX)
-
-const sheetTransformStyle = computed(() => {
-  if (!isMobileSheet.value) return {}
-  const base = sheetCollapsed.value ? sheetMaxOffset() : 0
-  const offset = Math.min(Math.max(base + sheetDragOffset.value, 0), sheetMaxOffset())
-  return { transform: `translateY(${offset}px)` }
-})
-
-const onSheetHandlePointerDown = (e: PointerEvent) => {
-  if (!isMobileSheet.value) return
-  isDraggingSheet.value = true
-  dragStartY = e.clientY
-  dragStartOffset = sheetCollapsed.value ? sheetMaxOffset() : 0
-  sheetDragOffset.value = 0
-  ;(e.currentTarget as HTMLElement)?.setPointerCapture?.(e.pointerId)
-  window.addEventListener('pointermove', onSheetHandlePointerMove)
-  window.addEventListener('pointerup', onSheetHandlePointerUp)
-}
-
-const onSheetHandlePointerMove = (e: PointerEvent) => {
-  if (!isDraggingSheet.value) return
-  sheetDragOffset.value = e.clientY - dragStartY
-}
-
-const onSheetHandlePointerUp = () => {
-  if (!isDraggingSheet.value) return
-  const dragDistance = Math.abs(sheetDragOffset.value)
-  if (dragDistance < 6) {
-    // Dianggap tap, bukan geser: cukup toggle collapsed/expanded.
-    sheetCollapsed.value = !sheetCollapsed.value
-  } else {
-    const maxOffset = sheetMaxOffset()
-    const finalOffset = Math.min(Math.max(dragStartOffset + sheetDragOffset.value, 0), maxOffset)
-    sheetCollapsed.value = finalOffset > maxOffset * 0.4
-  }
-  sheetDragOffset.value = 0
-  isDraggingSheet.value = false
-  window.removeEventListener('pointermove', onSheetHandlePointerMove)
-  window.removeEventListener('pointerup', onSheetHandlePointerUp)
-}
+// --- Mobile Bottom Sheet (toggle, bukan drag) ---
+// Digeser dengan jari terlalu sulit dipakai, jadi cukup satu ketukan pada
+// bilah judul untuk buka/tutup. Posisinya diatur murni lewat kelas CSS:
+// translate-y persen dihitung dari tinggi elemen itu sendiri, jadi tidak
+// perlu mengukur offsetHeight lewat JavaScript sama sekali.
+const sheetOpen = ref(true)
 
 const editMode = ref(false)
 const editingNode = ref<string | null>(null)
@@ -474,9 +434,6 @@ const saveCoords = async (node: any) => {
 }
 
 onMounted(() => {
-  updateIsMobileSheet()
-  window.addEventListener('resize', updateIsMobileSheet)
-
   // World bounds to prevent panning into grey empty areas
   const worldBounds = L.latLngBounds(L.latLng(-85.06, -180), L.latLng(85.06, 180))
 
@@ -579,9 +536,6 @@ watch(nodes, (list) => {
 onUnmounted(() => {
   map?.remove()
   map = null
-  window.removeEventListener('resize', updateIsMobileSheet)
-  window.removeEventListener('pointermove', onSheetHandlePointerMove)
-  window.removeEventListener('pointerup', onSheetHandlePointerUp)
 })
 </script>
 
@@ -606,31 +560,46 @@ onUnmounted(() => {
         G-Connect Smart Farming
       </div>
 
-      <!-- Floating Node Locations Sidebar / Mobile Draggable Bottom Sheet -->
+      <!-- Floating Node Locations Sidebar / Mobile Bottom Sheet (toggle) -->
       <aside
-        ref="sheetRef"
-        :style="sheetTransformStyle"
         :class="[
-          'fixed inset-x-0 bottom-0 h-[80vh] rounded-t-3xl',
-          /* Bottom nav (fixed bottom-0, ~65px + safe area) menutupi dasar sheet,
-             jadi isinya diberi bantalan supaya tombol footer tidak tenggelam. */
-          'pb-[calc(4.5rem+env(safe-area-inset-bottom))] sm:pb-0',
-          'sm:absolute sm:inset-x-auto sm:bottom-auto sm:top-5 sm:left-5 sm:h-auto sm:max-h-[75vh] sm:w-[340px] sm:rounded-2xl',
-          'z-20 sm:z-10 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl shadow-2xl border border-border/80 dark:border-slate-800 flex flex-col overflow-hidden',
-          isDraggingSheet ? '' : 'transition-transform duration-300 ease-out'
+          /* Didudukkan tepat di atas bottom nav (fixed bottom-0, ~66px + safe
+             area), bukan di belakangnya, supaya ruang isinya tidak terbuang.
+             Tingginya sengaja 'auto': yang dilipat adalah isi di bawah judul
+             (lihat div berikutnya), bukan sheet-nya digeser sejauh sekian
+             piksel. Dengan begitu tombol + baris judul selalu utuh terlihat
+             tanpa perlu konstanta peek yang gampang meleset saat header
+             berubah tinggi. */
+          /* Offset bawahnya sengaja LEBIH KECIL dari tinggi bottom nav (~66px)
+             supaya tepi bawah sheet terselip di balik nav, bukan menyisakan
+             celah yang bikin sheet terlihat mengambang. Padding pb-6 yang
+             menjaga tombol footer tetap bebas dari nav. */
+          'fixed inset-x-0 bottom-[calc(3rem+env(safe-area-inset-bottom))] pb-6 sm:pb-0 rounded-t-3xl',
+          'sm:absolute sm:inset-x-auto sm:bottom-auto sm:top-5 sm:left-5 sm:max-h-[75vh] sm:w-[340px] sm:rounded-2xl',
+          'z-20 sm:z-10 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl shadow-2xl border border-border/80 dark:border-slate-800 flex flex-col overflow-hidden'
         ]"
       >
-        <!-- Mobile Drag Handle (hidden on sm+, desktop panel isn't draggable) -->
-        <div
-          class="sm:hidden flex items-center justify-center py-2.5 shrink-0 cursor-grab active:cursor-grabbing touch-none select-none"
-          @pointerdown="onSheetHandlePointerDown"
+        <!-- Tombol buka/tutup (sekali ketuk). Sengaja BUKAN bilah grabber:
+             bentuk pil memanjang mengisyaratkan "seret", padahal ini toggle.
+             Chevron yang berputar adalah afordansi ketuk yang lazim. -->
+        <button
+          type="button"
+          class="sm:hidden flex items-center justify-center py-1.5 shrink-0 w-full select-none cursor-pointer active:scale-95 transition-transform"
+          :aria-expanded="sheetOpen"
+          :aria-label="sheetOpen ? 'Tutup daftar node' : 'Buka daftar node'"
+          @click="sheetOpen = !sheetOpen"
         >
-          <span class="w-10 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700"></span>
-        </div>
+          <span class="flex items-center gap-1 px-3 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 border border-border/70 shadow-2xs">
+            <ChevronUp
+              :class="['w-4 h-4 text-muted-foreground transition-transform duration-300', sheetOpen ? 'rotate-180' : '']"
+            />
+          </span>
+        </button>
 
         <!-- Header -->
         <div class="p-4 border-b border-slate-100 dark:border-slate-800">
-          <div class="flex items-center justify-between">
+          <!-- Baris judul ikut jadi area ketuk supaya sasarannya lebar -->
+          <div class="flex items-center justify-between cursor-pointer sm:cursor-default" @click="sheetOpen = !sheetOpen">
             <div class="flex items-center gap-2.5">
               <div class="shrink-0 flex items-center justify-center">
                 <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -667,30 +636,39 @@ onUnmounted(() => {
             </span>
           </div>
 
+        </div>
+
+        <!-- Isi yang dilipat saat sheet ditutup. Yang dianimasikan max-height,
+             bukan transform, supaya tombol + judul di atas selalu utuh apa pun
+             tinggi mereka. 38vh menjaga peta tetap terlihat sekitar separuh
+             layar; dari sm ke atas selalu terbuka. -->
+        <div
+          :class="[
+            'flex flex-col min-h-0 overflow-hidden transition-[max-height] duration-300 ease-out',
+            sheetOpen ? 'max-h-[38vh]' : 'max-h-0',
+            'sm:max-h-[calc(75vh-64px)]'
+          ]"
+        >
           <!-- Mini Search Input -->
-          <div class="mt-3 relative">
-            <input 
+          <div class="px-4 pt-3 pb-4 relative shrink-0">
+            <input
               v-model="searchQuery"
-              type="text" 
-              placeholder="Cari node..." 
+              type="text"
+              placeholder="Cari node..."
               class="w-full h-8 pl-8 pr-3 rounded-xl bg-slate-100 dark:bg-slate-800/90 border border-border/80 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary transition-all"
             />
-            <Search class="w-3.5 h-3.5 text-muted-foreground absolute left-2.5 top-2.5" />
-            <button 
-              v-if="searchQuery" 
-              @click="searchQuery = ''" 
-              class="absolute right-2.5 top-2 text-muted-foreground hover:text-foreground cursor-pointer"
+            <Search class="w-3.5 h-3.5 text-muted-foreground absolute left-6.5 top-5.5" />
+            <button
+              v-if="searchQuery"
+              @click="searchQuery = ''"
+              class="absolute right-6.5 top-5 text-muted-foreground hover:text-foreground cursor-pointer"
             >
               <X class="w-3.5 h-3.5" />
             </button>
           </div>
-        </div>
 
         <!-- Node List -->
-        <!-- Di bottom sheet mobile daftar dibiarkan mengisi sisa tinggi sheet
-             (flex-1 + min-h-0). Batas max-h lama (45vh-130px) bikin isinya cuma
-             ~158px dan menyisakan ruang kosong besar di bawah. -->
-        <div class="flex-1 min-h-0 overflow-y-auto p-3 space-y-2.5 sm:max-h-[calc(45vh-130px)] md:max-h-[calc(75vh-160px)]">
+        <div class="flex-1 min-h-0 overflow-y-auto p-3 pt-0 space-y-2.5">
           <div v-if="filteredNodes.length === 0" class="py-8 text-center text-xs text-muted-foreground">
             Tidak ada node ditemukan.
           </div>
@@ -831,11 +809,11 @@ onUnmounted(() => {
         </div>
 
         <!-- Bottom Footer -->
-        <div class="p-3 border-t border-border/80 dark:border-slate-800 flex flex-col gap-1.5 bg-slate-50/50 dark:bg-slate-900/50">
-          <Button 
-            class="w-full h-8 rounded-xl font-bold text-xs cursor-pointer shadow-2xs" 
-            :variant="editMode ? 'default' : 'outline'" 
-            size="sm" 
+        <div class="p-3 shrink-0 border-t border-border/80 dark:border-slate-800 flex flex-col gap-1.5 bg-slate-50/50 dark:bg-slate-900/50">
+          <Button
+            class="w-full h-8 rounded-xl font-bold text-xs cursor-pointer shadow-2xs"
+            :variant="editMode ? 'default' : 'outline'"
+            size="sm"
             @click="editMode = !editMode"
           >
             <Edit2 class="w-3.5 h-3.5 mr-1.5" />
@@ -844,6 +822,7 @@ onUnmounted(() => {
           <p v-if="editMode" class="text-[10px] text-muted-foreground text-center font-medium">
             Geser pin di peta atau masukkan koordinat manual
           </p>
+        </div>
         </div>
       </aside>
     </div>

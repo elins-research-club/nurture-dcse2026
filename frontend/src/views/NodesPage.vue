@@ -74,19 +74,23 @@ const goToMapWithNode = (event: Event) => {
     <div class="flex flex-col space-y-6">
       
       <!-- Page Header -->
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground flex items-center gap-2.5">
+      <!-- Judul dan tombol sebaris di semua ukuran. Di layar sempit judulnya
+           dikecilkan dan label tombol dipendekkan jadi "Tambah" -- ukuran
+           penuh keduanya tidak muat berdampingan di lebar 375px. -->
+      <div class="flex flex-row items-center justify-between gap-3">
+        <div class="min-w-0">
+          <h2 class="text-xl sm:text-3xl font-extrabold tracking-tight text-foreground flex items-center gap-2.5">
             <span>Daftar Node Lapangan</span>
           </h2>
         </div>
-        
-        <div class="flex items-center gap-2.5">
+
+        <div class="flex items-center gap-2.5 shrink-0">
           <AddNodeDialog>
             <template #trigger>
-              <Button size="sm" class="h-9 px-4 rounded-xl font-bold text-xs gap-1.5 shadow-2xs cursor-pointer">
-                <Plus class="w-4 h-4" />
-                <span>Tambah Node Baru</span>
+              <Button size="sm" class="h-9 px-3 sm:px-4 rounded-xl font-bold text-xs gap-1.5 shadow-2xs cursor-pointer">
+                <Plus class="w-4 h-4 shrink-0" />
+                <span class="sm:hidden">Tambah</span>
+                <span class="hidden sm:inline">Tambah Node Baru</span>
               </Button>
             </template>
           </AddNodeDialog>

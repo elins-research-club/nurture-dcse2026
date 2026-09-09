@@ -2020,21 +2020,21 @@ onUnmounted(() => {
                       :class="[
                         'bg-white/20 hover:bg-white/25 backdrop-blur-md text-white border border-white/35 shadow-xs transition-all max-w-full sm:shrink-0 select-none text-center',
                         phCardState.isAlert 
-                          ? 'px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-xl flex flex-col items-center gap-0.5' 
+                          ? 'px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-xl hidden sm:flex sm:flex-col items-center gap-0.5'
                           : (phCardState.longText
-                              ? 'px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-lg flex items-center max-w-[58px] sm:max-w-[84px]'
-                              : 'px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full flex items-center')
+                              ? 'px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-lg flex items-center max-w-full sm:max-w-[84px]'
+                              : 'px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full hidden sm:flex items-center')
                       ]"
                     >
                       <span :class="[
                         'font-black tracking-wide drop-shadow-[0_1px_1px_rgba(0,0,0,0.2)] flex items-center gap-0.5 text-white',
-                        phCardState.longText ? 'text-[7px] sm:text-[9px] leading-[1.1] whitespace-normal text-center' : 'text-[11px] sm:text-xs leading-tight'
+                        phCardState.longText ? 'text-[9px] leading-[1.1] whitespace-normal text-center' : 'text-[11px] sm:text-xs leading-tight'
                       ]">
                         <span v-if="phCardState.isLow" class="text-xs font-black">↓</span>
                         <span v-else-if="phCardState.isHigh" class="text-xs font-black">↑</span>
                         <span>{{ phStatus.text }}</span>
                       </span>
-                      <span v-if="phCardState.isAlert && phCardState.normalRangeText" class="text-[9.5px] sm:text-[10.5px] font-bold text-white/95 border-t border-white/25 pt-0.5 tracking-tight whitespace-normal sm:whitespace-nowrap drop-shadow-2xs">
+                      <span v-if="phCardState.isAlert && phCardState.normalRangeText" class="hidden sm:block text-[10.5px] font-bold text-white/95 border-t border-white/25 pt-0.5 tracking-tight whitespace-nowrap drop-shadow-2xs">
                         Normal: {{ phCardState.normalRangeText }}
                       </span>
                     </div>
@@ -2075,21 +2075,21 @@ onUnmounted(() => {
                       :class="[
                         'bg-white/20 hover:bg-white/25 backdrop-blur-md text-white border border-white/35 shadow-xs transition-all max-w-full sm:shrink-0 select-none text-center',
                         soilTempCardState.isAlert 
-                          ? 'px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-xl flex flex-col items-center gap-0.5' 
+                          ? 'px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-xl hidden sm:flex sm:flex-col items-center gap-0.5'
                           : (soilTempCardState.longText
-                              ? 'px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-lg flex items-center max-w-[58px] sm:max-w-[84px]'
-                              : 'px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full flex items-center')
+                              ? 'px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-lg flex items-center max-w-full sm:max-w-[84px]'
+                              : 'px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full hidden sm:flex items-center')
                       ]"
                     >
                       <span :class="[
                         'font-black tracking-wide drop-shadow-[0_1px_1px_rgba(0,0,0,0.2)] flex items-center gap-0.5 text-white',
-                        soilTempCardState.longText ? 'text-[7px] sm:text-[9px] leading-[1.1] whitespace-normal text-center' : 'text-[11px] sm:text-xs leading-tight'
+                        soilTempCardState.longText ? 'text-[9px] leading-[1.1] whitespace-normal text-center' : 'text-[11px] sm:text-xs leading-tight'
                       ]">
                         <span v-if="soilTempCardState.isLow" class="text-xs font-black">↓</span>
                         <span v-else-if="soilTempCardState.isHigh" class="text-xs font-black">↑</span>
                         <span>{{ soilTempStatus.text }}</span>
                       </span>
-                      <span v-if="soilTempCardState.isAlert && soilTempCardState.normalRangeText" class="text-[9.5px] sm:text-[10.5px] font-bold text-white/95 border-t border-white/25 pt-0.5 tracking-tight whitespace-normal sm:whitespace-nowrap drop-shadow-2xs">
+                      <span v-if="soilTempCardState.isAlert && soilTempCardState.normalRangeText" class="hidden sm:block text-[10.5px] font-bold text-white/95 border-t border-white/25 pt-0.5 tracking-tight whitespace-nowrap drop-shadow-2xs">
                         Normal: {{ soilTempCardState.normalRangeText }}°
                       </span>
                     </div>
@@ -2130,21 +2130,21 @@ onUnmounted(() => {
                       :class="[
                         'bg-white/20 hover:bg-white/25 backdrop-blur-md text-white border border-white/35 shadow-xs transition-all max-w-full sm:shrink-0 select-none text-center',
                         ecCardState.isAlert 
-                          ? 'px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-xl flex flex-col items-center gap-0.5' 
+                          ? 'px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-xl hidden sm:flex sm:flex-col items-center gap-0.5'
                           : (ecCardState.longText
-                              ? 'px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-lg flex items-center max-w-[58px] sm:max-w-[84px]'
-                              : 'px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full flex items-center')
+                              ? 'px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-lg flex items-center max-w-full sm:max-w-[84px]'
+                              : 'px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full hidden sm:flex items-center')
                       ]"
                     >
                       <span :class="[
                         'font-black tracking-wide drop-shadow-[0_1px_1px_rgba(0,0,0,0.2)] flex items-center gap-0.5 text-white',
-                        ecCardState.longText ? 'text-[7px] sm:text-[9px] leading-[1.1] whitespace-normal text-center' : 'text-[11px] sm:text-xs leading-tight'
+                        ecCardState.longText ? 'text-[9px] leading-[1.1] whitespace-normal text-center' : 'text-[11px] sm:text-xs leading-tight'
                       ]">
                         <span v-if="ecCardState.isLow" class="text-xs font-black">↓</span>
                         <span v-else-if="ecCardState.isHigh" class="text-xs font-black">↑</span>
                         <span>{{ ecStatus.text }}</span>
                       </span>
-                      <span v-if="ecCardState.isAlert && ecCardState.normalRangeText" class="text-[9.5px] sm:text-[10.5px] font-bold text-white/95 border-t border-white/25 pt-0.5 tracking-tight whitespace-normal sm:whitespace-nowrap drop-shadow-2xs">
+                      <span v-if="ecCardState.isAlert && ecCardState.normalRangeText" class="hidden sm:block text-[10.5px] font-bold text-white/95 border-t border-white/25 pt-0.5 tracking-tight whitespace-nowrap drop-shadow-2xs">
                         Normal: {{ ecCardState.normalRangeText }}
                       </span>
                     </div>
