@@ -2288,7 +2288,7 @@ onUnmounted(() => {
               <div class="bg-slate-50/80 dark:bg-slate-900/50 rounded-2xl px-3.5 py-2.5 border border-slate-200/80 dark:border-slate-800 flex items-center justify-between gap-2.5">
                 <!-- Neraca Daya Bersih Tanpa Background Warna -->
                 <div class="flex items-center gap-2">
-                  <span class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Neraca Daya:</span>
+                  <span class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">NERACA DAYA SISTEM:</span>
                   <div 
                     class="flex items-center gap-1.5 text-sm font-black tracking-tight"
                     :class="[

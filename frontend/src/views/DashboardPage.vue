@@ -181,7 +181,7 @@ onUnmounted(() => {
         </div>
 
         <h3 class="text-lg sm:text-xl font-bold text-foreground tracking-tight mb-2">
-          Gagal Menghubungkan ke Stasiun
+          Gagal Menghubungkan ke IoT
         </h3>
         
         <p class="text-sm text-muted-foreground leading-relaxed max-w-sm mb-6">
