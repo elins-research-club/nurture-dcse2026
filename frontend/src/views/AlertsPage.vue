@@ -162,7 +162,10 @@ const visiblePages = computed(() => {
               title="Buka Wizard Ekspor Telemetri (CSV)"
             >
               <ExcelIcon />
-              <span>Export (CSV)</span>
+              <!-- Di layar sempit cukup "CSV": label panjang bikin dua tombol
+                   ini memakan hampir seluruh lebar baris. Mulai sm kembali penuh. -->
+              <span class="sm:hidden">CSV</span>
+              <span class="hidden sm:inline">Export (CSV)</span>
             </Button>
 
             <!-- Laporan Agronomi PDF Button (Rose) -->
@@ -174,7 +177,8 @@ const visiblePages = computed(() => {
               title="Pratinjau & Cetak Laporan Resmi PDF"
             >
               <PdfIcon />
-              <span>Laporan (PDF)</span>
+              <span class="sm:hidden">PDF</span>
+              <span class="hidden sm:inline">Laporan (PDF)</span>
             </Button>
           </div>
         </CardHeader>

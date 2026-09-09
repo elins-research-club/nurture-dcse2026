@@ -647,14 +647,14 @@ const confirmDeleteChannel = async () => {
         <TabsList class="flex w-full justify-start gap-8 !border-0 !border-b !border-border/80 !bg-transparent !p-0 !rounded-none !shadow-none !overflow-visible h-auto mb-6">
           <TabsTrigger 
             value="dashboard" 
-            class="relative pb-3 pt-1 px-1 !rounded-none !bg-transparent !shadow-none !ring-0 border-0 border-b-2 border-transparent data-[state=active]:!border-primary data-[state=active]:!text-primary data-[state=active]:!bg-transparent data-[state=active]:!shadow-none font-bold text-xs sm:text-sm text-muted-foreground hover:text-foreground transition-all flex items-center gap-2 cursor-pointer -mb-px"
+            class="relative pb-3 pt-1 px-3 sm:px-4 !rounded-none !bg-transparent !shadow-none !ring-0 border-0 border-b-2 border-transparent data-[state=active]:!border-primary data-[state=active]:!text-primary data-[state=active]:!bg-transparent data-[state=active]:!shadow-none font-bold text-xs sm:text-sm text-muted-foreground hover:text-foreground transition-all flex items-center justify-center gap-2 cursor-pointer -mb-px"
           >
             <LayoutDashboard class="w-4 h-4" />
             <span>Dashboard Telemetri</span>
           </TabsTrigger>
           <TabsTrigger 
             value="configuration" 
-            class="relative pb-3 pt-1 px-1 !rounded-none !bg-transparent !shadow-none !ring-0 border-0 border-b-2 border-transparent data-[state=active]:!border-primary data-[state=active]:!text-primary data-[state=active]:!bg-transparent data-[state=active]:!shadow-none font-bold text-xs sm:text-sm text-muted-foreground hover:text-foreground transition-all flex items-center gap-2 cursor-pointer -mb-px"
+            class="relative pb-3 pt-1 px-3 sm:px-4 !rounded-none !bg-transparent !shadow-none !ring-0 border-0 border-b-2 border-transparent data-[state=active]:!border-primary data-[state=active]:!text-primary data-[state=active]:!bg-transparent data-[state=active]:!shadow-none font-bold text-xs sm:text-sm text-muted-foreground hover:text-foreground transition-all flex items-center justify-center gap-2 cursor-pointer -mb-px"
           >
             <Sliders class="w-4 h-4" />
             <span>Konfigurasi Channel</span>
@@ -672,9 +672,13 @@ const confirmDeleteChannel = async () => {
             <!-- Unified Header Row -->
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5">
               <div>
-                <h3 class="text-base sm:text-lg font-bold text-foreground flex items-center gap-2.5">
+                <!-- flex-wrap + whitespace-nowrap: di layar sempit judul dan pil
+                     berebut satu baris, dan pilnya yang kalah -- teksnya terlipat
+                     jadi "2 Channel / Terhubung". Sekarang pilnya utuh dan turun
+                     ke baris bawah kalau memang tidak muat. -->
+                <h3 class="text-base sm:text-lg font-bold text-foreground flex flex-wrap items-center gap-2.5">
                   <span>ThingSpeak Cloud Channels</span>
-                  <span class="text-xs px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold border border-slate-200/80 dark:border-slate-700">
+                  <span class="text-xs px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold border border-slate-200/80 dark:border-slate-700 whitespace-nowrap shrink-0">
                     {{ channelsQuery.data.value?.length || 0 }} Channel Terhubung
                   </span>
                 </h3>

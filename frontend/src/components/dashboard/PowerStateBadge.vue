@@ -69,7 +69,7 @@ const parsedLabel = computed(() => {
     class="flex flex-row sm:flex-col items-center justify-center text-left sm:text-center gap-3 sm:gap-1.5 select-none relative py-2.5 sm:py-2 px-3 sm:px-0.5 min-h-[60px] sm:min-h-[140px] rounded-2xl bg-slate-50/80 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 sm:bg-transparent sm:dark:bg-transparent sm:border-0"
   >
     <!-- STATE 1: SURPLUS (3D Sun - Floating Levitation) -->
-    <div v-if="normalizedStatus === 'surplus'" class="relative flex items-center justify-center w-10 h-10 sm:w-16 sm:h-16 shrink-0 z-10">
+    <div v-if="normalizedStatus === 'surplus'" class="relative flex items-center justify-center w-12 h-12 sm:w-19 sm:h-19 shrink-0 z-10">
       <img 
         src="/sun-dynamic-color.svg" 
         alt="Solar Aktif" 
@@ -78,7 +78,7 @@ const parsedLabel = computed(() => {
     </div>
 
     <!-- STATE 2: DEFISIT (3D Battery - Heartbeat Pulse) -->
-    <div v-else-if="normalizedStatus === 'defisit'" class="relative flex items-center justify-center w-10 h-10 sm:w-16 sm:h-16 shrink-0 z-10">
+    <div v-else-if="normalizedStatus === 'defisit'" class="relative flex items-center justify-center w-12 h-12 sm:w-19 sm:h-19 shrink-0 z-10">
       <img 
         src="/battery-dynamic-color.svg" 
         alt="Tenaga Baterai" 
@@ -87,7 +87,7 @@ const parsedLabel = computed(() => {
     </div>
 
     <!-- STATE 3: STANDBY (3D Shield Check - Calm Breathing) -->
-    <div v-else-if="normalizedStatus === 'standby'" class="relative flex items-center justify-center w-10 h-10 sm:w-16 sm:h-16 shrink-0 z-10">
+    <div v-else-if="normalizedStatus === 'standby'" class="relative flex items-center justify-center w-12 h-12 sm:w-19 sm:h-19 shrink-0 z-10">
       <img 
         src="/sheild-dynamic-color.svg" 
         alt="Daya Seimbang" 
@@ -96,7 +96,7 @@ const parsedLabel = computed(() => {
     </div>
 
     <!-- STATE 4: OFFLINE (3D Wi-Fi - Grayscale) -->
-    <div v-else class="relative flex items-center justify-center w-10 h-10 sm:w-16 sm:h-16 shrink-0 z-10">
+    <div v-else class="relative flex items-center justify-center w-12 h-12 sm:w-19 sm:h-19 shrink-0 z-10">
       <img 
         src="/wifi-dynamic-color.svg" 
         alt="Sensor Offline" 

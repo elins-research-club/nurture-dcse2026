@@ -17,9 +17,14 @@ const props = withDefaults(defineProps<{
   maxThreshold?: number | null
   isStale?: boolean
   readingAt?: string | null
+  /* Dipakai kalau kartunya berbagi baris dengan kartu lain di layar sempit
+     (baris NPK: 3 kartu bersebelahan). Cuma mengecilkan tipografi di bawah
+     breakpoint sm; dari sm ke atas ukurannya sama saja seperti biasa. */
+  compact?: boolean
 }>(), {
   size: 'default',
   isStale: false,
+  compact: false,
 })
 
 // Status kapsul (Rendah / Ideal / Tinggi) SEMATA dari ambang operator di
@@ -193,12 +198,21 @@ const semanticTheme = computed(() => {
     
     <div class="flex items-start justify-between relative z-10 gap-2">
       <div class="min-w-0 flex-1">
-        <p class="font-semibold text-sm sm:text-base text-white tracking-wide drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)] line-clamp-2 leading-snug">{{ title }}</p>
-        <div class="flex items-baseline gap-1.5 mt-1">
-          <h3 class="font-black tracking-tight text-white text-3xl sm:text-4xl drop-shadow-[0_1.5px_3px_rgba(0,0,0,0.4)]">
+        <p :class="[
+          'font-semibold text-white tracking-wide drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)] line-clamp-2 leading-snug',
+          compact ? 'text-xs sm:text-base' : 'text-sm sm:text-base'
+        ]">{{ title }}</p>
+        <div class="flex items-baseline gap-1 sm:gap-1.5 mt-1">
+          <h3 :class="[
+            'font-black tracking-tight text-white drop-shadow-[0_1.5px_3px_rgba(0,0,0,0.4)]',
+            compact ? 'text-xl sm:text-4xl' : 'text-3xl sm:text-4xl'
+          ]">
             {{ value !== null && value !== undefined ? value : '--' }}
           </h3>
-          <span class="text-white/95 font-bold text-sm drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]">{{ unit }}</span>
+          <span :class="[
+            'text-white/95 font-bold drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]',
+            compact ? 'text-[10px] sm:text-sm' : 'text-sm'
+          ]">{{ unit }}</span>
         </div>
         <!-- Angka hasil forward-fill: pembacaan lama yang disalin karena paket
              terbaru tidak membawa field ini. -->

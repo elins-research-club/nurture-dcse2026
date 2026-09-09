@@ -172,15 +172,21 @@ const handleFullLogout = () => {
         v-else 
         class="sticky top-2 sm:top-3.5 z-40 w-full px-2 sm:px-6 pointer-events-none transition-all duration-300 mb-2 sm:mb-3.5"
       >
-        <div class="max-w-6xl mx-auto rounded-2xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl backdrop-saturate-150 border border-white/80 dark:border-white/10 ring-1 ring-slate-900/5 dark:ring-white/5 shadow-[inset_0_1.5px_0_0_rgba(255,255,255,1),inset_0_0_20px_0_rgba(255,255,255,0.35),0_6px_24px_-4px_rgba(15,23,42,0.07)] dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12),inset_0_0_20px_0_rgba(255,255,255,0.02),0_6px_24px_-4px_rgba(0,0,0,0.35)] px-3 sm:px-6 py-2 sm:py-2.5 flex items-center justify-between gap-2 sm:gap-3 pointer-events-auto transition-all">
+        <div class="max-w-6xl mx-auto rounded-2xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl backdrop-saturate-150 border border-white/80 dark:border-white/10 ring-1 ring-slate-900/5 dark:ring-white/5 shadow-[inset_0_1.5px_0_0_rgba(255,255,255,1),inset_0_0_20px_0_rgba(255,255,255,0.35),0_6px_24px_-4px_rgba(15,23,42,0.07)] dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12),inset_0_0_20px_0_rgba(255,255,255,0.02),0_6px_24px_-4px_rgba(0,0,0,0.35)] px-4 sm:px-6 py-3 sm:py-2.5 flex flex-wrap items-center justify-between gap-x-2 gap-y-2.5 sm:gap-3 pointer-events-auto transition-all">
           <!-- Logo & Branding -->
-          <div class="flex items-center gap-2 sm:gap-2.5 shrink-0">
-            <img src="/logo-icon.webp" alt="KENNO Logo" class="w-6 h-6 sm:w-7.5 sm:h-7.5 object-contain shrink-0" />
-            <h1 class="text-sm sm:text-lg font-extrabold text-foreground tracking-tight">KENNO</h1>
+          <div class="flex items-center gap-2.5 shrink-0">
+            <img src="/logo-icon.webp" alt="KENNO Logo" class="w-7 h-7 sm:w-7.5 sm:h-7.5 object-contain shrink-0" />
+            <h1 class="text-base sm:text-lg font-extrabold text-foreground tracking-tight">KENNO</h1>
           </div>
 
           <!-- Center Slot for Node Switcher in Public Mode -->
-          <div class="flex-1 flex items-center justify-center min-w-0">
+          <!-- Di layar sempit pemilih stasiun turun ke barisnya sendiri.
+               Sebelumnya ia flex-1 di antara dua kelompok shrink-0 yang jumlah
+               lebarnya sudah melebihi layar, jadi lebarnya terhitung nyaris nol
+               dan isinya menabrak tombol tema di sebelahnya.
+               empty:hidden supaya tidak menyisakan baris kosong di halaman
+               yang tidak mengisi slot ini. -->
+          <div class="order-last w-full flex items-center justify-center min-w-0 empty:hidden sm:order-none sm:w-auto sm:flex-1">
             <slot name="header-center" />
           </div>
 

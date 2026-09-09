@@ -37,6 +37,65 @@ const mapContainer = ref<HTMLElement | null>(null)
 let map: L.Map | null = null
 const markers: Record<string, L.Marker> = {}
 
+// --- Mobile Draggable Bottom Sheet for Node Sidebar ---
+// Di layar sempit, panel node dijadikan bottom sheet yang bisa diseret turun
+// (menyisakan cuma handle + judul) supaya peta di belakangnya kelihatan.
+// Di sm+ (desktop/tablet) tetap panel mengambang biasa, tidak draggable.
+const sheetRef = ref<HTMLElement | null>(null)
+const isMobileSheet = ref(false)
+const sheetCollapsed = ref(false)
+const sheetDragOffset = ref(0)
+const isDraggingSheet = ref(false)
+const SHEET_PEEK_PX = 84
+let dragStartY = 0
+let dragStartOffset = 0
+
+const updateIsMobileSheet = () => {
+  isMobileSheet.value = window.matchMedia('(max-width: 639px)').matches
+}
+
+const sheetMaxOffset = () => Math.max(0, (sheetRef.value?.offsetHeight ?? 0) - SHEET_PEEK_PX)
+
+const sheetTransformStyle = computed(() => {
+  if (!isMobileSheet.value) return {}
+  const base = sheetCollapsed.value ? sheetMaxOffset() : 0
+  const offset = Math.min(Math.max(base + sheetDragOffset.value, 0), sheetMaxOffset())
+  return { transform: `translateY(${offset}px)` }
+})
+
+const onSheetHandlePointerDown = (e: PointerEvent) => {
+  if (!isMobileSheet.value) return
+  isDraggingSheet.value = true
+  dragStartY = e.clientY
+  dragStartOffset = sheetCollapsed.value ? sheetMaxOffset() : 0
+  sheetDragOffset.value = 0
+  ;(e.currentTarget as HTMLElement)?.setPointerCapture?.(e.pointerId)
+  window.addEventListener('pointermove', onSheetHandlePointerMove)
+  window.addEventListener('pointerup', onSheetHandlePointerUp)
+}
+
+const onSheetHandlePointerMove = (e: PointerEvent) => {
+  if (!isDraggingSheet.value) return
+  sheetDragOffset.value = e.clientY - dragStartY
+}
+
+const onSheetHandlePointerUp = () => {
+  if (!isDraggingSheet.value) return
+  const dragDistance = Math.abs(sheetDragOffset.value)
+  if (dragDistance < 6) {
+    // Dianggap tap, bukan geser: cukup toggle collapsed/expanded.
+    sheetCollapsed.value = !sheetCollapsed.value
+  } else {
+    const maxOffset = sheetMaxOffset()
+    const finalOffset = Math.min(Math.max(dragStartOffset + sheetDragOffset.value, 0), maxOffset)
+    sheetCollapsed.value = finalOffset > maxOffset * 0.4
+  }
+  sheetDragOffset.value = 0
+  isDraggingSheet.value = false
+  window.removeEventListener('pointermove', onSheetHandlePointerMove)
+  window.removeEventListener('pointerup', onSheetHandlePointerUp)
+}
+
 const editMode = ref(false)
 const editingNode = ref<string | null>(null)
 const editLat = ref('')
@@ -415,6 +474,9 @@ const saveCoords = async (node: any) => {
 }
 
 onMounted(() => {
+  updateIsMobileSheet()
+  window.addEventListener('resize', updateIsMobileSheet)
+
   // World bounds to prevent panning into grey empty areas
   const worldBounds = L.latLngBounds(L.latLng(-85.06, -180), L.latLng(85.06, 180))
 
@@ -517,6 +579,9 @@ watch(nodes, (list) => {
 onUnmounted(() => {
   map?.remove()
   map = null
+  window.removeEventListener('resize', updateIsMobileSheet)
+  window.removeEventListener('pointermove', onSheetHandlePointerMove)
+  window.removeEventListener('pointerup', onSheetHandlePointerUp)
 })
 </script>
 
@@ -541,8 +606,25 @@ onUnmounted(() => {
         G-Connect Smart Farming
       </div>
 
-      <!-- Floating Node Locations Sidebar -->
-      <aside class="absolute top-3 left-3 right-3 sm:right-auto sm:top-5 sm:left-5 max-h-[45vh] md:max-h-[75vh] w-auto sm:w-[340px] z-10 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-border/80 dark:border-slate-800 flex flex-col overflow-hidden transition-all duration-300">
+      <!-- Floating Node Locations Sidebar / Mobile Draggable Bottom Sheet -->
+      <aside
+        ref="sheetRef"
+        :style="sheetTransformStyle"
+        :class="[
+          'fixed inset-x-0 bottom-0 h-[72vh] rounded-t-3xl',
+          'sm:absolute sm:inset-x-auto sm:bottom-auto sm:top-5 sm:left-5 sm:h-auto sm:max-h-[75vh] sm:w-[340px] sm:rounded-2xl',
+          'z-20 sm:z-10 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl shadow-2xl border border-border/80 dark:border-slate-800 flex flex-col overflow-hidden',
+          isDraggingSheet ? '' : 'transition-transform duration-300 ease-out'
+        ]"
+      >
+        <!-- Mobile Drag Handle (hidden on sm+, desktop panel isn't draggable) -->
+        <div
+          class="sm:hidden flex items-center justify-center py-2.5 shrink-0 cursor-grab active:cursor-grabbing touch-none select-none"
+          @pointerdown="onSheetHandlePointerDown"
+        >
+          <span class="w-10 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700"></span>
+        </div>
+
         <!-- Header -->
         <div class="p-4 border-b border-slate-100 dark:border-slate-800">
           <div class="flex items-center justify-between">
