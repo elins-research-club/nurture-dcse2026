@@ -119,8 +119,8 @@ const handleFullLogout = () => {
       >
         <!-- Logo & Branding -->
         <router-link to="/dashboard" class="flex items-center gap-1.5 shrink-0 focus:outline-none select-none">
-          <img src="/logo-icon.webp" alt="G-Connect Logo" class="w-6 h-6 object-contain shrink-0" />
-          <span class="text-sm font-black tracking-tight text-foreground">G-CONNECT</span>
+          <img src="/logo-icon.webp" alt="KENNO Logo" class="w-6 h-6 object-contain shrink-0" />
+          <span class="text-sm font-black tracking-tight text-foreground">KENNO</span>
         </router-link>
 
         <!-- Center Slot for Node Switcher on Mobile -->
@@ -175,8 +175,8 @@ const handleFullLogout = () => {
         <div class="max-w-6xl mx-auto rounded-2xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl backdrop-saturate-150 border border-white/80 dark:border-white/10 ring-1 ring-slate-900/5 dark:ring-white/5 shadow-[inset_0_1.5px_0_0_rgba(255,255,255,1),inset_0_0_20px_0_rgba(255,255,255,0.35),0_6px_24px_-4px_rgba(15,23,42,0.07)] dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12),inset_0_0_20px_0_rgba(255,255,255,0.02),0_6px_24px_-4px_rgba(0,0,0,0.35)] px-3 sm:px-6 py-2 sm:py-2.5 flex items-center justify-between gap-2 sm:gap-3 pointer-events-auto transition-all">
           <!-- Logo & Branding -->
           <div class="flex items-center gap-2 sm:gap-2.5 shrink-0">
-            <img src="/logo-icon.webp" alt="G-Connect Logo" class="w-6 h-6 sm:w-7.5 sm:h-7.5 object-contain shrink-0" />
-            <h1 class="text-sm sm:text-lg font-extrabold text-foreground tracking-tight">G-CONNECT</h1>
+            <img src="/logo-icon.webp" alt="KENNO Logo" class="w-6 h-6 sm:w-7.5 sm:h-7.5 object-contain shrink-0" />
+            <h1 class="text-sm sm:text-lg font-extrabold text-foreground tracking-tight">KENNO</h1>
           </div>
 
           <!-- Center Slot for Node Switcher in Public Mode -->
