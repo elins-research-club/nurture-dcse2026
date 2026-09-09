@@ -227,13 +227,14 @@ const semanticTheme = computed(() => {
       </div>
 
       <!-- Structured Stacked Status & Threshold Container (Option B - Apple Health Style) -->
+      <!-- Di mobile (di bawah sm), badge/kapsul disembunyikan (hidden sm:flex) sama seperti kartu metric kondisi tanah agar tidak sempit/terpotong -->
       <div 
         v-if="thresholdStatus"
         :class="[
-          'bg-white/20 hover:bg-white/25 backdrop-blur-md text-white border border-white/35 shadow-sm shrink-0 transition-all select-none',
+          'bg-white/20 hover:bg-white/25 backdrop-blur-md text-white border border-white/35 shadow-sm shrink-0 transition-all select-none hidden sm:flex',
           (thresholdStatus.status === 'low' || thresholdStatus.status === 'high') && (thresholdStatus.min != null || thresholdStatus.max != null)
-            ? 'px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-2xl flex flex-col items-center gap-1.5 min-w-[125px] sm:min-w-[140px]'
-            : 'px-4 py-2 rounded-full flex items-center gap-2'
+            ? 'px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-2xl flex-col items-center gap-1.5 min-w-[125px] sm:min-w-[140px]'
+            : 'px-4 py-2 rounded-full items-center gap-2'
         ]"
       >
         <!-- Status with Icon (Prominent & Bold) -->

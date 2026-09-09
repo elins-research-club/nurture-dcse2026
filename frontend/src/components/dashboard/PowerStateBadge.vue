@@ -66,10 +66,10 @@ const parsedLabel = computed(() => {
 <template>
   <!-- KOTAK STATUS 3D RESPONSIVE: HORIZONTAL PILL ON MOBILE, JUMBO VERTICAL ON DESKTOP -->
   <div 
-    class="flex flex-row sm:flex-col items-center justify-center text-left sm:text-center gap-3 sm:gap-1.5 select-none relative py-2.5 sm:py-2 px-3 sm:px-0.5 min-h-[60px] sm:min-h-[140px]"
+    class="flex flex-row sm:flex-col items-center justify-center text-left sm:text-center gap-3 sm:gap-2 select-none relative py-2.5 sm:py-3 px-3 sm:px-1 min-h-[60px] sm:min-h-[160px] h-full"
   >
     <!-- STATE 1: SURPLUS (3D Sun - Floating Levitation) -->
-    <div v-if="normalizedStatus === 'surplus'" class="relative flex items-center justify-center w-14 h-14 sm:w-22 sm:h-22 shrink-0 z-10">
+    <div v-if="normalizedStatus === 'surplus'" class="relative flex items-center justify-center w-14 h-14 sm:w-26 sm:h-26 lg:w-30 lg:h-30 shrink-0 z-10">
       <img 
         src="/sun-dynamic-color.svg" 
         alt="Solar Aktif" 
@@ -78,7 +78,7 @@ const parsedLabel = computed(() => {
     </div>
 
     <!-- STATE 2: DEFISIT (3D Battery - Heartbeat Pulse) -->
-    <div v-else-if="normalizedStatus === 'defisit'" class="relative flex items-center justify-center w-14 h-14 sm:w-22 sm:h-22 shrink-0 z-10">
+    <div v-else-if="normalizedStatus === 'defisit'" class="relative flex items-center justify-center w-14 h-14 sm:w-26 sm:h-26 lg:w-30 lg:h-30 shrink-0 z-10">
       <img 
         src="/battery-dynamic-color.svg" 
         alt="Tenaga Baterai" 
@@ -87,7 +87,7 @@ const parsedLabel = computed(() => {
     </div>
 
     <!-- STATE 3: STANDBY (3D Shield Check - Calm Breathing) -->
-    <div v-else-if="normalizedStatus === 'standby'" class="relative flex items-center justify-center w-14 h-14 sm:w-22 sm:h-22 shrink-0 z-10">
+    <div v-else-if="normalizedStatus === 'standby'" class="relative flex items-center justify-center w-14 h-14 sm:w-26 sm:h-26 lg:w-30 lg:h-30 shrink-0 z-10">
       <img 
         src="/sheild-dynamic-color.svg" 
         alt="Daya Seimbang" 
@@ -96,7 +96,7 @@ const parsedLabel = computed(() => {
     </div>
 
     <!-- STATE 4: OFFLINE (3D Wi-Fi - Grayscale) -->
-    <div v-else class="relative flex items-center justify-center w-14 h-14 sm:w-22 sm:h-22 shrink-0 z-10">
+    <div v-else class="relative flex items-center justify-center w-14 h-14 sm:w-26 sm:h-26 lg:w-30 lg:h-30 shrink-0 z-10">
       <img 
         src="/wifi-dynamic-color.svg" 
         alt="Sensor Offline" 
@@ -106,10 +106,10 @@ const parsedLabel = computed(() => {
 
     <!-- Typography Beside/Underneath Icon -->
     <div class="relative z-10 flex flex-col items-start sm:items-center">
-      <span class="text-xs sm:text-sm font-extrabold text-foreground tracking-tight leading-tight">
+      <span class="text-xs sm:text-base lg:text-lg font-black text-foreground tracking-tight leading-tight">
         {{ parsedLabel.title }}
       </span>
-      <span :class="['text-[10px] sm:text-[11px] font-bold mt-0.5 leading-tight', parsedLabel.colorClass]">
+      <span :class="['text-[10px] sm:text-xs lg:text-sm font-bold mt-0.5 leading-tight', parsedLabel.colorClass]">
         {{ parsedLabel.subtitle }}
       </span>
     </div>

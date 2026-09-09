@@ -1404,6 +1404,23 @@ onUnmounted(() => {
           </CardContent>
         </Card>
 
+        <!-- ROW: 3 NPK Highlight Cards (Khusus Mobile di atas Mini Map!) -->
+        <!-- Di mode mobile (di bawah lg), baris NPK tampil di sini (di atas Mini Map). Di desktop (lg+) disembunyikan karena sudah ada di posisi semula di atas Chart -->
+        <div v-if="npkSensors.length > 0" class="lg:hidden grid grid-cols-3 gap-2">
+          <SensorCard
+            v-for="sensor in npkSensors"
+            :key="sensor.id"
+            :title="sensor.name"
+            :value="getLiveVal(sensor)"
+            :unit="sensor.unit"
+            type="npk"
+            size="default"
+            compact
+            :min-threshold="sensor.min_threshold"
+            :max-threshold="sensor.max_threshold"
+          />
+        </div>
+
         <!-- CARD 2: Mini Map (1:1 Ratio Square Card) -->
         <Card class="relative overflow-hidden w-full aspect-square flex flex-col group shadow-xs">
           <div ref="miniMapContainer" data-lenis-prevent class="w-full h-full absolute inset-0 z-0" />
@@ -1502,8 +1519,8 @@ onUnmounted(() => {
           </div>
         </Card>
 
-        <!-- CARD 4: KONDISI IOT (Suhu & Kelembaban Box Panel / Lingkungan) -->
-        <Card class="relative overflow-hidden flex flex-col">
+        <!-- CARD 4: KONDISI IOT (Desktop only di bawah Status Aktuator!) -->
+        <Card class="hidden lg:flex relative overflow-hidden flex-col">
           <div class="p-4 flex flex-col gap-3 flex-1 justify-between">
             <!-- Portlet Header -->
             <div class="flex items-center justify-between pb-2 border-b border-border/40">
@@ -1612,12 +1629,9 @@ onUnmounted(() => {
       <!-- SISI KANAN (lg:col-span-9 / ~75%): NPK, CHART & DOMAIN PORTLETS -->
       <!-- ═══════════════════════════════════════════════════════════════════════════ -->
       <div class="lg:col-span-9 flex flex-col gap-3.5">
-        
-        <!-- ROW 1: 3 NPK Highlight Cards (Original Compact Rectangular Size!) -->
-        <!-- Selalu 3 kolom, termasuk di HP (dulu grid-cols-1, jadi menumpuk
-             ke bawah dan makan tiga layar). compact mengecilkan tipografi
-             kartunya khusus di layar sempit supaya muat bertiga. -->
-        <div v-if="npkSensors.length > 0" class="grid grid-cols-3 gap-2 sm:gap-3">
+
+        <!-- ROW 1: 3 NPK Highlight Cards (Posisi Semula di Desktop!) -->
+        <div v-if="npkSensors.length > 0" class="hidden lg:grid grid-cols-3 gap-3">
           <SensorCard
             v-for="sensor in npkSensors"
             :key="sensor.id"
@@ -1626,7 +1640,6 @@ onUnmounted(() => {
             :unit="sensor.unit"
             type="npk"
             size="default"
-            compact
             :min-threshold="sensor.min_threshold"
             :max-threshold="sensor.max_threshold"
           />
@@ -1920,14 +1933,118 @@ onUnmounted(() => {
 
         </div>
 
+        <!-- ROW: KONDISI IOT (Mobile only di atas Kondisi Tanah!) -->
+        <Card class="lg:hidden relative overflow-hidden flex flex-col">
+          <div class="p-4 flex flex-col gap-3 flex-1 justify-between">
+            <!-- Portlet Header -->
+            <div class="flex items-center justify-between pb-2 border-b border-border/40">
+              <div class="flex items-center gap-3">
+                <img src="/iot-icon.svg" alt="Kondisi IoT" class="w-6 h-6 sm:w-7 sm:h-7 object-contain dark:invert shrink-0" />
+                <h4 class="text-base sm:text-lg font-extrabold tracking-tight text-foreground leading-tight">Kondisi IoT</h4>
+              </div>
+            </div>
+
+            <!-- 1 Baris: 3 Kartu Kondisi IoT (Suhu Dalam Panel, Suhu Luar, Kelembaban Udara) -->
+            <div class="grid grid-cols-3 gap-2 sm:gap-3">
+              <!-- 1. Suhu Dalam Panel (Enclosure) -->
+              <div 
+                :class="[
+                  'relative overflow-hidden p-2.5 sm:p-3 rounded-2xl text-white border-0 shadow-[inset_0_1px_1.5px_rgba(255,255,255,0.4),0_3px_12px_-2px_rgba(0,0,0,0.08)] flex flex-col justify-between group hover:scale-[1.01] transition-transform min-h-[96px] sm:min-h-[102px]',
+                  enclosureTempCardState.gradient,
+                  enclosureTempCardState.shadow
+                ]"
+              >
+                <!-- Soft Glass Inner Glow / Lighting Reflection -->
+                <div 
+                  class="absolute inset-0 pointer-events-none opacity-20"
+                  style="background: radial-gradient(circle at 85% 15%, rgba(255, 255, 255, 0.4) 0%, transparent 60%);"
+                ></div>
+                <DotPattern :width="12" :height="12" :cx="1" :cy="1" :cr="1" class="text-white/20" />
+                <div class="relative z-10 flex flex-col justify-between h-full flex-1">
+                  <span class="text-xs sm:text-sm font-bold text-white line-clamp-2 leading-snug block drop-shadow-sm" :title="enclosureTempMetric?.name || 'Suhu Dalam Panel'">
+                    {{ enclosureTempMetric?.name || 'Suhu Dalam Panel' }}
+                  </span>
+                  <div class="flex items-baseline gap-1 mt-auto pt-2">
+                    <span class="text-xl sm:text-2xl font-black tracking-tight text-white font-mono">
+                      {{ getLiveVal(enclosureTempMetric) ?? '--' }}
+                    </span>
+                    <span class="text-xs font-bold text-white/90">
+                      {{ enclosureTempMetric?.unit || '°C' }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 2. Suhu Luar / Ambient -->
+              <div 
+                :class="[
+                  'relative overflow-hidden p-2.5 sm:p-3 rounded-2xl text-white border-0 shadow-[inset_0_1px_1.5px_rgba(255,255,255,0.4),0_3px_12px_-2px_rgba(0,0,0,0.08)] flex flex-col justify-between group hover:scale-[1.01] transition-transform min-h-[96px] sm:min-h-[102px]',
+                  airTempCardState.gradient,
+                  airTempCardState.shadow
+                ]"
+              >
+                <!-- Soft Glass Inner Glow / Lighting Reflection -->
+                <div 
+                  class="absolute inset-0 pointer-events-none opacity-20"
+                  style="background: radial-gradient(circle at 85% 15%, rgba(255, 255, 255, 0.4) 0%, transparent 60%);"
+                ></div>
+                <DotPattern :width="12" :height="12" :cx="1" :cy="1" :cr="1" class="text-white/20" />
+                <div class="relative z-10 flex flex-col justify-between h-full flex-1">
+                  <span class="text-xs sm:text-sm font-bold text-white line-clamp-2 leading-snug block drop-shadow-sm" :title="airTempMetric?.name || 'Suhu Luar'">
+                    {{ airTempMetric?.name || 'Suhu Luar' }}
+                  </span>
+                  <div class="flex items-baseline gap-1 mt-auto pt-2">
+                    <span class="text-xl sm:text-2xl font-black tracking-tight text-white font-mono">
+                      {{ getLiveVal(airTempMetric) ?? '--' }}
+                    </span>
+                    <span class="text-xs font-bold text-white/90">
+                      {{ airTempMetric?.unit || '°C' }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 3. Kelembaban Udara -->
+              <div 
+                :class="[
+                  'relative overflow-hidden p-2.5 sm:p-3 rounded-2xl text-white border-0 shadow-[inset_0_1px_1.5px_rgba(255,255,255,0.4),0_3px_12px_-2px_rgba(0,0,0,0.08)] flex flex-col justify-between group hover:scale-[1.01] transition-transform min-h-[96px] sm:min-h-[102px]',
+                  humidityCardState.gradient,
+                  humidityCardState.shadow
+                ]"
+              >
+                <!-- Soft Glass Inner Glow / Lighting Reflection -->
+                <div 
+                  class="absolute inset-0 pointer-events-none opacity-20"
+                  style="background: radial-gradient(circle at 85% 15%, rgba(255, 255, 255, 0.4) 0%, transparent 60%);"
+                ></div>
+                <DotPattern :width="12" :height="12" :cx="1" :cy="1" :cr="1" class="text-white/20" />
+                <div class="relative z-10 flex flex-col justify-between h-full flex-1">
+                  <span class="text-xs sm:text-sm font-bold text-white line-clamp-2 leading-snug block drop-shadow-sm" :title="humidityMetric?.name || 'Kelembaban'">
+                    {{ humidityMetric?.name || 'Kelembaban' }}
+                  </span>
+                  <div class="flex items-baseline gap-1 mt-auto pt-2">
+                    <span class="text-xl sm:text-2xl font-black tracking-tight text-white font-mono">
+                      {{ getLiveVal(humidityMetric) ?? '--' }}
+                    </span>
+                    <span class="text-xs font-bold text-white/90">
+                      {{ humidityMetric?.unit || '%' }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </Card>
+
         <!-- ROW 3: Dua Portlet Berdampingan (Kondisi Tanah & Sistem Daya Kelistrikan) -->
         <div class="grid grid-cols-1 xl:grid-cols-2 gap-3.5">
           
           <!-- PORTLET 1: KONDISI TANAH -->
-          <Card class="relative overflow-hidden flex flex-col">
-            <div class="p-4 flex flex-col gap-3 flex-1 justify-between">
+          <Card class="relative overflow-hidden flex flex-col min-h-[300px] lg:min-h-[345px]">
+            <div class="p-4 sm:p-5 flex flex-col gap-3.5 flex-1 justify-between">
               <!-- Portlet Header -->
-              <div class="flex items-center justify-between pb-2 border-b border-border/40">
+              <div class="flex items-center justify-between pb-2.5 border-b border-border/40">
                 <div class="flex items-center gap-3">
                   <img src="/soil-icon.svg" alt="Kondisi Tanah" class="w-6 h-6 sm:w-7 sm:h-7 object-contain dark:invert shrink-0" />
                   <h4 class="text-base sm:text-lg font-extrabold tracking-tight text-foreground leading-tight">Kondisi Tanah</h4>
@@ -1935,11 +2052,11 @@ onUnmounted(() => {
               </div>
 
               <!-- Multi-Probe Moisture Comparison Widget -->
-              <div class="bg-slate-50/80 dark:bg-slate-900/50 rounded-2xl p-3 sm:p-3.5 border border-slate-200/80 dark:border-slate-800 flex flex-col justify-between gap-3 flex-1">
+              <div class="bg-slate-50/80 dark:bg-slate-900/50 rounded-2xl p-3.5 sm:p-4 border border-slate-200/80 dark:border-slate-800 flex flex-col justify-between gap-3.5 flex-1">
                 <!-- Header: Judul & Rata-rata Menonjol -->
                 <div class="flex items-center justify-between gap-3">
                   <div class="flex items-center gap-3">
-                    <div class="w-9 h-9 rounded-xl bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                    <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
                       <Droplets class="w-5 h-5 stroke-[2.5]" />
                     </div>
                     <p class="text-sm sm:text-base font-semibold text-slate-800 dark:text-slate-100 tracking-wide leading-tight">
@@ -1950,7 +2067,7 @@ onUnmounted(() => {
                   <!-- Moisture Value Display (Teks Besar) -->
                   <div class="flex items-baseline gap-1 shrink-0">
                     <span v-if="soilProbes.length > 1" class="text-xs sm:text-sm font-bold text-blue-600 dark:text-blue-400 mr-0.5">Avg:</span>
-                    <span class="text-2xl sm:text-3xl font-black text-blue-600 dark:text-blue-400 font-mono tracking-tight">
+                    <span class="text-2xl sm:text-3xl lg:text-4xl font-black text-blue-600 dark:text-blue-400 font-mono tracking-tight">
                       {{ realTimeAvgMoisture != null ? `${realTimeAvgMoisture}%` : '--' }}
                     </span>
                   </div>
@@ -1997,7 +2114,7 @@ onUnmounted(() => {
                 <!-- pH Tanah Card (Dynamic 3-State: Asam: Oranye-Merah | Optimal: Emerald | Basa: Ungu/Indigo) -->
                 <div 
                   :class="[
-                    'relative overflow-hidden p-2 sm:p-2.5 lg:p-3 rounded-2xl text-white border-0 shadow-[inset_0_1px_1.5px_rgba(255,255,255,0.4),0_3px_12px_-2px_rgba(0,0,0,0.08)] flex flex-col justify-between min-w-0 min-h-[96px] sm:min-h-[102px] group hover:scale-[1.01] transition-transform',
+                    'relative overflow-hidden p-2 sm:p-2.5 lg:p-3 rounded-2xl text-white border-0 shadow-[inset_0_1px_1.5px_rgba(255,255,255,0.4),0_3px_12px_-2px_rgba(0,0,0,0.08)] flex flex-col justify-between min-w-0 min-h-[105px] sm:min-h-[120px] group hover:scale-[1.01] transition-transform',
                     phCardState.gradient,
                     phCardState.shadow
                   ]"
@@ -2052,7 +2169,7 @@ onUnmounted(() => {
                 <!-- Suhu Tanah Card (Dynamic 3-State: Dingin: Biru Ice | Optimal: Oranye Hangat | Panas: Merah Rose Alert) -->
                 <div 
                   :class="[
-                    'relative overflow-hidden p-2 sm:p-2.5 lg:p-3 rounded-2xl text-white border-0 shadow-[inset_0_1px_1.5px_rgba(255,255,255,0.4),0_3px_12px_-2px_rgba(0,0,0,0.08)] flex flex-col justify-between min-w-0 min-h-[96px] sm:min-h-[102px] group hover:scale-[1.01] transition-transform',
+                    'relative overflow-hidden p-2 sm:p-2.5 lg:p-3 rounded-2xl text-white border-0 shadow-[inset_0_1px_1.5px_rgba(255,255,255,0.4),0_3px_12px_-2px_rgba(0,0,0,0.08)] flex flex-col justify-between min-w-0 min-h-[105px] sm:min-h-[120px] group hover:scale-[1.01] transition-transform',
                     soilTempCardState.gradient,
                     soilTempCardState.shadow
                   ]"
@@ -2107,7 +2224,7 @@ onUnmounted(() => {
                 <!-- EC (Electrical Conductivity) Card (Dynamic 3-State: Rendah: Amber | Optimal: Lime/Emerald | Pekat: Merah Salin) -->
                 <div 
                   :class="[
-                    'relative overflow-hidden p-2 sm:p-2.5 lg:p-3 rounded-2xl text-white border-0 shadow-[inset_0_1px_1.5px_rgba(255,255,255,0.4),0_3px_12px_-2px_rgba(0,0,0,0.08)] flex flex-col justify-between min-w-0 min-h-[96px] sm:min-h-[102px] group hover:scale-[1.01] transition-transform',
+                    'relative overflow-hidden p-2 sm:p-2.5 lg:p-3 rounded-2xl text-white border-0 shadow-[inset_0_1px_1.5px_rgba(255,255,255,0.4),0_3px_12px_-2px_rgba(0,0,0,0.08)] flex flex-col justify-between min-w-0 min-h-[105px] sm:min-h-[120px] group hover:scale-[1.01] transition-transform',
                     ecCardState.gradient,
                     ecCardState.shadow
                   ]"
@@ -2164,10 +2281,10 @@ onUnmounted(() => {
           </Card>
 
           <!-- PORTLET 2: SISTEM SOLAR PANEL (INA226) -->
-          <Card class="relative overflow-hidden flex flex-col">
-            <div class="p-4 flex flex-col gap-3 flex-1 justify-between">
+          <Card class="relative overflow-hidden flex flex-col min-h-[300px] lg:min-h-[345px]">
+            <div class="p-4 sm:p-5 flex flex-col gap-3.5 flex-1 justify-between">
               <!-- Portlet Header -->
-              <div class="flex items-center justify-between pb-2 border-b border-border/40">
+              <div class="flex items-center justify-between pb-2.5 border-b border-border/40">
                 <div class="flex items-center gap-3">
                   <Zap class="w-6 h-6 sm:w-7 sm:h-7 text-foreground stroke-[2.2] shrink-0" />
                   <h4 class="text-base sm:text-lg font-extrabold tracking-tight text-foreground leading-tight">
@@ -2176,8 +2293,8 @@ onUnmounted(() => {
                 </div>
               </div>
 
-              <!-- Top Section: Status Sistem 3D, Baterai 12V & Beban Sistem (Kolom 1 compact, Kolom 2 & 3 ekspansif) -->
-              <div class="grid grid-cols-1 sm:grid-cols-[100px_1fr_1fr] gap-2.5 flex-1">
+              <!-- Top Section: Status Sistem 3D, Baterai 12V & Beban Sistem (Kolom 1 dialokasikan lebih lebar dan proporsional untuk ikon 3D jumbo) -->
+              <div class="grid grid-cols-1 sm:grid-cols-[120px_1fr_1fr] lg:grid-cols-[135px_1fr_1fr] xl:grid-cols-[145px_1fr_1fr] gap-3 flex-1">
                 
                 <!-- KOTAK 1: STATUS SISTEM (3D Jumbo Micro-Animation) -->
                 <PowerStateBadge 
@@ -2186,7 +2303,7 @@ onUnmounted(() => {
                 />
 
                 <!-- KOTAK 2: BATERAI 12V -->
-                <div class="bg-slate-50/80 dark:bg-slate-900/50 rounded-2xl p-3 border border-slate-200/80 dark:border-slate-800 flex flex-col justify-between gap-2.5">
+                <div class="bg-slate-50/80 dark:bg-slate-900/50 rounded-2xl p-3 sm:p-3.5 border border-slate-200/80 dark:border-slate-800 flex flex-col justify-between gap-3">
                   <div class="flex items-center justify-between">
                     <div class="flex items-center gap-1.5">
                       <component :is="power?.is_charging ? BatteryCharging : Battery" class="w-5.25 h-5.25 text-emerald-600 dark:text-emerald-400" />
@@ -2222,25 +2339,25 @@ onUnmounted(() => {
                     </div>
                   </div>
 
-                  <!-- Sub: Arus & Daya Baterai -->
-                  <div class="grid grid-cols-2 gap-1.5 pt-2 border-t border-slate-200/60 dark:border-slate-800/60 text-center">
-                    <div class="bg-white/70 dark:bg-slate-800/50 rounded-lg p-1.5 border border-slate-200/50 dark:border-slate-700/50">
-                      <p class="text-[9px] font-bold text-muted-foreground uppercase">Arus</p>
-                      <p class="text-xs font-mono font-black text-foreground mt-0.5">
+                  <!-- Sub: Arus & Daya Baterai (Teks Lebih Besar & Nyaman Dibaca) -->
+                  <div class="grid grid-cols-2 gap-2 pt-2.5 border-t border-slate-200/60 dark:border-slate-800/60 text-center">
+                    <div class="bg-white/80 dark:bg-slate-800/60 rounded-xl p-2 border border-slate-200/60 dark:border-slate-700/60 flex flex-col justify-center">
+                      <p class="text-[10px] sm:text-xs font-extrabold text-muted-foreground uppercase tracking-wider">Arus</p>
+                      <p class="text-xs sm:text-sm lg:text-base font-mono font-black text-foreground mt-0.5 tracking-tight">
                         {{ power?.arus_in != null ? `${Number(power.arus_in) > 0 ? '+' : ''}${Number(power.arus_in).toFixed(3)} A` : '--' }}
                       </p>
                     </div>
-                    <div class="bg-white/70 dark:bg-slate-800/50 rounded-lg p-1.5 border border-slate-200/50 dark:border-slate-700/50">
-                      <p class="text-[9px] font-bold text-muted-foreground uppercase">Daya</p>
-                      <p class="text-xs font-mono font-black text-foreground mt-0.5">
+                    <div class="bg-white/80 dark:bg-slate-800/60 rounded-xl p-2 border border-slate-200/60 dark:border-slate-700/60 flex flex-col justify-center">
+                      <p class="text-[10px] sm:text-xs font-extrabold text-muted-foreground uppercase tracking-wider">Daya</p>
+                      <p class="text-xs sm:text-sm lg:text-base font-mono font-black text-foreground mt-0.5 tracking-tight">
                         {{ power?.daya_in != null ? `${Number(power.daya_in) > 0 ? '+' : ''}${Number(power.daya_in).toFixed(2)} W` : '--' }}
                       </p>
                     </div>
                   </div>
                 </div>
 
-                <!-- KOTAK 2: BEBAN SISTEM -->
-                <div class="bg-slate-50/80 dark:bg-slate-900/50 rounded-2xl p-3 border border-slate-200/80 dark:border-slate-800 flex flex-col justify-between gap-2.5">
+                <!-- KOTAK 3: BEBAN SISTEM -->
+                <div class="bg-slate-50/80 dark:bg-slate-900/50 rounded-2xl p-3 sm:p-3.5 border border-slate-200/80 dark:border-slate-800 flex flex-col justify-between gap-3">
                   <div class="flex items-center justify-between">
                     <div class="flex items-center gap-1.5">
                       <Zap class="w-5.25 h-5.25 text-amber-600 dark:text-amber-400" />
@@ -2274,17 +2391,17 @@ onUnmounted(() => {
                     </div>
                   </div>
 
-                  <!-- Sub: Tegangan & Daya Beban -->
-                  <div class="grid grid-cols-2 gap-1.5 pt-2 border-t border-slate-200/60 dark:border-slate-800/60 text-center">
-                    <div class="bg-white/70 dark:bg-slate-800/50 rounded-lg p-1.5 border border-slate-200/50 dark:border-slate-700/50">
-                      <p class="text-[9px] font-bold text-muted-foreground uppercase">Tegangan</p>
-                      <p class="text-xs font-mono font-black text-foreground mt-0.5">
+                  <!-- Sub: Tegangan & Daya Beban (Teks Lebih Besar & Nyaman Dibaca) -->
+                  <div class="grid grid-cols-2 gap-2 pt-2.5 border-t border-slate-200/60 dark:border-slate-800/60 text-center">
+                    <div class="bg-white/80 dark:bg-slate-800/60 rounded-xl p-2 border border-slate-200/60 dark:border-slate-700/60 flex flex-col justify-center">
+                      <p class="text-[10px] sm:text-xs font-extrabold text-muted-foreground uppercase tracking-wider">Tegangan</p>
+                      <p class="text-xs sm:text-sm lg:text-base font-mono font-black text-foreground mt-0.5 tracking-tight">
                         {{ power?.tegangan_out != null ? `${Number(power.tegangan_out).toFixed(2)} V` : '--' }}
                       </p>
                     </div>
-                    <div class="bg-white/70 dark:bg-slate-800/50 rounded-lg p-1.5 border border-slate-200/50 dark:border-slate-700/50">
-                      <p class="text-[9px] font-bold text-muted-foreground uppercase">Daya</p>
-                      <p class="text-xs font-mono font-black text-foreground mt-0.5">
+                    <div class="bg-white/80 dark:bg-slate-800/60 rounded-xl p-2 border border-slate-200/60 dark:border-slate-700/60 flex flex-col justify-center">
+                      <p class="text-[10px] sm:text-xs font-extrabold text-muted-foreground uppercase tracking-wider">Daya</p>
+                      <p class="text-xs sm:text-sm lg:text-base font-mono font-black text-foreground mt-0.5 tracking-tight">
                         {{ power?.daya_out != null ? `${Number(power.daya_out).toFixed(2)} W` : '--' }}
                       </p>
                     </div>
@@ -2293,13 +2410,13 @@ onUnmounted(() => {
 
               </div>
 
-              <!-- Bottom Section: Neraca Daya (1 Baris Bersih & Netral) -->
-              <div class="bg-slate-50/80 dark:bg-slate-900/50 rounded-2xl px-3.5 py-2.5 border border-slate-200/80 dark:border-slate-800 flex items-center justify-between gap-2.5">
+              <!-- Bottom Section: Neraca Daya (1 Baris Bersih & Netral dengan Tipografi Jelas) -->
+              <div class="bg-slate-50/80 dark:bg-slate-900/50 rounded-2xl px-4 py-3 border border-slate-200/80 dark:border-slate-800 flex items-center justify-between gap-2.5">
                 <!-- Neraca Daya Bersih Tanpa Background Warna -->
-                <div class="flex items-center gap-2">
-                  <span class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">NERACA DAYA SISTEM:</span>
+                <div class="flex items-center gap-2.5">
+                  <span class="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400">NERACA DAYA SISTEM:</span>
                   <div 
-                    class="flex items-center gap-1.5 text-sm font-black tracking-tight"
+                    class="flex items-center gap-1.5 text-sm sm:text-base font-black tracking-tight"
                     :class="[
                       power?.net_power > 0 
                         ? 'text-emerald-600 dark:text-emerald-400' 
