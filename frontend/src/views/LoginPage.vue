@@ -338,7 +338,7 @@ const handleLogin = () => {
             <img src="/logo-icon.webp" alt="Lab ELINS Logo" class="w-full h-full object-contain drop-shadow-md" />
           </div>
           <div class="text-center">
-            <h1 class="text-2xl font-bold tracking-tight text-foreground">G-CONNECT</h1>
+            <h1 class="text-2xl font-bold tracking-tight text-foreground">NURTURE</h1>
             <p class="text-sm text-muted-foreground mt-0.5">Smart Farming Platform</p>
           </div>
         </div>
@@ -402,7 +402,7 @@ const handleLogin = () => {
               v-model="username"
               type="text"
               autocomplete="username"
-              placeholder="e.g. gconnect"
+              placeholder="e.g. nurture"
               class="h-10 bg-background/50 dark:bg-[#06090e]/80 dark:border-white/[0.12] dark:focus:border-emerald-500 transition-all"
               :class="usernameError ? 'border-red-500 dark:border-red-500/80 ring-1 ring-red-500/30' : ''"
               @input="usernameError = ''"
@@ -512,7 +512,7 @@ const handleLogin = () => {
             <img src="/logo-webdev.webp" alt="Webdev ERC UGM" class="h-8 max-w-[38px] object-contain select-none brightness-0 invert group-hover:brightness-100 group-hover:invert-0 dark:group-hover:invert opacity-85 group-hover:opacity-100 group-hover:scale-105 transition-all duration-300 drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)] group-hover:drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]" title="Webdev ERC UGM" />
           </div>
           <p class="text-[11px] font-semibold text-white/90 drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)]">
-            &copy; 2026 G-CONNECT &bull; Laboratorium Riset Sistem Elektronika & Instrumentasi UGM
+            &copy; 2026 NURTURE &bull; Laboratorium Riset Sistem Elektronika & Instrumentasi UGM
           </p>
         </div>
 

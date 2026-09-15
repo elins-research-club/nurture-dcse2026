@@ -69,7 +69,7 @@ const isActive = (path: string) => {
       >
         <img 
           src="/logo-icon.webp" 
-          alt="G-CONNECT Logo" 
+          alt="NURTURE Logo" 
           class="w-8 h-8 object-contain shrink-0 transition-all duration-300 ease-out group-hover:drop-shadow-[0_0_12px_rgba(239,68,68,0.75)] group-hover:scale-105 group-active:scale-95" 
         />
       </button>
@@ -79,7 +79,7 @@ const isActive = (path: string) => {
         :class="collapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'"
       >
         <h1 class="text-xl font-extrabold text-foreground tracking-tight whitespace-nowrap">
-          G-CONNECT
+          NURTURE
         </h1>
       </div>
     </div>
@@ -152,7 +152,7 @@ const isActive = (path: string) => {
               Akun Anda saat ini tersimpan di peramban ini. Silakan tentukan metode keluar sesi:
             </template>
             <template v-else>
-              Apakah Anda yakin ingin keluar dari sesi sistem monitoring <strong class="text-foreground font-bold">G-CONNECT</strong>?
+              Apakah Anda yakin ingin keluar dari sesi sistem monitoring <strong class="text-foreground font-bold">NURTURE</strong>?
             </template>
           </DialogDescription>
         </DialogHeader>

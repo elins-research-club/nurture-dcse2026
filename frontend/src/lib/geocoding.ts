@@ -8,7 +8,7 @@ export async function reverseGeocode(lat: number, lng: number): Promise<string> 
     const res = await fetch(url, {
       headers: {
         'Accept-Language': 'id, en',
-        'User-Agent': 'G-Connect-SmartFarming/1.0'
+        'User-Agent': 'Nurture-SmartFarming/1.0'
       }
     })
 

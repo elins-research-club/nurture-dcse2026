@@ -1,11 +1,11 @@
-// Service worker G-Connect.
+// Service worker Nurture.
 //
 // Berjalan terpisah dari halaman, jadi notifikasi tetap datang walau tab
 // ditutup atau browser sedang di belakang. Ini yang membedakannya dari
 // Notification API biasa yang butuh halaman terbuka.
 
 self.addEventListener('push', (event) => {
-  let data = { judul: 'G-Connect', isi: '', url: '/dashboard' }
+  let data = { judul: 'Nurture', isi: '', url: '/dashboard' }
   try {
     data = { ...data, ...event.data.json() }
   } catch (e) {

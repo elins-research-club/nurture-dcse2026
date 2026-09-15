@@ -119,8 +119,8 @@ const handleFullLogout = () => {
       >
         <!-- Logo & Branding -->
         <router-link to="/dashboard" class="flex items-center gap-1.5 shrink-0 focus:outline-none select-none">
-          <img src="/logo-icon.webp" alt="KENNO Logo" class="w-6 h-6 object-contain shrink-0" />
-          <span class="text-sm font-black tracking-tight text-foreground">KENNO</span>
+          <img src="/logo-icon.webp" alt="Nurture Logo" class="w-6 h-6 object-contain shrink-0" />
+          <span class="text-sm font-black tracking-tight text-foreground">Nurture</span>
         </router-link>
 
         <!-- Center Slot for Node Switcher on Mobile -->
@@ -175,8 +175,8 @@ const handleFullLogout = () => {
         <div class="max-w-6xl mx-auto rounded-2xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl backdrop-saturate-150 border border-white/80 dark:border-white/10 ring-1 ring-slate-900/5 dark:ring-white/5 shadow-[inset_0_1.5px_0_0_rgba(255,255,255,1),inset_0_0_20px_0_rgba(255,255,255,0.35),0_6px_24px_-4px_rgba(15,23,42,0.07)] dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12),inset_0_0_20px_0_rgba(255,255,255,0.02),0_6px_24px_-4px_rgba(0,0,0,0.35)] px-4 sm:px-6 py-3 sm:py-2.5 flex flex-wrap items-center justify-between gap-x-2 gap-y-2.5 sm:gap-3 pointer-events-auto transition-all">
           <!-- Logo & Branding -->
           <div class="flex items-center gap-2.5 shrink-0">
-            <img src="/logo-icon.webp" alt="KENNO Logo" class="w-7 h-7 sm:w-7.5 sm:h-7.5 object-contain shrink-0" />
-            <h1 class="text-base sm:text-lg font-extrabold text-foreground tracking-tight">KENNO</h1>
+            <img src="/logo-icon.webp" alt="Nurture Logo" class="w-7 h-7 sm:w-7.5 sm:h-7.5 object-contain shrink-0" />
+            <h1 class="text-base sm:text-lg font-extrabold text-foreground tracking-tight">Nurture</h1>
           </div>
 
           <!-- Center Slot for Node Switcher in Public Mode -->
@@ -346,7 +346,7 @@ const handleFullLogout = () => {
                   Akun Anda saat ini tersimpan di peramban ini. Silakan tentukan metode keluar sesi:
                 </template>
                 <template v-else>
-                  Apakah Anda yakin ingin keluar dari sesi sistem monitoring <strong class="text-foreground font-bold">G-CONNECT</strong>?
+                  Apakah Anda yakin ingin keluar dari sesi sistem monitoring <strong class="text-foreground font-bold">NURTURE</strong>?
                 </template>
               </DialogDescription>
             </DialogHeader>

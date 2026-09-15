@@ -1,6 +1,6 @@
-# 🌿 G-Connect — Smart Farming IoT Platform
+# 🌿 Nurture — Smart Farming IoT Platform
 
-Platform monitoring, analitik cerdas, dan manajemen perangkat IoT terintegrasi untuk pertanian presisi (*smart agriculture*). G-Connect menghubungkan stasiun sensor dan aktuator di lapangan dengan antarmuka web modern dan aplikasi mobile secara *real-time* untuk memantau kondisi tanah, iklim mikro, status perangkat keras, serta menyediakan laporan agronomi eksekutif dan deteksi anomali otomatis.
+Platform monitoring, analitik cerdas, dan manajemen perangkat IoT terintegrasi untuk pertanian presisi (*smart agriculture*). Nurture menghubungkan stasiun sensor dan aktuator di lapangan dengan antarmuka web modern dan aplikasi mobile secara *real-time* untuk memantau kondisi tanah, iklim mikro, status perangkat keras, serta menyediakan laporan agronomi eksekutif dan deteksi anomali otomatis.
 
 ---
 
@@ -71,7 +71,7 @@ Platform monitoring, analitik cerdas, dan manajemen perangkat IoT terintegrasi u
    * Peta Google Maps Hybrid Satellite Tiles resolusi tinggi via Leaflet.
    * Visualisasi pin marker stasiun lahan, status online/offline, dan drag-to-update koordinat GPS.
 4. **📄 Generator Laporan PDF & CSV Eksekutif:**
-   * **Laporan Resmi PDF:** Tata letak dokumen resmi berlogo 4 institusi (UGM, DIKE, ELINS, G-Connect), evaluasi batas agronomi, dan metadata GPS.
+   * **Laporan Resmi PDF:** Tata letak dokumen resmi berlogo 4 institusi (UGM, DIKE, ELINS, Nurture), evaluasi batas agronomi, dan metadata GPS.
    * **CSV Export Wizard:** 3-step wizard interaktif (pilihan stasiun, rentang waktu kustom, agregasi rata-rata).
 5. **🔔 Notifikasi Anomali Telegram:**
    * Pengiriman otomatis pesan peringatan dini saat parameter sensor melampaui batas kritis atau perangkat *offline*.
@@ -266,7 +266,7 @@ Dokumentasi interaktif OpenAPI / Swagger dapat diakses di: **`http://localhost:8
 
 ## 👥 Tim Pengembang & Kolaborasi
 
-**G-Connect Smart Farming Platform**  
+**Nurture Smart Farming Platform**  
 Program Pengabdian Masyarakat — Laboratorium Elektronika dan Instrumentasi (ELINS)  
 Departemen Ilmu Komputer dan Elektronika, Fakultas MIPA, Universitas Gadjah Mada
 
@@ -279,5 +279,5 @@ Departemen Ilmu Komputer dan Elektronika, Fakultas MIPA, Universitas Gadjah Mada
 ---
 
 <p align="center">
-  <sub>&copy; 2026 G-CONNECT &bull; Laboratorium ELINS DIKE Universitas Gadjah Mada</sub>
+  <sub>&copy; 2026 NURTURE &bull; Laboratorium ELINS DIKE Universitas Gadjah Mada</sub>
 </p>

@@ -104,7 +104,7 @@ async def uji_push(
     """Kirim satu notifikasi uji ke semua perangkat terdaftar."""
     jumlah = await kirim_push(
         db,
-        "G-Connect",
+        "Nurture",
         "Uji koneksi berhasil. Alert sensor akan masuk ke sini.",
         "/dashboard",
     )

@@ -1,7 +1,7 @@
 """
 dummy_gconnect_writer.py
 
-Writes simulated sensor data to all four G-Connect ThingSpeak channels so the
+Writes simulated sensor data to all four Nurture ThingSpeak channels so the
 backend and Vue frontend can be tested without the ESP32 nodes attached.
 
 Mirrors the real firmware's behaviour:
@@ -343,7 +343,7 @@ def report(label, payload, entry_id, dry_run):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Write dummy sensor data to all four G-Connect ThingSpeak channels"
+        description="Write dummy sensor data to all four Nurture ThingSpeak channels"
     )
     parser.add_argument("--node", choices=["node1", "node2", "both"], default="both")
     parser.add_argument("--interval", type=float, default=DEFAULT_INTERVAL,

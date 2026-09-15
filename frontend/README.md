@@ -1,6 +1,6 @@
-# 🌿 G-Connect — Frontend Application
+# 🌿 Nurture — Frontend Application
 
-Aplikasi web dashboard real-time untuk platform IoT Smart Farming G-Connect, dibangun menggunakan **Vue 3**, **TypeScript**, **Vite**, dan **TailwindCSS v4**.
+Aplikasi web dashboard real-time untuk platform IoT Smart Farming Nurture, dibangun menggunakan **Vue 3**, **TypeScript**, **Vite**, dan **TailwindCSS v4**.
 
 ---
 

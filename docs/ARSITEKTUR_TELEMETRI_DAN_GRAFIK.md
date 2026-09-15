@@ -1,4 +1,4 @@
-# 📊 Arsitektur Sistem Telemetri & Visualisasi Grafik Real-Time (G-Connect)
+# 📊 Arsitektur Sistem Telemetri & Visualisasi Grafik Real-Time (Nurture)
 
 > **Dokumen Teknis untuk Presentasi Akademik & Sidang Proyek**  
 > **Topik:** *Dual-Track Architecture (Hot-Path In-Memory FIFO Ring Buffer & Cold-Path Async Queue) pada Sistem Monitoring IoT Smart Farming.*

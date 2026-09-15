@@ -42,7 +42,7 @@ async def simulate_node(node_id: str, interval: int):
             await asyncio.sleep(interval)
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="G-CONNECT Dummy Node Simulator")
+    parser = argparse.ArgumentParser(description="NURTURE Dummy Node Simulator")
     parser.add_argument("--node", type=str, required=True, help="Node ID to simulate (e.g., NODE-001)")
     parser.add_argument("--interval", type=int, default=5, help="Interval in seconds between telemetry (default: 5)")
     

@@ -111,7 +111,7 @@ async def test_telegram(
     url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
     payload = {
         "chat_id": chat_id,
-        "text": "🌱 *G-Connect Smart Farming*\n\n✅ *Notifikasi Uji Coba Berhasil!*\nIntegrasi Bot Telegram Anda telah terhubung dan siap menerima peringatan anomali lahan.",
+        "text": "🌱 *Nurture Smart Farming*\n\n✅ *Notifikasi Uji Coba Berhasil!*\nIntegrasi Bot Telegram Anda telah terhubung dan siap menerima peringatan anomali lahan.",
         "parse_mode": "Markdown"
     }
     

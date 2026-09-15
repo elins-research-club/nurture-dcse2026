@@ -1,5 +1,5 @@
 /**
- * G-CONNECT Official Telemetry Report Generator
+ * NURTURE Official Telemetry Report Generator
  *
  * Produces a formal, single-ink institutional document (kop surat + document
  * reference number + ruled data tables) suitable for archival and inter-agency
@@ -389,8 +389,8 @@ export async function generateExecutivePDFReport(options: PDFReportOptions): Pro
     title: `Laporan Evaluasi Telemetri - ${options.nodeName || options.nodeCode || 'Stasiun'} (${docRef})`,
     subject: `Laporan evaluasi telemetri stasiun pertanian presisi - kategori ${catLabel}, periode ${options.rangeLabel}`,
     author: options.generatedBy || 'Pengelola Lahan / Peneliti',
-    keywords: 'G-Connect, Smart Farming, Telemetri, IoT, Agronomi, Laporan Resmi',
-    creator: 'G-Connect Smart Farming Platform'
+    keywords: 'Nurture, Smart Farming, Telemetri, IoT, Agronomi, Laporan Resmi',
+    creator: 'Nurture Smart Farming Platform'
   })
 
   // ---------------------------------------------------------------
@@ -885,7 +885,7 @@ export async function generateExecutivePDFReport(options: PDFReportOptions): Pro
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(6.8)
   doc.setTextColor(...INK_SOFT)
-  doc.text('G-Connect Smart Farming Platform', signX, y)
+  doc.text('Nurture Smart Farming Platform', signX, y)
 
   // ===============================================================
   // RUNNING HEAD + FOOTER on every page
@@ -908,7 +908,7 @@ export async function generateExecutivePDFReport(options: PDFReportOptions): Pro
     doc.setFont('helvetica', 'normal')
     doc.setFontSize(6.5)
     doc.setTextColor(...INK_SOFT)
-    doc.text(`Nomor ${docRef}  •  Dokumen dihasilkan otomatis oleh G-Connect Smart Farming Platform`, MARGIN, pageHeight - 9)
+    doc.text(`Nomor ${docRef}  •  Dokumen dihasilkan otomatis oleh Nurture Smart Farming Platform`, MARGIN, pageHeight - 9)
     trackedRight(`Halaman ${i} dari ${totalPages}`, pageWidth - MARGIN, pageHeight - 9, 0.2)
   }
 

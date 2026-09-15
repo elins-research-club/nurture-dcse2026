@@ -1,5 +1,5 @@
 /**
- * G-CONNECT Telemetry CSV Exporter Utility
+ * NURTURE Telemetry CSV Exporter Utility
  * Formats time-series sensor telemetry data into structured CSV files with UTF-8 BOM for Microsoft Excel compatibility.
  */
 
@@ -154,7 +154,7 @@ export function exportTelemetryToCSV(options: TelemetryExportOptions): { success
   const meta = (label: string, value: any) => `${q(label)},${q(value)}`
 
   const preamble: string[] = [
-    q('LAPORAN TELEMETRI G-CONNECT'),
+    q('LAPORAN TELEMETRI NURTURE'),
     meta('Stasiun', nodeName),
     meta('Kode Stasiun', nodeCode || '-'),
     meta('Periode Laporan', periodLabel || timeRangeLabel),
@@ -179,7 +179,7 @@ export function exportTelemetryToCSV(options: TelemetryExportOptions): { success
   const cleanRange = timeRangeLabel.toLowerCase().replace(/[^a-z0-9_-]/g, '_')
   
   link.setAttribute('href', url)
-  link.setAttribute('download', `gconnect_${filenamePrefix}_${cleanNodeCode}_${cleanRange}_${dateStamp}.csv`)
+  link.setAttribute('download', `nurture_${filenamePrefix}_${cleanNodeCode}_${cleanRange}_${dateStamp}.csv`)
   document.body.appendChild(link)
   link.click()
   document.body.removeChild(link)
