@@ -136,7 +136,7 @@ onUnmounted(() => {
       >
         <div class="flex items-center gap-2.5 min-w-0">
           <!-- Pulse Dot -->
-          <div class="w-3.5 h-3.5 rounded-full bg-emerald-500 shadow-xs shadow-emerald-500/50 shrink-0"></div>
+          <!-- <div class="w-3.5 h-3.5 rounded-full bg-emerald-500 shadow-xs shadow-emerald-500/50 shrink-0"></div> -->
           
           <span class="font-extrabold text-sm sm:text-base text-foreground group-hover:text-primary transition-colors truncate">
             {{ activeNode?.name || 'Pilih Stasiun' }}
@@ -245,7 +245,7 @@ onUnmounted(() => {
             title="Klik atau tekan Ctrl+K untuk beralih stasiun"
           >
             <!-- Station Live Indicator Dot -->
-            <div class="w-3.5 h-3.5 rounded-full bg-emerald-500 shadow-xs shadow-emerald-500/50 shrink-0"></div>
+            <!-- <div class="w-3.5 h-3.5 rounded-full bg-emerald-500 shadow-xs shadow-emerald-500/50 shrink-0"></div> -->
 
             <!-- Node Details -->
             <div class="flex items-center gap-2.5 text-left">
@@ -275,7 +275,7 @@ onUnmounted(() => {
           <!-- Right: Station Connection Status Badge (Enlarged by 25%) -->
           <div class="hidden md:flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-white/60 dark:bg-card/60 backdrop-blur-md border border-border/80 text-xs sm:text-sm text-muted-foreground font-medium">
             <Radio class="w-4 h-4 text-emerald-500 shrink-0" />
-            <span class="font-semibold text-foreground/80">{{ nodes.length }} Stasiun Terhubung di Lapangan</span>
+            <span class="font-semibold text-foreground/80">{{ nodes.length }} Node di Lapangan Terhubung</span>
           </div>
         </div>
         
@@ -318,10 +318,7 @@ onUnmounted(() => {
 
               <!-- Node List Body -->
               <div data-lenis-prevent class="p-2 overflow-y-auto space-y-1 divide-y-0">
-                <div class="px-2.5 py-1.5 flex items-center justify-between text-[10px] font-mono font-bold tracking-wider text-muted-foreground uppercase">
-                  <span>Daftar Node Lapangan</span>
-                  <span class="text-primary">{{ filteredNodes.length }} Stasiun</span>
-                </div>
+                
 
                 <!-- Empty State -->
                 <div v-if="!filteredNodes.length" class="py-12 text-center text-muted-foreground space-y-2">
@@ -344,8 +341,7 @@ onUnmounted(() => {
                   ]"
                 >
                   <div class="flex items-center gap-3">
-                    <!-- Dot Indicator -->
-                    <div class="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-xs shrink-0"></div>
+                    
 
                     <div>
                       <div class="flex items-center gap-2">

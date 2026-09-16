@@ -866,7 +866,7 @@ const updatePassword = async () => {
                 </div>
                 <div class="space-y-1 flex-1">
                   <div class="flex items-center gap-2">
-                    <span class="font-semibold text-foreground text-xs">Aktifkan Bot Nurture</span>
+                    <span class="font-semibold text-foreground text-xs">Aktifkan Bot NURTURE</span>
                     <span class="text-[10px] font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300 bg-amber-200/80 dark:bg-amber-900/60 border border-amber-400 dark:border-amber-600 px-1.5 py-0.5 rounded">Wajib</span>
                   </div>
                   <p class="text-muted-foreground text-[12px] leading-relaxed">

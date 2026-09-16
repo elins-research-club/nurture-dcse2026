@@ -377,20 +377,34 @@ export async function generateExecutivePDFReport(options: PDFReportOptions): Pro
 
   const now = new Date()
   const catLabel = options.categoryLabel || 'Semua Parameter'
-  const serial = String(
-    Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 86400000)
-  ).padStart(3, '0')
-  // Conventional Indonesian reference: urut / unit kerja / instansi / bulan romawi / tahun.
-  // The category rides along in the unit segment so two reports pulled on the same
-  // day for different parameter sets do not share a number.
-  const docRef = `${serial}/ELS-${categoryCode(catLabel)}/UGM/${ROMAN_MONTHS[now.getMonth()]}/${now.getFullYear()}`
+  const catCode = categoryCode(catLabel)
+  
+  // Format tanggal: DD, Bulan Romawi, YYYY
+  const day = String(now.getDate()).padStart(2, '0')
+  const monthRoman = ROMAN_MONTHS[now.getMonth()]
+  const year = now.getFullYear()
+
+  // Nomor urut dokumen yang terekspor dalam sehari (reset tiap hari via localStorage)
+  let dailySeq = 1
+  try {
+    const todayKey = `nurture_pdf_export_count_${year}_${String(now.getMonth() + 1).padStart(2, '0')}_${day}`
+    const currentCount = parseInt(localStorage.getItem(todayKey) || '0', 10)
+    dailySeq = currentCount + 1
+    localStorage.setItem(todayKey, String(dailySeq))
+  } catch {
+    dailySeq = 1
+  }
+  const seq = String(dailySeq).padStart(3, '0')
+
+  // Format: "Kode Kategori/nomor urut dokumen yang terekspor dalam sehari/tanggal/bulan dalam romawi/tahun"
+  const docRef = `${catCode}/${seq}/${day}/${monthRoman}/${year}`
 
   doc.setProperties({
     title: `Laporan Evaluasi Telemetri - ${options.nodeName || options.nodeCode || 'Stasiun'} (${docRef})`,
     subject: `Laporan evaluasi telemetri stasiun pertanian presisi - kategori ${catLabel}, periode ${options.rangeLabel}`,
     author: options.generatedBy || 'Pengelola Lahan / Peneliti',
-    keywords: 'Nurture, Smart Farming, Telemetri, IoT, Agronomi, Laporan Resmi',
-    creator: 'Nurture Smart Farming Platform'
+    keywords: 'NURTURE, Smart Farming, Telemetri, IoT, Agronomi, Laporan Resmi',
+    creator: 'NURTURE Smart Farming Platform'
   })
 
   // ---------------------------------------------------------------
@@ -497,7 +511,7 @@ export async function generateExecutivePDFReport(options: PDFReportOptions): Pro
   doc.setFont('times', 'normal')
   doc.setFontSize(10)
   doc.setTextColor(...INK_MID)
-  trackedCenter('Stasiun Pemantauan Pertanian Presisi', y, 0.2)
+  trackedCenter('Platform Smart Farming NURTURE', y, 0.2)
 
   y += 5
   doc.setFont('helvetica', 'normal')
@@ -885,7 +899,7 @@ export async function generateExecutivePDFReport(options: PDFReportOptions): Pro
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(6.8)
   doc.setTextColor(...INK_SOFT)
-  doc.text('Nurture Smart Farming Platform', signX, y)
+  doc.text('NURTURE Smart Farming Platform', signX, y)
 
   // ===============================================================
   // RUNNING HEAD + FOOTER on every page
@@ -908,7 +922,7 @@ export async function generateExecutivePDFReport(options: PDFReportOptions): Pro
     doc.setFont('helvetica', 'normal')
     doc.setFontSize(6.5)
     doc.setTextColor(...INK_SOFT)
-    doc.text(`Nomor ${docRef}  •  Dokumen dihasilkan otomatis oleh Nurture Smart Farming Platform`, MARGIN, pageHeight - 9)
+    doc.text(`Nomor ${docRef}  •  Dokumen dihasilkan otomatis oleh NURTURE Smart Farming Platform`, MARGIN, pageHeight - 9)
     trackedRight(`Halaman ${i} dari ${totalPages}`, pageWidth - MARGIN, pageHeight - 9, 0.2)
   }
 
