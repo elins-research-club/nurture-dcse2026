@@ -22,7 +22,7 @@ def format_sensor_alert_telegram(
     max_str = f'{max_thresh} {u}'.strip() if max_thresh is not None else '-'
     
     return (
-        f'⚠️ <b>PERINGATAN AMBANG BATAS SENSOR</b>\n'
+        f'<b>PERINGATAN AMBANG BATAS SENSOR</b>\n'
         f'━━━━━━━━━━━━━━━━━━━━━\n'
         f'📍 <b>Node</b>     : {node_name}\n'
         f'🌱 <b>Sensor</b>   : {sensor_name}\n'
@@ -55,12 +55,12 @@ def format_sensor_recovered_telegram(
         rentang_str = '-'
         
     return (
-        f'✅ <b>KONDISI SENSOR PULIH NORMAL</b>\n'
+        f'<b>KONDISI SENSOR PULIH NORMAL</b>\n'
         f'━━━━━━━━━━━━━━━━━━━━━\n'
         f'📍 <b>Node</b>     : {node_name}\n'
         f'🌱 <b>Sensor</b>   : {sensor_name}\n'
         f'📊 <b>Nilai</b>    : <b>{val} {u}</b> (Normal)\n'
-        f'🎯 <b>Rentang Aman</b> : {rentang_str}\n'
+        f'🎯 <b>Range Aman</b> : {rentang_str}\n'
         f'⏰ <b>Waktu</b>    : {waktu_wib}\n'
         f'━━━━━━━━━━━━━━━━━━━━━'
     )
@@ -85,8 +85,8 @@ def format_sensor_push(
     else:
         ambang_str = '-'
         
-    judul = f'⚠️ Peringatan: {node_name}'
-    isi = f'{sensor_name} mencapai {val} {u} ({status_str} | Ambang batas: {ambang_str})'.strip()
+    judul = f'Peringatan: {node_name}'
+    isi = f'⚠️ {sensor_name} mencapai {val} {u} ({status_str} | Ambang batas: {ambang_str})'.strip()
     return judul, isi
 
 def format_sensor_recovered_push(
@@ -96,14 +96,14 @@ def format_sensor_recovered_push(
     unit: str
 ) -> Tuple[str, str]:
     u = unit or ''
-    judul = f'✅ Normal: {node_name}'
+    judul = f'Status Normal: {node_name}'
     isi = f'{sensor_name} dalam keadaan normal di angka {val} {u}'.strip()
     return judul, isi
 
 def format_node_offline_telegram(node_name: str, node_id: str, minutes: int) -> str:
     waktu_wib = get_wib_now_str()
     return (
-        f'🔴 <b>PERINGATAN: ALAT OFFLINE</b>\n'
+        f'<b>PERINGATAN: ALAT OFFLINE</b>\n'
         f'━━━━━━━━━━━━━━━━━━━━━\n'
         f'📍 <b>Node</b>    : {node_name} (<code>{node_id}</code>)\n'
         f'⚠️ <b>Status</b>  : Terputus (Tidak ada data > {minutes} Menit)\n'
@@ -115,7 +115,7 @@ def format_node_offline_telegram(node_name: str, node_id: str, minutes: int) -> 
 def format_node_online_telegram(node_name: str, node_id: str) -> str:
     waktu_wib = get_wib_now_str()
     return (
-        f'🟢 <b>ALAT KEMBALI ONLINE</b>\n'
+        f'<b>ALAT KEMBALI ONLINE</b>\n'
         f'━━━━━━━━━━━━━━━━━━━━━\n'
         f'📍 <b>Node</b>    : {node_name} (<code>{node_id}</code>)\n'
         f'✅ <b>Status</b>  : Terhubung & Aktif Mengirim Data\n'
@@ -124,11 +124,11 @@ def format_node_online_telegram(node_name: str, node_id: str) -> str:
     )
 
 def format_node_offline_push(node_name: str, minutes: int) -> Tuple[str, str]:
-    judul = f'🔴 Alat Offline: {node_name}'
-    isi = f'Alat tidak mengirim data selama lebih dari {minutes} menit. Periksa daya atau jaringan.'
+    judul = f'Alat Offline: {node_name}'
+    isi = f'🔴 Alat tidak mengirim data selama lebih dari {minutes} menit. Periksa daya atau koneksi internet.'
     return judul, isi
 
 def format_node_online_push(node_name: str) -> Tuple[str, str]:
-    judul = f'🟢 Alat Online: {node_name}'
-    isi = 'Alat telah terhubung kembali dan aktif mengirim data telemetri.'
+    judul = f'Alat Online: {node_name}'
+    isi = '🟢 Alat telah terhubung kembali dan aktif mengirim data telemetri.'
     return judul, isi
