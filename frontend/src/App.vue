@@ -37,9 +37,8 @@ onMounted(() => {
     lenis?.scrollTo(0, { immediate: true })
   })
 
-  if (authStore.isAuthenticated()) {
-    telemetryStore.connectWebSocket()
-  }
+  // Always connect WebSocket — endpoint is public, token is optional (passed as query param when available)
+  telemetryStore.connectWebSocket()
 })
 
 onUnmounted(() => {
