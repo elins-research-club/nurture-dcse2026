@@ -50,11 +50,9 @@ onUnmounted(() => {
 })
 
 watch(() => authStore.token, (token) => {
-  if (token) {
-    telemetryStore.connectWebSocket()
-  } else {
-    telemetryStore.disconnectWebSocket()
-  }
+  // Reconnect with new auth state (authenticated or public)
+  telemetryStore.disconnectWebSocket()
+  telemetryStore.connectWebSocket()
 })
 </script>
 
