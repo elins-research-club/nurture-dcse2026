@@ -327,6 +327,15 @@ export const useTelemetryStore = defineStore("telemetry", () => {
       current.unshift(newFeed);
       // Retain live window stream (up to 500 recent points)
       telemetryHistory.value[nodeId] = current.slice(0, 500);
+
+      // Sinkronkan juga ringkasan dashboard agar timestamp header langsung terupdate live
+      if (dashboardSummaries.value[nodeId]) {
+        if (newFeed.created_at) {
+          dashboardSummaries.value[nodeId].last_seen = newFeed.created_at;
+        }
+        dashboardSummaries.value[nodeId].is_active = true;
+      }
+
       cekAmbang(nodeId, newFeed);
     }
     pendingFeeds = {};
